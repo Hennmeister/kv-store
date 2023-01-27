@@ -1,39 +1,22 @@
 #include <iostream>
+#include <vector>
+#include "red-black-tree.h"
 
-enum Color { RED, BLACK };
+using namespace std;
 
-class Node {
-public:
-    int data;
-    bool color;
-    Node* left, * right, * parent;
+Node::Node(int key, int value) {
+    this->key = key;
+    this->value = value;
+    left = right = parent = nullptr;
+    this->color = RED;
+}
 
-    Node(int data) {
-        this->data = data;
-        left = right = parent = nullptr;
-        this->color = RED;
-    }
-};
-
-class RedBlackTree {
-private:
-    Node* root;
-    Node* nil;
-
-    void rotateLeft(Node*&, Node*&);
-    void rotateRight(Node*&, Node*&);
-    void fixViolation(Node*&, Node*&);
-
-public:
-    RedBlackTree() {
-        nil = new Node(-1);
-        nil->color = BLACK;
-        nil->left = nil->right = nil->parent = nil;
-        root = nil;
-    }
-
-    void insert(const int& n);
-};
+RedBlackTree::RedBlackTree(const int& key, const int& value) {
+    nil = new Node(0, 0);
+    nil->color = BLACK;
+    nil->left = nil->right = nil->parent = nil;
+    root = nil;
+}
 
 void RedBlackTree::rotateLeft(Node*& root, Node*& pt) {
     Node* pt_right = pt->right;
@@ -138,31 +121,88 @@ void RedBlackTree::fixViolation(Node*& root, Node*& pt) {
     root->color = BLACK;
 }
 
-void RedBlackTree::insert(const int& data) {
+void RedBlackTree::insert(const int& key, const int& value) {
     Node* pt = root;
     Node* parent = nil;
 
     while (pt != nil) {
         parent = pt;
 
-        if (data < pt->data)
+        if (key < pt->key)
             pt = pt->left;
         else
             pt = pt->right;
     }
 
-    pt = new Node(data);
+
+    pt = new Node(key, value);
     pt->parent = parent;
     pt->left = nil;
     pt->right = nil;
     pt->color = RED;
 
-    if (parent == nil)
+    if (parent == nil) {
         root = pt;
-    else if (data < parent->data)
+        root->color = BLACK;
+    }
+    else if (key < parent->key)
         parent->left = pt;
     else
         parent->right = pt;
 
     fixViolation(root, pt);
 }
+
+int RedBlackTree::get(const int &key) {
+    Node *curr = root;
+    while (curr != nil) {
+        if (curr->key == key) {
+            return curr->value;
+        }
+        else if (curr->key < key) {
+            curr = curr->right;
+        }
+        else {
+            curr = curr->left;
+        }
+    }
+
+    return NULL; // TODO: Determine what to return on key miss
+}
+
+std::tuple<int *, int> RedBlackTree::scan(const int &key1, const int &key2) {
+    std::vector<int> vals_in_range = {};
+    std::vector<Node*> stack = {};
+
+    if (root != nil) {
+        stack.push_back(root);
+    }
+
+
+    while (!stack.empty()) {
+        Node *curr = stack.back();
+        stack.pop_back();
+
+        if (curr == nil) {
+            continue;
+        }
+        if (curr->key >= key1) {
+            stack.push_back(curr->left);
+        }
+        if (curr->key >= key1 && curr->key <= key2){
+            vals_in_range.push_back(curr->value);
+        }
+        if (curr->key <= key2) {
+            stack.push_back(curr->right);
+        }
+    }
+
+    int* vals = new int[vals_in_range.size()];
+    // convert vector to int array
+    for (int i = 0; i < vals_in_range.size(); i++) {
+        vals[i] = vals_in_range[i];
+    }
+    return std::make_tuple(vals, vals_in_range.size());
+}
+
+
