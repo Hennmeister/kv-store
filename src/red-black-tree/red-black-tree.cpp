@@ -122,6 +122,13 @@ void RedBlackTree::fixViolation(Node*& root, Node*& pt) {
 }
 
 void RedBlackTree::insert(const int& key, const int& value) {
+    if (key < min_key) {
+        min_key = key;
+    }
+    if (key > max_key) {
+        max_key = key;
+    }
+
     Node* pt = root;
     Node* parent = nil;
 
@@ -170,8 +177,8 @@ int RedBlackTree::get(const int &key) {
     return NULL; // TODO: Determine what to return on key miss
 }
 
-std::tuple<int *, int> RedBlackTree::scan(const int &key1, const int &key2) {
-    std::vector<int> vals_in_range = {};
+vector<std::pair<int, int>> RedBlackTree::scan(const int &key1, const int &key2) {
+    std::vector<std::pair<int, int>> kv_pairs = {};
     std::vector<Node*> stack = {};
 
     if (root != nil) {
@@ -190,19 +197,13 @@ std::tuple<int *, int> RedBlackTree::scan(const int &key1, const int &key2) {
             stack.push_back(curr->left);
         }
         if (curr->key >= key1 && curr->key <= key2){
-            vals_in_range.push_back(curr->value);
+            kv_pairs.push_back(std::pair(curr->key, curr->value));
         }
         if (curr->key <= key2) {
             stack.push_back(curr->right);
         }
     }
 
-    int* vals = new int[vals_in_range.size()];
-    // convert vector to int array
-    for (int i = 0; i < vals_in_range.size(); i++) {
-        vals[i] = vals_in_range[i];
-    }
-    return std::make_tuple(vals, vals_in_range.size());
+    return kv_pairs;
 }
-
 
