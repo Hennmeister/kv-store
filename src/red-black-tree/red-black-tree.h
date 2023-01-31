@@ -1,6 +1,3 @@
-//
-// Created by Henning Lindig on 2023-01-26.
-//
 
 #ifndef KV_STORE_RED_BLACK_TREE_H
 #define KV_STORE_RED_BLACK_TREE_H

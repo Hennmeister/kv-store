@@ -27,8 +27,6 @@ int main()
     assert(db.scan(-20, 20).size() == 3);
     db.close();
 
-
-
     return 0;
 }
 
