@@ -6,8 +6,10 @@
 
 class KVStore {
 public:
-    // Opens the database with the given name and prepares it to run
-    void open(const int& database_name);
+    KVStore();
+
+// Opens the database with the given name and prepares it to run
+    void open(const std::string& database_name);
 
     // Stores a key associated with a value
     void put(const int& key, const int& value);
@@ -22,7 +24,6 @@ public:
     void close();
 
 private:
-    RedBlackTree memtable;
-
-    bool dumpMemtable();
+    Memtable *memtable;
+    std::string database_name;
 };
