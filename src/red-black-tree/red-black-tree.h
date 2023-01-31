@@ -37,7 +37,7 @@ private:
 public:
     explicit RedBlackTree(const int &memtable_size, const std::string &directory);
 
-    void insert(const int& key, const int& value) override;
+    void put(const int& key, const int& value) override;
     int get(const int& key) override;
     std::vector<std::pair<int, int>> scan(const int& key1, const int& key2) override;
     std::vector<std::pair<int, int>> inorderTraversal() override;

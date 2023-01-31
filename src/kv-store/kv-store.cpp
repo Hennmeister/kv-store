@@ -12,7 +12,7 @@ KVStore::KVStore() {
 }
 
 void KVStore::put(const int &key, const int &value) {
-    memtable->insert(key, value);
+    memtable->put(key, value);
 }
 
 int KVStore::get(const int &key) {

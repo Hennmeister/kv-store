@@ -126,7 +126,7 @@ void RedBlackTree::fixViolation(Node*& root, Node*& pt) {
     root->color = BLACK;
 }
 
-void RedBlackTree::insert(const int& key, const int& value) {
+void RedBlackTree::put(const int& key, const int& value) {
     if (key < min_key) {
         min_key = key;
     }
