@@ -1,1 +1,8 @@
-# csc443-kv-store
+# KV Store Report
+
+## Introduction
+
+## Design Decisions
+
+
+

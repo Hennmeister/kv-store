@@ -14,9 +14,9 @@ int main()
 {
     cout << "Running KVStore Tests "<< endl;
     RedBlackTree *memtable = new RedBlackTree(0, 0);
-    memtable->insert(1, 5);
-    memtable->insert(2, 4);
-    memtable->insert(-1, 5);
+    memtable->put(1, 5);
+    memtable->put(2, 4);
+    memtable->put(-1, 5);
     cout << endl << memtable->get(1) << memtable->get(2) << memtable->get(-1) << memtable->get(5) << endl;
 
     cout << "traversal: " << endl;

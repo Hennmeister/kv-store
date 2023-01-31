@@ -1,6 +1,3 @@
-//
-// Created by Henning Lindig on 2023-01-26.
-//
 
 #ifndef KV_STORE_RED_BLACK_TREE_H
 #define KV_STORE_RED_BLACK_TREE_H
@@ -34,7 +31,7 @@ public:
 
     RedBlackTree(const int& key, const int& value);
 
-    void insert(const int& key, const int& value);
+    void put(const int& key, const int& value);
     int get(const int& key);
     std::vector<std::pair<int, int>> scan(const int& key1, const int& key2);
 };
