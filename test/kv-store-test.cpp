@@ -13,15 +13,19 @@ using namespace std;
 int main()
 {
     cout << "Running KVStore Tests "<< endl;
-    RedBlackTree *memtable = new RedBlackTree(0, 0);
-    memtable->put(1, 5);
-    memtable->put(2, 4);
-    memtable->put(-1, 5);
-    cout << endl << memtable->get(1) << memtable->get(2) << memtable->get(-1) << memtable->get(5) << endl;
 
-    cout << "traversal: " << endl;
-    std::vector<std::pair<int, int>> arr = memtable->scan(-20, 20);
-
+    KVStore db;
+    db.open("new_db");
+    db.put(1,1);
+    db.put(-2, -2);
+    db.put(5,5);
+    assert(db.get(1) == 1);
+    assert(db.get(-2) == -2);
+    assert(db.get(5) == 5);
+    assert(db.get(-1) == 0);
+    assert(db.scan(1, 7).size() == 2);
+    assert(db.scan(-20, 20).size() == 3);
+    db.close();
 
     return 0;
 }

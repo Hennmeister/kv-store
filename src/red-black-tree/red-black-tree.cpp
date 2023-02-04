@@ -11,7 +11,12 @@ Node::Node(int key, int value) {
     this->color = RED;
 }
 
-RedBlackTree::RedBlackTree(const int& key, const int& value) {
+RedBlackTree::RedBlackTree(const int& memtable_size, const string &directory) {
+    capacity = memtable_size;
+    size = 0;
+    min_key = INT_MIN;
+    max_key = INT_MAX;
+    this->directory = directory;
     nil = new Node(0, 0);
     nil->color = BLACK;
     nil->left = nil->right = nil->parent = nil;
@@ -197,7 +202,7 @@ vector<std::pair<int, int>> RedBlackTree::scan(const int &key1, const int &key2)
             stack.push_back(curr->left);
         }
         if (curr->key >= key1 && curr->key <= key2){
-            kv_pairs.push_back(std::pair(curr->key, curr->value));
+            kv_pairs.emplace_back(curr->key, curr->value);
         }
         if (curr->key <= key2) {
             stack.push_back(curr->right);
@@ -207,3 +212,6 @@ vector<std::pair<int, int>> RedBlackTree::scan(const int &key1, const int &key2)
     return kv_pairs;
 }
 
+std::vector<std::pair<int, int>> RedBlackTree::inorderTraversal() {
+    return scan(min_key, max_key);
+}
