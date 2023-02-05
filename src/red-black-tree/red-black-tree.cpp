@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-#include "red-black-tree.h"
+#include "../../include/red-black-tree.h"
 
 using namespace std;
 
@@ -11,12 +11,10 @@ Node::Node(int key, int value) {
     this->color = RED;
 }
 
-RedBlackTree::RedBlackTree(const int& memtable_size, const string &directory) {
-    capacity = memtable_size;
+RedBlackTree::RedBlackTree() {
     size = 0;
     min_key = INT_MIN;
     max_key = INT_MAX;
-    this->directory = directory;
     nil = new Node(0, 0);
     nil->color = BLACK;
     nil->left = nil->right = nil->parent = nil;
@@ -140,12 +138,16 @@ void RedBlackTree::put(const int& key, const int& value) {
     while (pt != nil) {
         parent = pt;
 
+        if (key == pt->key) {
+            pt->value = value;
+            return;
+        }
+
         if (key < pt->key)
             pt = pt->left;
         else
             pt = pt->right;
     }
-
 
     pt = new Node(key, value);
     pt->parent = parent;
@@ -163,6 +165,8 @@ void RedBlackTree::put(const int& key, const int& value) {
         parent->right = pt;
 
     fixViolation(root, pt);
+
+    size++;
 }
 
 int RedBlackTree::get(const int &key) {
@@ -214,4 +218,8 @@ vector<std::pair<int, int>> RedBlackTree::scan(const int &key1, const int &key2)
 
 std::vector<std::pair<int, int>> RedBlackTree::inorderTraversal() {
     return scan(min_key, max_key);
+}
+
+int RedBlackTree::getSize() {
+    return size;
 }
