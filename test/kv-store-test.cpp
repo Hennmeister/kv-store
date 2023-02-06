@@ -7,15 +7,15 @@
 
 #include <iostream>
 #include <cassert>
-#include "../include/kv-store.h"
+#include "../include/SimpleKVStore.h"
 
 using namespace std;
 
 int main()
 {
-    cout << "Running KVStore Tests..."<< endl;
+    cout << "Running SimpleKVStore Tests..."<< endl;
 
-    KVStore db;
+    SimpleKVStore db;
     db.open("new_db");
     db.put(1,1);
     db.put(-2, -2);

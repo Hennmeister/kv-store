@@ -1,43 +1,40 @@
-#include "../../include/memtable.h"
-#include "../../include/red-black-tree.h"
+#include "../../include/RedBlackMemtable.h"
+#include "../../include/RedBlackTree.h"
 
 #include <iostream>
 #include <fstream>
 
 using namespace std;
-
-Memtable::Memtable(const int& memtable_size, const string& directory) {
+RedBlackMemtable::RedBlackMemtable(const int& memtable_size, const string& directory){
     capacity = memtable_size;
     this->directory = directory;
-    data = new RedBlackTree();
-    sst_size = 0;
+    this->data = new RedBlackTree();
 }
 
-void Memtable::put(const int &key, const int &value) {
+void RedBlackMemtable::put(const int &key, const int &value)  {
     if (data->getSize() >= capacity && get(key) == NULL) {
         if (!dumpToSst()) {
             cout << "Invalid file" << endl;
         }
         data = new RedBlackTree();
-        sst_size++;
     }
     data->put(key, value);
 }
 
-int Memtable::get(const int &key) {
+int RedBlackMemtable::get(const int &key)  {
     return data->get(key);
 }
 
-vector<pair<int, int>> Memtable::scan(const int &key1, const int &key2) {
+vector<pair<int, int>> RedBlackMemtable::scan(const int &key1, const int &key2)  {
     return data->scan(key1, key2);
 }
 
-vector<pair<int, int>> Memtable::inorderTraversal() {
+vector<pair<int, int>> RedBlackMemtable::inorderTraversal()  {
     return data->inorderTraversal();
 }
 
-bool Memtable::dumpToSst() {
-    ofstream *file = new ofstream();
+bool RedBlackMemtable::dumpToSst() {
+    auto *file = new ofstream();
     file->open(this->directory + "/ssts.txt", ios::binary | ios::app);
 
     if (!file->is_open())
@@ -53,7 +50,14 @@ bool Memtable::dumpToSst() {
 
     file->close();
 
-    sst_size++;
-
     return true;
 }
+
+
+
+
+
+
+
+
+
