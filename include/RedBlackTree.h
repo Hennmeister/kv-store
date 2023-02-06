@@ -32,7 +32,7 @@ public:
     explicit RedBlackTree();
 
     void put(const int &key, const int &value);
-    int get(const int& key);
+    bool get(const int& key, int& value);
     std::vector<std::pair<int, int>> scan(const int& key1, const int& key2);
     std::vector<std::pair<int, int>> inorderTraversal();
     int getSize();

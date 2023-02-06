@@ -13,7 +13,7 @@ public:
     virtual void put(const int& key, const int& value) =0;
 
     // Retrieves a value associated with a given key
-    virtual int get(const int& key) =0;
+    virtual bool get(const int& key, const int& value) =0;
 
     // Retrieves all KV-pairs in a key range in key order (key1 < key2)
     virtual std::vector<std::pair<int, int>> scan(const int& key1, const int& key2) =0;

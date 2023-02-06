@@ -18,9 +18,9 @@ private:
     RedBlackTree *data;
     string directory;
 public:
-    RedBlackMemtable(const int &memtable_size);
+    explicit RedBlackMemtable(const int &memtable_size);
     void put(const int& key, const int& value) override;
-    int get(const int& key) override;
+    bool get(const int& key, int& value) override;
     vector<pair<int, int>> scan(const int& key1, const int& key2) override;
     vector<pair<int, int>> inorderTraversal() override;
 

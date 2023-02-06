@@ -20,7 +20,7 @@ public:
     void put(const int& key, const int& value) override;
 
     // Retrieves a value associated with a given key
-    int get(const int& key) override;
+    bool get(const int& key, const int& value) override;
 
     // Retrieves all KV-pairs in a key range in key order (key1 < key2)
     std::vector<std::pair<int, int>> scan(const int& key1, const int& key2) override;

@@ -11,7 +11,7 @@ void SimpleKVStore::put(const int &key, const int &value) {
     memtable->put(key, value);
 }
 
-int SimpleKVStore::get(const int &key) {
+bool SimpleKVStore::get(const int &key, const int& value) {
     return memtable->get(key);
 }
 

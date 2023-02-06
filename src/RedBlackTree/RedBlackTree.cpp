@@ -169,11 +169,12 @@ void RedBlackTree::put(const int& key, const int& value) {
     size++;
 }
 
-int RedBlackTree::get(const int &key) {
+bool RedBlackTree::get(const int &key, int& value) {
     Node *curr = root;
     while (curr != nil) {
         if (curr->key == key) {
-            return curr->value;
+            value = curr->value;
+            return true;
         }
         else if (curr->key < key) {
             curr = curr->right;
@@ -183,7 +184,7 @@ int RedBlackTree::get(const int &key) {
         }
     }
 
-    return NULL; // TODO: Determine what to return on key miss
+    return false;
 }
 
 vector<std::pair<int, int>> RedBlackTree::scan(const int &key1, const int &key2) {

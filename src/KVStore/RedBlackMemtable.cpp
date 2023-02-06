@@ -11,7 +11,8 @@ RedBlackMemtable::RedBlackMemtable(const int& memtable_size){
 }
 
 void RedBlackMemtable::put(const int &key, const int &value)  {
-    if (data->getSize() >= capacity && get(key) == NULL) {
+    int val; // Unused store
+    if (data->getSize() >= capacity && !get(key, val)) {
         if (!dumpToSst()) {
             cout << "Invalid file" << endl;
         }
@@ -20,8 +21,8 @@ void RedBlackMemtable::put(const int &key, const int &value)  {
     data->put(key, value);
 }
 
-int RedBlackMemtable::get(const int &key)  {
-    return data->get(key);
+bool RedBlackMemtable::get(const int &key, int& value)  {
+    return data->get(key, value);
 }
 
 vector<pair<int, int>> RedBlackMemtable::scan(const int &key1, const int &key2)  {
