@@ -2,13 +2,13 @@
 
 #include <string>
 #include <vector>
-#include "../src/red-black-tree/red-black-tree.h"
+#include "memtable.h"
 
 class KVStore {
 public:
     KVStore();
 
-// Opens the database with the given name and prepares it to run
+    // Opens the database with the given name and prepares it to run
     void open(const std::string& database_name);
 
     // Stores a key associated with a value
