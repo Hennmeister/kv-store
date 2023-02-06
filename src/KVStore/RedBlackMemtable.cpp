@@ -5,9 +5,8 @@
 #include <fstream>
 
 using namespace std;
-RedBlackMemtable::RedBlackMemtable(const int& memtable_size, const string& directory){
+RedBlackMemtable::RedBlackMemtable(const int& memtable_size){
     capacity = memtable_size;
-    this->directory = directory;
     this->data = new RedBlackTree();
 }
 
@@ -35,7 +34,7 @@ vector<pair<int, int>> RedBlackMemtable::inorderTraversal()  {
 
 bool RedBlackMemtable::dumpToSst() {
     auto *file = new ofstream();
-    file->open(this->directory + "/ssts.txt", ios::binary | ios::app);
+    file->open( "./ssts.txt", ios::binary | ios::app);
 
     if (!file->is_open())
     {

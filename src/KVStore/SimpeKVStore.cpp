@@ -1,12 +1,10 @@
 ﻿#include <filesystem>
 #include "../../include/SimpleKVStore.h"
-#include "../../include/RedBlackMemtable.h"
 
-
-void SimpleKVStore::open(const std::string &db_name) {
+void SimpleKVStore::open(const std::string &db_name, Memtable *memt) {
     std::filesystem::create_directory(db_name);
     this->database_name = db_name;
-    this->memtable = new RedBlackMemtable(100, db_name);
+    this->memtable = memt;
 }
 
 void SimpleKVStore::put(const int &key, const int &value) {

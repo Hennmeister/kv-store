@@ -2,11 +2,12 @@
 
 #include <string>
 #include <vector>
+#include "Memtable.h"
 
 class KVStore {
 public:
     // Opens the database with the given name and prepares it to run
-    virtual void open(const std::string& database_name) =0;
+    virtual void open(const std::string& database_name, Memtable *memt) =0;
 
     // Stores a key associated with a value
     virtual void put(const int& key, const int& value) =0;
