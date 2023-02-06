@@ -11,8 +11,8 @@ void SimpleKVStore::put(const int &key, const int &value) {
     memtable->put(key, value);
 }
 
-bool SimpleKVStore::get(const int &key, const int& value) {
-    return memtable->get(key);
+bool SimpleKVStore::get(const int &key, int& value) {
+    return memtable->get(key, value);
 }
 
 std::vector<std::pair<int, int>> SimpleKVStore::scan(const int &key1, const int &key2) {

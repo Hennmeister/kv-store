@@ -21,12 +21,18 @@ int main()
     db.put(1,1);
     db.put(-2, -2);
     db.put(5,5);
-    assert(db.get(1) == 1);
-    assert(db.get(-2) == -2);
-    assert(db.get(5) == 5);
-    assert(db.get(-1) == 0);
+    int val = 0;
+    db.get(1,val);
+    assert(val == 1);
+
+    db.get(-2, val);
+    assert(val == -2);
+    db.get(5,val);
+    assert(val == 5);
+    assert(db.get(-1,val) == false);
     db.put(1, 10);
-    assert(db.get(1) == 10);
+    db.get(1, val);
+    assert(val == 10);
     assert(db.scan(1, 7).size() == 2);
     assert(db.scan(-20, 20).size() == 3);
     db.put(1000,7);

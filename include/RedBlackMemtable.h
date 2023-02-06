@@ -24,7 +24,7 @@ public:
     vector<pair<int, int>> scan(const int& key1, const int& key2) override;
     vector<pair<int, int>> inorderTraversal() override;
 
-    bool dumpToSst();
+    bool dumpToSst() override;
 };
 
 #endif //KV_STORE_REDBLACKMEMTABLE_H
