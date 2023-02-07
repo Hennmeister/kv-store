@@ -9,6 +9,7 @@
 #include <cassert>
 #include "../include/SimpleKVStore.h"
 #include "../include/RedBlackMemtable.h"
+#include "../include/SimpleSSTManager.h"
 
 using namespace std;
 
@@ -17,7 +18,7 @@ int main()
     cout << "Running SimpleKVStore Tests..."<< endl;
 
     SimpleKVStore db;
-    db.open("new_db", new RedBlackMemtable(100));
+    db.open("new_db", new RedBlackMemtable(), 5, new SimpleSSTManager());
     db.put(1,1);
     db.put(-2, -2);
     db.put(5,5);

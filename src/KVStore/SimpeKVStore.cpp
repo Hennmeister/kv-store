@@ -1,18 +1,25 @@
 ﻿#include <filesystem>
+#include <iostream>
 #include "../../include/SimpleKVStore.h"
 
-void SimpleKVStore::open(const std::string &db_name, Memtable *memt) {
-    std::filesystem::create_directory(db_name);
-    this->database_name = db_name;
+void SimpleKVStore::open(const std::string &db_name, Memtable *memt, int maxMemtableSize, SSTManager *sstManager) {
     this->memtable = memt;
+    this->sstManager = sstManager;
+    this->maxMemtableSize = maxMemtableSize;
 }
 
 void SimpleKVStore::put(const int &key, const int &value) {
+    if(memtable->get_size() >= maxMemtableSize){
+        sstManager->add_sst(memtable->inorderTraversal());
+    }
     memtable->put(key, value);
 }
 
 bool SimpleKVStore::get(const int &key, int& value) {
-    return memtable->get(key, value);
+    if(!memtable->get(key, value)){
+        return sstManager->get(key, value);
+    }
+    return true;
 }
 
 std::vector<std::pair<int, int>> SimpleKVStore::scan(const int &key1, const int &key2) {
@@ -20,5 +27,5 @@ std::vector<std::pair<int, int>> SimpleKVStore::scan(const int &key1, const int 
 }
 
 void SimpleKVStore::close() {
-    memtable->dumpToSst();
+//    memtable->dumpToSst();
 }

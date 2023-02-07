@@ -5,20 +5,13 @@
 #include <fstream>
 
 using namespace std;
-RedBlackMemtable::RedBlackMemtable(const int& memtable_size){
-    capacity = memtable_size;
+RedBlackMemtable::RedBlackMemtable(){
     this->data = new RedBlackTree();
 }
 
 void RedBlackMemtable::put(const int &key, const int &value)  {
-    int val; // Unused store
-    if (data->getSize() >= capacity && !get(key, val)) {
-        if (!dumpToSst()) {
-            cout << "Invalid file" << endl;
-        }
-        data = new RedBlackTree();
-    }
     data->put(key, value);
+    size++;
 }
 
 bool RedBlackMemtable::get(const int &key, int& value)  {
@@ -33,26 +26,30 @@ vector<pair<int, int>> RedBlackMemtable::inorderTraversal()  {
     return data->inorderTraversal();
 }
 
-bool RedBlackMemtable::dumpToSst() {
-    auto *file = new ofstream();
-    file->open( "./ssts.txt", ios::binary | ios::app);
-
-    if (!file->is_open())
-    {
-        return false;
-    }
-
-    (* file) << data->getSize() << endl;
-
-    for (pair<int,int> pair : inorderTraversal()) {
-        (* file) << pair.first << "," << pair.second << endl;
-    }
-
-    file->close();
-
-    return true;
+bool RedBlackMemtable::reset() {
+    return false;
 }
 
+//bool RedBlackMemtable::dumpToSst() {
+//    auto *file = new ofstream();
+//    file->open( "./ssts.txt", ios::binary | ios::app);
+//
+//    if (!file->is_open())
+//    {
+//        return false;
+//    }
+//
+//    (* file) << data->getSize() << endl;
+//
+//    for (pair<int,int> pair : inorderTraversal()) {
+//        (* file) << pair.first << "," << pair.second << endl;
+//    }
+//
+//    file->close();
+//
+//    return true;
+//}
+//
 
 
 

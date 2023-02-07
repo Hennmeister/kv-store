@@ -15,7 +15,7 @@ public:
     virtual bool get(const int& key, int& value) =0;
     virtual std::vector<std::pair<int, int>> scan(const int& key1, const int& key2) =0;
     virtual std::vector<std::pair<int, int>> inorderTraversal() =0;
-    virtual bool dumpToSst() =0;
+    virtual bool reset() =0;
 };
 
 
