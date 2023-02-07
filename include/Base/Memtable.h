@@ -7,10 +7,8 @@
 #include <vector>
 
 class Memtable {
-protected:
-    int size = 0;
 public:
-    virtual int get_size() {return size;};
+    virtual int get_size() =0;
     virtual void put(const int& key, const int& value) =0;
     virtual bool get(const int& key, int& value) =0;
     virtual std::vector<std::pair<int, int>> scan(const int& key1, const int& key2) =0;

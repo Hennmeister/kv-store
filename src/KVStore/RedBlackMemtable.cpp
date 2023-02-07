@@ -9,9 +9,13 @@ RedBlackMemtable::RedBlackMemtable(){
     this->data = new RedBlackTree();
 }
 
+int RedBlackMemtable::get_size() {
+    return this->data->getSize();
+}
+
+
 void RedBlackMemtable::put(const int &key, const int &value)  {
     data->put(key, value);
-    size++;
 }
 
 bool RedBlackMemtable::get(const int &key, int& value)  {
@@ -27,7 +31,9 @@ vector<pair<int, int>> RedBlackMemtable::inorderTraversal()  {
 }
 
 bool RedBlackMemtable::reset() {
-    return false;
+    //TODO: Free previous redblacktree if necessary
+    this->data = new RedBlackTree();
+    return true;
 }
 
 //bool RedBlackMemtable::dumpToSst() {

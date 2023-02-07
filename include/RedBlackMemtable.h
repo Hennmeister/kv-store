@@ -22,6 +22,7 @@ public:
     bool get(const int& key, int& value) override;
     vector<pair<int, int>> scan(const int& key1, const int& key2) override;
     vector<pair<int, int>> inorderTraversal() override;
+    int get_size() override;
     bool reset() override;
 };
 
