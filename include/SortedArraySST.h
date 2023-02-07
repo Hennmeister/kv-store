@@ -11,6 +11,7 @@ class SortedArraySST: public SST{
 private:
     int size;
 public:
+    SortedArraySST();
     bool get(const int& key, int& value);
     std::vector<std::pair<int, int>> scan(const int& key1, const int& key2);
 };

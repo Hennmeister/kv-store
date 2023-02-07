@@ -14,9 +14,8 @@ private:
     std::string directory;
     std::vector<SortedArraySST> SSTs;
 public:
-    SimpleSSTManager();
+    SimpleSSTManager(char* target_dir);
     bool get(const int& key, int &value) override;
-    int open(std::string& target_dir) override;
     std::vector<std::pair<int, int>> scan(const int& key1, const int& key2) override;
     bool add_sst(std::vector<std::pair<int, int>> data) override;
 };

@@ -12,3 +12,7 @@ std::vector<std::pair<int, int>> SortedArraySST::scan(const int &key1, const int
     std::vector<std::pair<int, int>> vec;
     return vec;
 }
+
+SortedArraySST::SortedArraySST() {
+    size = 0;
+}
