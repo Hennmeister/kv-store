@@ -22,6 +22,7 @@ std::vector<std::pair<int, int>> SortedArraySST::scan(const int &key1, const int
 }
 
 SortedArraySST::SortedArraySST(const std::filesystem::directory_entry file) {
+    // TODO: Update SSTManager and SST class with single file structure.
     std::ifstream read_file(file.path());
     std::string text;
     std::getline(read_file,text);
@@ -38,6 +39,7 @@ SortedArraySST::SortedArraySST(const std::filesystem::directory_entry file) {
 }
 
 SortedArraySST::SortedArraySST(std::string& fname, const std::vector<std::pair<int, int>>& data) {
+    // TODO: Update SSTManager and SST class with single file structure.
     size = static_cast<int>(data.size());
     auto *write_file = new std::ofstream();
     write_file->open(fname);

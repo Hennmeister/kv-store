@@ -58,7 +58,7 @@ std::vector<std::pair<int, int>> SimpleSSTManager::scan(const int& key1, const i
 SimpleSSTManager::SimpleSSTManager(std::string target_dir) {
     directory = std::move(target_dir);
     SSTs = {};
-
+    // TODO: Update SSTManager and SST class with single file structure.
     char* dir_char = StringToChar(directory);
     int dir = DirectoryExists(dir_char);
     if(dir == 0){
