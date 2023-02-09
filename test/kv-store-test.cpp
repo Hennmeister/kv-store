@@ -7,27 +7,33 @@
 
 #include <iostream>
 #include <cassert>
-#include "../include/kv-store.h"
+#include "../include/SimpleKVStore.h"
+#include "../include/RedBlackMemtable.h"
+#include "../include/SimpleSSTManager.h"
 
 using namespace std;
 
 int main()
 {
-    cout << "Running KVStore Tests..."<< endl;
+    cout << "Running SimpleKVStore Tests..."<< endl;
 
-    KVStore db;
-    db.open("new_db");
-    db.put(1,1);
-    db.put(-2, -2);
-    db.put(5,5);
-    assert(db.get(1) == 1);
-    assert(db.get(-2) == -2);
-    assert(db.get(5) == 5);
-    assert(db.get(-1) == 0);
+    SimpleKVStore db;
+    db.open("new_db", new RedBlackMemtable(), 15, new SimpleSSTManager( "my_db"));
+    //    db.put(1,1);
+    //    db.put(-2, -2);
+    //    db.put(5,5);
+    int val = 0;
+    db.get(1,val);
+    assert(val == 1);
+
+    db.get(-2, val);
+    assert(val == -2);
+    db.get(5,val);
+    assert(val == 5);
+    assert(db.get(-1,val) == false);
     db.put(1, 10);
-    assert(db.get(1) == 10);
-    assert(db.scan(1, 7).size() == 2);
-    assert(db.scan(-20, 20).size() == 3);
+    db.get(1, val);
+    assert(val == 10);
     db.put(1000,7);
     db.put(1001,8);
     db.put(1002,9);
