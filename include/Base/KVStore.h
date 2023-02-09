@@ -7,6 +7,8 @@
 
 class KVStore {
 public:
+    //TODO: Change from int value type to something else (e.g. an abstract Value interface for various types)
+
     // Opens the database with the given name and prepares it to run
     virtual void open(const std::string& database_name, Memtable *memt, int maxMemtableSize, SSTManager *sstManager) =0;
 

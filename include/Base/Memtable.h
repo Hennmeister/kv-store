@@ -8,6 +8,7 @@
 
 class Memtable {
 public:
+    //TODO: Change from int value type to something else (e.g. an abstract Value interface for various types)
     virtual int get_size() =0;
     virtual bool put(const int& key, const int& value) =0;
     virtual bool get(const int& key, int& value) =0;
