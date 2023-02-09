@@ -20,7 +20,7 @@ public:
     void open(const std::string& database_name, Memtable *memt,int maxMemtableSize, SSTManager *sstManager) override;
 
     // Stores a key associated with a value
-    void put(const int& key, const int& value) override;
+    bool put(const int& key, const int& value) override;
 
     // Retrieves a value associated with a given key
     bool get(const int& key, int& value) override;

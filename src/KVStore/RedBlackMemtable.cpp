@@ -14,8 +14,9 @@ int RedBlackMemtable::get_size() {
 }
 
 
-void RedBlackMemtable::put(const int &key, const int &value)  {
+bool RedBlackMemtable::put(const int &key, const int &value)  {
     data->put(key, value);
+    return true;
 }
 
 bool RedBlackMemtable::get(const int &key, int& value)  {

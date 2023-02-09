@@ -18,7 +18,7 @@ private:
     string directory;
 public:
     explicit RedBlackMemtable();
-    void put(const int& key, const int& value) override;
+    bool put(const int& key, const int& value) override;
     bool get(const int& key, int& value) override;
     vector<pair<int, int>> scan(const int& key1, const int& key2) override;
     vector<pair<int, int>> inorderTraversal() override;

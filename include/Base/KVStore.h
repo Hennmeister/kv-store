@@ -11,7 +11,7 @@ public:
     virtual void open(const std::string& database_name, Memtable *memt, int maxMemtableSize, SSTManager *sstManager) =0;
 
     // Stores a key associated with a value
-    virtual void put(const int& key, const int& value) =0;
+    virtual bool put(const int& key, const int& value) =0;
 
     // Retrieves a value associated with a given key
     virtual bool get(const int& key, int& value) =0;

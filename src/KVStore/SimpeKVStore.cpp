@@ -8,12 +8,11 @@ void SimpleKVStore::open(const std::string &db_name, Memtable *memt, int maxMemt
     this->maxMemtableSize = maxMemtableSize;
 }
 
-void SimpleKVStore::put(const int &key, const int &value) {
+bool SimpleKVStore::put(const int &key, const int &value) {
     if(memtable->get_size() >= maxMemtableSize){
-        sstManager->add_sst(memtable->inorderTraversal());
-        memtable->reset();
+        return sstManager->add_sst(memtable->inorderTraversal()) && memtable->reset();
     }
-    memtable->put(key, value);
+    return memtable->put(key, value);
 }
 
 bool SimpleKVStore::get(const int &key, int& value) {
