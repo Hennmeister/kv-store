@@ -46,14 +46,11 @@ SortedArraySST::SortedArraySST(std::string target_dir, const vector<std::pair<in
     sst_file->open(target_dir + "/ssts.txt", ios::binary | ios::app);
 
     if (!sst_file->is_open())
-    {
         throw std::runtime_error("SST data file could not be opened");
-    }
 
     // Write key,val pairs to sst file
-    for (pair<int,int> pair : data) {
+    for (pair<int,int> pair : data)
         (* sst_file) << pair.first << "," << pair.second << ";";
-    }
 
     sst_file->close();
 
@@ -61,9 +58,8 @@ SortedArraySST::SortedArraySST(std::string target_dir, const vector<std::pair<in
         ofstream *write_index_file = new ofstream();
         write_index_file->open(target_dir + "/index.txt", ios::binary | ios::app);
 
-        if (!write_index_file->is_open()) {
+        if (!write_index_file->is_open())
             throw std::runtime_error("SST data file could not be opened");
-        }
 
         // This is the first SST to be saved, so offset in SST file is 0
         string entry = "0," + to_string(data.size());
@@ -78,9 +74,8 @@ SortedArraySST::SortedArraySST(std::string target_dir, const vector<std::pair<in
         ifstream *read_index_file = new ifstream();
         read_index_file->open(target_dir + "/index.txt", ios::in | ios::binary);
 
-        if (!read_index_file->is_open()) {
+        if (!read_index_file->is_open())
             throw std::runtime_error("SST data file could not be opened");
-        }
 
         string last_entry_size;
         getline(*read_index_file, last_entry_size);
@@ -106,9 +101,8 @@ SortedArraySST::SortedArraySST(std::string target_dir, const vector<std::pair<in
         ofstream *write_index_file = new ofstream();
         write_index_file->open(target_dir + "/index.txt", ios::binary | ios::app);
 
-        if (!write_index_file->is_open()) {
+        if (!write_index_file->is_open())
             throw std::runtime_error("Could not write to SST index file");
-        }
 
         string entry = to_string(offset) + "," + to_string(data.size());
         (*write_index_file) << entry << ";";
