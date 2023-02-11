@@ -64,8 +64,6 @@ SortedArraySST::SortedArraySST(std::string target_dir, const vector<std::pair<in
         // This is the first SST to be saved, so offset in SST file is 0
         string entry = "0," + to_string(data.size());
 
-        cout << entry << endl;
-
         (*write_index_file) << entry.length() << ";";
         (*write_index_file) << entry << ";";
 
@@ -80,8 +78,6 @@ SortedArraySST::SortedArraySST(std::string target_dir, const vector<std::pair<in
         string last_entry_size;
         getline(*read_index_file, last_entry_size);
 
-        cout << last_entry_size << endl;
-
         // Seek to last line of the file
         read_index_file->seekg(-stoi(last_entry_size) - 1, ios_base::end);
 
@@ -93,8 +89,6 @@ SortedArraySST::SortedArraySST(std::string target_dir, const vector<std::pair<in
         getline(*read_index_file, prev_size, ';'); // Read SST's size
 
         read_index_file->close();
-
-        cout << prev_offset << "," << prev_size << ";";
 
         int offset = stoi(prev_offset) + stoi(prev_size);
 
