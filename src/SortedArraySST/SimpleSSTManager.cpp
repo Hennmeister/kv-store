@@ -4,9 +4,6 @@
 #include <utility>
 #include "../../include/SimpleSSTManager.h"
 
-//
-// Created by Sambamurthy Vijay on 2023-02-06.
-//
 namespace fs = std::filesystem;
 
 char* StringToChar(std::string str){
@@ -44,10 +41,8 @@ bool SimpleSSTManager::get(const int& key, int& value){
 }
 
 bool SimpleSSTManager::add_sst(std::vector<std::pair<int, int>> data) {
-    std::string file_name;
-    file_name.append(directory + "/" + std::to_string(this->SSTs.size()) + ".txt");
-    SSTs.push_back(*new SortedArraySST(file_name, data));
-    return false;
+    SSTs.push_back(*new SortedArraySST(directory, data));
+    return true;
 }
 
 std::vector<std::pair<int, int>> SimpleSSTManager::scan(const int& key1, const int& key2) {
@@ -62,7 +57,7 @@ SimpleSSTManager::SimpleSSTManager(std::string target_dir) {
     char* dir_char = StringToChar(directory);
     int dir = DirectoryExists(dir_char);
     if(dir == 0){
-        mkdir(dir_char, 0777);
+        mkdir(dir_char);
         delete[] dir_char;
     }else if(dir == 1){
         for (const auto & entry : fs::directory_iterator(directory))

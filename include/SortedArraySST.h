@@ -1,7 +1,3 @@
-//
-// Created by Sambamurthy Vijay on 2023-02-06.
-//
-
 #ifndef KV_STORE_SORTEDARRAYSST_H
 #define KV_STORE_SORTEDARRAYSST_H
 
@@ -14,7 +10,7 @@ private:
     std::vector<std::pair<int, int>> data;
 public:
     SortedArraySST(const std::filesystem::directory_entry file);
-    SortedArraySST(std::string& file, const std::vector<std::pair<int, int>>& data);
+    SortedArraySST(std::string target_dir, const std::vector<std::pair<int, int>>& data);
     bool get(const int& key, int& value);
     std::vector<std::pair<int, int>> scan(const int& key1, const int& key2);
 };
