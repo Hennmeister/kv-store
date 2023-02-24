@@ -62,7 +62,7 @@ int main()
     string target_dir = "my_db";
 
     SimpleKVStore db;
-    db.open("new_db", new RedBlackMemtable(), PAGE_NUM_ENTRIES, new SimpleSSTManager(target_dir));
+    db.open(target_dir, PAGE_NUM_ENTRIES);
 
     for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++) {
         db.put(i, -i);

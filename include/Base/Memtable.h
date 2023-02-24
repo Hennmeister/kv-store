@@ -15,6 +15,7 @@ public:
     virtual std::vector<std::pair<int, int>> scan(const int& key1, const int& key2) =0;
     virtual std::vector<std::pair<int, int>> inorderTraversal() =0;
     virtual bool reset() =0;
+    virtual ~Memtable() = default;
 };
 
 

@@ -1,6 +1,8 @@
 
 #include <fcntl.h>
 #include "../../include/SortedSSTManager.h"
+#include "../../include/util.h"
+#include <unistd.h>
 
 
 bool SortedSSTManager::get(const int &key, int &value) {
@@ -16,6 +18,15 @@ std::vector<std::pair<int, int>> SortedSSTManager::scan(const int &key1, const i
 }
 
 SortedSSTManager::SortedSSTManager(std::string prefix) {
-//    int index_file_fd = open((char *)prefix + "_index.sdb", O_RDWR | O_CREAT);
+    char* index_file = string_to_char(prefix + "_index.sdb");
+    char* sst_file = string_to_char(prefix + "_index.sdb");
+
+    int index_file_fd = open(index_file, O_RDWR | O_CREAT);
+    int sst_file_fd = open(sst_file, O_RDWR | O_CREAT);
+
+
+}
+
+SortedSSTManager::~SortedSSTManager() {
 
 }

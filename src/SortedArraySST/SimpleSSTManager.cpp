@@ -27,7 +27,7 @@ SimpleSSTManager::SimpleSSTManager(std::string target_dir) {
 
     int dir = dir_exists(target_dir);
     if(dir == 0){
-        mkdir(target_dir.c_str());
+        mkdir(target_dir.c_str(), 0777);
     }else if(dir == 1){
         // clear directory from previous data
         for (const auto& entry : std::filesystem::directory_iterator(target_dir))
@@ -213,5 +213,9 @@ bool SimpleSSTManager::get(const int& key, int& value){
 
     value = read;
     return true;
+}
+
+SimpleSSTManager::~SimpleSSTManager() {
+
 }
 

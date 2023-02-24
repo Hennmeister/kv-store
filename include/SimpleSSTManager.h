@@ -17,5 +17,6 @@ public:
     bool get(const int& key, int &value) override;
     std::vector<std::pair<int, int>> scan(const int& key1, const int& key2) override;
     bool add_sst(std::vector<std::pair<int, int>> data) override;
+    ~SimpleSSTManager();
 };
 #endif //KV_STORE_SIMPLESSTMANAGER_H

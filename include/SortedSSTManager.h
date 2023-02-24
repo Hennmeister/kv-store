@@ -7,8 +7,10 @@
 
 class SortedSSTManager: public SSTManager{
 private:
-
+    int index_fd;
+    int sst_fd;
 public:
+    ~SortedSSTManager();
     explicit SortedSSTManager(std::string prefix);
     bool get(const int& key, int &value) override;
     std::vector<std::pair<int, int>> scan(const int& key1, const int& key2) override;

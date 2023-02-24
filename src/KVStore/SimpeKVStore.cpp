@@ -1,9 +1,11 @@
 ﻿#include <iostream>
 #include "../../include/SimpleKVStore.h"
+#include "../../include/RedBlackMemtable.h"
+#include "../../include/SimpleSSTManager.h"
 
-void SimpleKVStore::open(const std::string &db_name, Memtable *memt, int maxMemtableSize, SSTManager *sstManager) {
-    this->memtable = memt;
-    this->sstManager = sstManager;
+void SimpleKVStore::open(const std::string &db_name, int maxMemtableSize) {
+    this->memtable = new RedBlackMemtable();
+    this->sstManager = new SimpleSSTManager(db_name);
     this->maxMemtableSize = maxMemtableSize;
 }
 
@@ -28,5 +30,6 @@ std::vector<std::pair<int, int>> SimpleKVStore::scan(const int &key1, const int 
 }
 
 void SimpleKVStore::close() {
-//    memtable->dumpToSst();
+    delete this->memtable;
+    delete this->sstManager;
 }

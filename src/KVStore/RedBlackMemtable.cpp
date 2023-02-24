@@ -37,6 +37,10 @@ bool RedBlackMemtable::reset() {
     return true;
 }
 
+RedBlackMemtable::~RedBlackMemtable() {
+
+}
+
 
 
 
