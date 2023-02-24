@@ -57,7 +57,7 @@ SimpleSSTManager::SimpleSSTManager(std::string target_dir) {
     char* dir_char = StringToChar(directory);
     int dir = DirectoryExists(dir_char);
     if(dir == 0){
-        mkdir(dir_char);
+        mkdir(dir_char, 0777);
         delete[] dir_char;
     }else if(dir == 1){
         for (const auto & entry : fs::directory_iterator(directory))
@@ -65,6 +65,13 @@ SimpleSSTManager::SimpleSSTManager(std::string target_dir) {
         delete[] dir_char;
     }else{
         throw std::invalid_argument("Provided path is a file - unable to initialize SSTManager.");
+    }
+}
+
+void SimpleSSTManager::delete_data() {
+    std::error_code errorCode;
+    if (!fs::remove_all(directory, errorCode)) {
+        std::cout << errorCode.message() << std::endl;
     }
 }
 

@@ -23,4 +23,7 @@ public:
 
     // Closes the database
     virtual void close() =0;
+
+    // Deletes all data on disk associated with database
+    virtual void delete_data() =0;
 };

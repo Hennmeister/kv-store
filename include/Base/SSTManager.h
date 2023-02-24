@@ -12,6 +12,7 @@ public:
     virtual bool get(const int& key, int& value) =0;
     virtual std::vector<std::pair<int, int>> scan(const int& key1, const int& key2) =0;
     virtual bool add_sst(std::vector<std::pair<int, int>> data) =0;
+    virtual void delete_data() = 0;
 };
 
 #endif //KV_STORE_SSTMANAGER_H

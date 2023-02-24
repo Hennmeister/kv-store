@@ -31,3 +31,9 @@ std::vector<std::pair<int, int>> SimpleKVStore::scan(const int &key1, const int 
 void SimpleKVStore::close() {
 //    memtable->dumpToSst();
 }
+
+// Delete all data in database, both on disk and in memory
+void SimpleKVStore::delete_data() {
+    sstManager->delete_data();
+    memtable->reset();
+}
