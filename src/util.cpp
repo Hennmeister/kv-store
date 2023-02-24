@@ -4,6 +4,15 @@
 
 using namespace std;
 
+void pad_data(std::vector<std::pair<int, int>>& src, int size){
+    if(src.size() >= size){
+        return;
+    }
+    int original_size = src.size();
+    for(int i = 0; i < size - original_size; i++){
+        src.emplace_back(pair<int,int>({INT_MAX,0}));
+    }
+}
 
 void print_data(const vector<pair<int, int>>& data){
     for(auto & i : data){

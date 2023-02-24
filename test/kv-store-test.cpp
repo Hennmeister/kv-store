@@ -76,11 +76,14 @@ int main()
     int val;
     for (int i = 640; i < 3 * PAGE_NUM_ENTRIES + 300; i++) {
         db.get(i, val);
-        assert(val == -i);
+        if(val != -i){
+            cout << "failed on i: " << val << endl;
+            assert(val == -i);
+        }
     }
 //
-//    simple_test(db);
-    print_data(db.scan(500,1000));
+    simple_test(db);
+//    print_data(db.scan(500,1000));
     db.close();
 
     cout << "All tests passed" << endl;

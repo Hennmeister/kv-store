@@ -2,6 +2,7 @@
 #include "../../include/RedBlackMemtable.h"
 #include "../../include/SortedSSTManager.h"
 #include "../../include/util.h"
+#include <iostream>
 
 void SimpleKVStore::open(const std::string &db_name, int maxMemtableSize) {
     this->memtable = new RedBlackMemtable();
@@ -30,6 +31,10 @@ std::vector<std::pair<int, int>> SimpleKVStore::scan(const int &key1, const int 
 }
 
 void SimpleKVStore::close() {
+    // Pad and dump memtable contents to file
+    auto dat = memtable->inorderTraversal();
+    pad_data(dat, maxMemtableSize);
+    sstManager->add_sst(dat);
     delete this->memtable;
     delete this->sstManager;
 }
