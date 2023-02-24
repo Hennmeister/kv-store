@@ -2,13 +2,16 @@
 #define KV_STORE_SIMPLESSTMANAGER_H
 
 #include <string>
+#include <fstream>
 #include "Base/SSTManager.h"
-#include "SortedArraySST.h"
 
 class SimpleSSTManager: public SSTManager{
 private:
     std::string directory;
-    std::vector<SortedArraySST> SSTs;
+    std::pair<int,int> read_entry_from_back(std::ifstream *file, int offset, bool ignore_val);
+    std::pair<int,int> read_entry_at_offset(std::ifstream *file, int offset, bool ignore_val);
+    int index_to_offset(int start, int index);
+    bool binary_search(int start, int end, int target, int &value);
 public:
     explicit SimpleSSTManager(std::string target_dir);
     bool get(const int& key, int &value) override;

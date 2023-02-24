@@ -187,33 +187,20 @@ bool RedBlackTree::get(const int &key, int& value) {
     return false;
 }
 
+void RedBlackTree::inorderTraversalHelper(Node* root, const int &key1, const int &key2, std::vector<std::pair<int, int>> &kv_pairs) {
+    if (root != nil) {
+        if (root->value >= key1) {
+            inorderTraversalHelper(root->left, key1, key2, kv_pairs);
+            kv_pairs.emplace_back(root->key, root->value);
+        }
+        if (root->value <= key2)
+            inorderTraversalHelper(root->right, key1, key2, kv_pairs);
+    }
+}
+
 vector<std::pair<int, int>> RedBlackTree::scan(const int &key1, const int &key2) {
     std::vector<std::pair<int, int>> kv_pairs = {};
-    std::vector<Node*> stack = {};
-
-    if (root != nil) {
-        stack.push_back(root);
-    }
-
-
-    while (!stack.empty()) {
-        Node *curr = stack.back();
-        stack.pop_back();
-
-        if (curr == nil) {
-            continue;
-        }
-        if (curr->key >= key1) {
-            stack.push_back(curr->left);
-        }
-        if (curr->key >= key1 && curr->key <= key2){
-            kv_pairs.emplace_back(curr->key, curr->value);
-        }
-        if (curr->key <= key2) {
-            stack.push_back(curr->right);
-        }
-    }
-
+    inorderTraversalHelper(root, key1, key2, kv_pairs);
     return kv_pairs;
 }
 
