@@ -23,6 +23,27 @@ int dir_exists(string dir){
     return -1;
 }
 
+bool binary_search( vector<pair<int, int>> data, int target, int &value) {
+    int left = 0;
+    int right = data.size();
+
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+
+        int key = data[mid].first;
+
+        if (key == target) {
+            value = data[mid].second;
+            return true;
+        } else if (key < target) {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+    return false;
+}
+
 
 void print_sst(vector<pair<int, int>> data){
     for(auto & i : data){
@@ -31,6 +52,11 @@ void print_sst(vector<pair<int, int>> data){
 }
 
 bool SortedSSTManager::get(const int &key, int &value) {
+    for(int i =0; i < sizes.size(); i ++ ){
+        if(binary_search(get_sst(i), key, value)){
+            return true;
+        }
+    }
     return false;
 }
 
@@ -76,6 +102,7 @@ SortedSSTManager::SortedSSTManager(string prefix) {
         throw invalid_argument("Provided path is a file: unable to initialize database");
     }
 
+    //TODO: O_DIRECT DOES NOT exist on Mac os or windows - Perhaps someone can try using O_DIRECT on linux?
     index_fd = open(index_file, O_RDWR | O_CREAT, 0777);
     sst_fd = open(sst_file, O_RDWR | O_CREAT, 0777);
 
@@ -96,7 +123,6 @@ SortedSSTManager::SortedSSTManager(string prefix) {
 
     // Populate the sizes vector with sizes
     while(byte_read_count > 0){
-        cout << "Index : " << read_buf << endl;
         sizes.push_back(read_buf);
         total_entries += read_buf;
         byte_read_count = pread(index_fd, &read_buf, sizeof(int), offset);
@@ -131,3 +157,4 @@ vector<pair<int, int>> SortedSSTManager::get_sst(int sst_ind) {
     return res;
 
 }
+

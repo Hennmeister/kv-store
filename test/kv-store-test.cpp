@@ -71,11 +71,11 @@ int main()
 //    print_file(target_dir, "index");
 //    print_file(target_dir, "ssts");
 //
-//    int val;
-//    for (int i = 640; i < 3 * PAGE_NUM_ENTRIES + 300; i++) {
-//        db.get(i, val);
-//        assert(val == -i);
-//    }
+    int val;
+    for (int i = 640; i < 3 * PAGE_NUM_ENTRIES + 300; i++) {
+        db.get(i, val);
+        assert(val == -i);
+    }
 //
 //    simple_test(db);
     db.close();
