@@ -82,12 +82,16 @@ bool SimpleSSTManager::add_sst(vector<pair<int32_t, int32_t>> data) {
     if (!sst_file->is_open())
         throw std::runtime_error("SST data file could not be opened");
 
-    // Write key,val pairs to sst file
-    for (pair<int32_t,int32_t> pair : data) {
-        sst_file->write(reinterpret_cast<const char *> (&pair.first), sizeof(int32_t));
-        sst_file->write(reinterpret_cast<const char *> (&pair.second), sizeof(int32_t));
+    char write_data[data.size() * ENTRY_SIZE];
+
+    // Load array to write
+    for (int i = 0; i < data.size(); i++) {
+        memcpy(&write_data[i * ENTRY_SIZE], &data[i].first, sizeof(int32_t));
+        memcpy(&write_data[i * ENTRY_SIZE + sizeof(int32_t)], &data[i].second, sizeof(int32_t));
     }
 
+    // Write key,val pairs to sst file
+    sst_file->write(write_data, data.size() * ENTRY_SIZE);
     sst_file->close();
 
     if (!filesystem::exists(this->directory + "/index")) {
@@ -135,26 +139,22 @@ std::vector<std::pair<int, int>> SimpleSSTManager::scan(const int& key1, const i
     return vec;
 }
 
-int SimpleSSTManager::index_to_offset(int start, int index){
-    return start + index * 2 * sizeof(int32_t);
+int SimpleSSTManager::index_to_offset(int index){
+    return index * ENTRY_SIZE;
 }
 
- bool SimpleSSTManager::binary_search(int start, int capacity, int target, int &value) {
-    // left and right indices of entries
+ bool SimpleSSTManager::binary_search(char* entries, int capacity, int target, int &value) {
     int left = 0;
-    int right = capacity - 1;
-
-    ifstream *read_ssts_file = new ifstream();
-    read_ssts_file->open(this->directory + "/ssts", ios::in | ios::binary);
+    int right = capacity/ENTRY_SIZE - 1;
 
     while (left <= right) {
         int mid = left + (right - left) / 2;
 
-        int key = read_entry_at_offset(read_ssts_file, index_to_offset(start, mid), true).first;
+        int key;
+        memcpy(&key, &entries[index_to_offset(mid)], sizeof(int32_t));
 
         if (key == target) {
-            value = read_entry_at_offset(read_ssts_file, index_to_offset(start, mid)).second;
-            read_ssts_file->close();
+            memcpy(&value, &entries[index_to_offset(mid)] + sizeof(int32_t), sizeof(int32_t));
             return true;
         } else if (key < target) {
             left = mid + 1;
@@ -162,8 +162,6 @@ int SimpleSSTManager::index_to_offset(int start, int index){
             right = mid - 1;
         }
     }
-    read_ssts_file->close();
-
     return false;
 }
 
@@ -172,22 +170,39 @@ bool SimpleSSTManager::get(const int& key, int& value){
     if (!filesystem::exists(this->directory + "/index"))
         return false;
 
+
     ifstream *read_index_file = new ifstream();
     read_index_file->open(this->directory + "/index", ios::in | ios::binary);
+
+    if (!read_index_file->is_open())
+        throw std::runtime_error("Could not read SST index file");
 
     int begin = read_index_file->tellg();
     read_index_file->seekg (0, ios::end);
     int end = read_index_file->tellg();
     int file_size = end - begin;
 
-    pair<int,int> entry;
-
-    int32_t read;
     bool found = false;
     int offset = ENTRY_SIZE;
+    pair<int,int> entry;
+    int32_t read;
     while (!found && offset <= file_size) {
         entry = read_entry_from_back(read_index_file, offset);
-        found = binary_search(entry.first, entry.second / 8, key, read);
+
+        ifstream *read_ssts_file = new ifstream();
+        read_ssts_file->open(this->directory + "/ssts", ios::in | ios::binary);
+
+        if (!read_ssts_file->is_open())
+            throw std::runtime_error("Could not read SST data file");
+
+        // Seek to sst offset
+        read_ssts_file->seekg(entry.first);
+
+        char sst[entry.second];
+        read_ssts_file->read(sst, entry.second);
+        read_ssts_file->close();
+
+        found = binary_search(sst, entry.second, key, read);
         offset += ENTRY_SIZE;
     }
 
