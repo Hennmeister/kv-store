@@ -1,5 +1,51 @@
 #include <unistd.h>
 #include "../include/util.h"
+#include <iostream>
+
+using namespace std;
+
+
+void print_data(const vector<pair<int, int>>& data){
+    for(auto & i : data){
+        cout << "key: " << i.first << " value: " << i.second << endl;
+    }
+}
+
+
+// priority merge -> Include all elements from both lists, if an element exists in both lists, use only the element
+// from the master list (this alludes to keeping the latest entry)
+std::vector<std::pair<int, int>> priority_merge(std::vector<std::pair<int, int>> master,
+                                                std::vector<std::pair<int, int>> older){
+    // TODO: This function needs checking and testing.
+    int ind0 =0;
+    int ind1 = 0;
+    auto res = vector<pair<int,int>>();
+
+    while(ind0 < master.size() && ind1 < older.size()){
+        if(master[ind0].first > older[ind1].first){
+            res.emplace_back(older[ind1]);
+            ind1++;
+        }else if(master[ind0].first < older[ind1].first){
+            res.emplace_back(master[ind0]);
+            ind0++;
+        }else{
+            res.emplace_back(master[ind0]);
+            ind0++;
+        }
+    }
+    if(ind0 != master.size() -1){
+        for(int i = ind0; i < master.size(); i++){
+            res.emplace_back(master[i]);
+        }
+    }
+    if(ind1 != older.size() -1){
+        for(int i = ind1; i < older.size(); i++){
+            res.emplace_back(older[i]);
+        }
+    }
+
+    return res;
+}
 
 // Note that this REQUIRES the output to be free'd after.
 char* string_to_char(std::string s){
@@ -44,3 +90,4 @@ int safe_read(int fd, void* buf, long nbyte, long offset){
     }
     return read_completion;
 }
+

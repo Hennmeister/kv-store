@@ -11,6 +11,7 @@
 #include "../include/RedBlackMemtable.h"
 #include "../include/SimpleSSTManager.h"
 #include "../include/constants.h"
+#include "../include/util.h"
 #include <string>
 #include <fstream>
 
@@ -36,6 +37,7 @@ void print_file(string directory, string file_name) {
         (*write_file) << to_string(first) + ", " << to_string(second) << endl;
     }
 }
+
 
 
 void simple_test(SimpleKVStore db) {
@@ -78,6 +80,7 @@ int main()
     }
 //
 //    simple_test(db);
+    print_data(db.scan(500,1000));
     db.close();
 
     cout << "All tests passed" << endl;

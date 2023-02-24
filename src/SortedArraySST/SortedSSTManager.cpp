@@ -6,8 +6,6 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <filesystem>
-#include <cstring>
-#include <iostream>
 
 using namespace std;
 
@@ -23,7 +21,7 @@ int dir_exists(string dir){
     return -1;
 }
 
-bool binary_search( vector<pair<int, int>> data, int target, int &value) {
+int binary_search(vector<pair<int, int>> data, int target, int &value) {
     int left = 0;
     int right = data.size();
 
@@ -34,26 +32,34 @@ bool binary_search( vector<pair<int, int>> data, int target, int &value) {
 
         if (key == target) {
             value = data[mid].second;
-            return true;
+            return mid;
         } else if (key < target) {
             left = mid + 1;
         } else {
             right = mid - 1;
         }
     }
-    return false;
+    return -1;
 }
 
-
-void print_sst(vector<pair<int, int>> data){
-    for(auto & i : data){
-        cout << "key: " << i.first << " value: " << i.second << endl;
+std::vector<std::pair<int, int>> single_sst_scan(std::vector<std::pair<int, int>> sst_dat, int start, int end){
+    auto res = vector<pair<int, int>>();
+    int value;
+    int ind = binary_search(sst_dat, start, value);
+    if(ind == -1){
+        return res;
     }
+    while(ind < sst_dat.size() && sst_dat[ind].first <= end){
+        res.emplace_back(sst_dat[ind]);
+        ind++;
+    }
+    return res;
 }
+
 
 bool SortedSSTManager::get(const int &key, int &value) {
-    for(int i =0; i < sizes.size(); i ++ ){
-        if(binary_search(get_sst(i), key, value)){
+    for(int i = sizes.size() - 1; i > -1; i -- ){
+        if(binary_search(get_sst(i), key, value) != -1){
             return true;
         }
     }
@@ -82,12 +88,17 @@ bool SortedSSTManager::add_sst(vector<pair<int, int>> data) {
 
     sizes.emplace_back(sz);
     total_entries += sz;
-    //    print_sst(this->get_sst(sizes.size() - 1)); - Can be used to debug writes
+    //    print_data(this->get_sst(sizes.size() - 1)); - Can be used to debug writes
     return true;
 }
 
+
 vector<pair<int, int>> SortedSSTManager::scan(const int &key1, const int &key2) {
-    return vector<pair<int, int>>();
+    auto res = vector<pair<int, int>>();
+    for(int i = sizes.size() - 1; i > -1; i -- ){
+        res = priority_merge(res, single_sst_scan(get_sst(i), key1, key2));
+    }
+    return res;
 }
 
 SortedSSTManager::SortedSSTManager(string prefix) {

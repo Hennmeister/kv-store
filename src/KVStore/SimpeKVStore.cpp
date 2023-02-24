@@ -1,6 +1,7 @@
 ﻿#include "../../include/SimpleKVStore.h"
 #include "../../include/RedBlackMemtable.h"
 #include "../../include/SortedSSTManager.h"
+#include "../../include/util.h"
 
 void SimpleKVStore::open(const std::string &db_name, int maxMemtableSize) {
     this->memtable = new RedBlackMemtable();
@@ -25,7 +26,7 @@ bool SimpleKVStore::get(const int &key, int& value) {
 }
 
 std::vector<std::pair<int, int>> SimpleKVStore::scan(const int &key1, const int &key2) {
-    return memtable->scan(key1, key2);
+    return priority_merge(memtable->scan(key1, key2), sstManager->scan(key1, key2));
 }
 
 void SimpleKVStore::close() {
