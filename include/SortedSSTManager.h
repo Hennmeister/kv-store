@@ -9,6 +9,9 @@ class SortedSSTManager: public SSTManager{
 private:
     int index_fd;
     int sst_fd;
+    std::vector<int> sizes;
+    int total_entries;
+    std::vector<std::pair<int, int>> get_sst(int sst_ind);
 public:
     ~SortedSSTManager();
     explicit SortedSSTManager(std::string prefix);

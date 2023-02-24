@@ -1,11 +1,10 @@
-﻿#include <iostream>
-#include "../../include/SimpleKVStore.h"
+﻿#include "../../include/SimpleKVStore.h"
 #include "../../include/RedBlackMemtable.h"
-#include "../../include/SimpleSSTManager.h"
+#include "../../include/SortedSSTManager.h"
 
 void SimpleKVStore::open(const std::string &db_name, int maxMemtableSize) {
     this->memtable = new RedBlackMemtable();
-    this->sstManager = new SimpleSSTManager(db_name);
+    this->sstManager = new SortedSSTManager(db_name);
     this->maxMemtableSize = maxMemtableSize;
 }
 
