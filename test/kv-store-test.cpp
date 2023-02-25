@@ -66,9 +66,9 @@ int main()
     SimpleKVStore db;
     db.open(target_dir, PAGE_NUM_ENTRIES);
 
-    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++) {
-        db.put(i, -i);
-    }
+//    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++) {
+//        db.put(i, -i);
+//    }
 
 //    print_file(target_dir, "index");
 //    print_file(target_dir, "ssts");
@@ -83,7 +83,7 @@ int main()
     }
 //
     simple_test(db);
-//    print_data(db.scan(500,1000));
+    print_data(db.scan(1,1000));
     db.close();
 
     cout << "All tests passed" << endl;

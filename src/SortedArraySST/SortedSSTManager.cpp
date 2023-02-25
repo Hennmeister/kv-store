@@ -25,7 +25,6 @@ int dir_exists(string dir){
 int binary_search(vector<pair<int, int>> data, int target, int &value) {
     int left = 0;
     int right = data.size();
-
     while (left <= right) {
         int mid = left + (right - left) / 2;
 
@@ -43,13 +42,22 @@ int binary_search(vector<pair<int, int>> data, int target, int &value) {
     return -1;
 }
 
+
 std::vector<std::pair<int, int>> single_sst_scan(std::vector<std::pair<int, int>> sst_dat, int start, int end){
     auto res = vector<pair<int, int>>();
-    int value;
-    int ind = binary_search(sst_dat, start, value);
-    if(ind == -1){
+
+    // Find the first element greater than or equal to the start index.
+    auto elem = lower_bound(sst_dat.begin(), sst_dat.end(), start,
+                            [](const pair<int, int>& info, double value)
+                                    {
+                                        return info.first < value;
+                                    });
+
+    if(elem == sst_dat.end()){
         return res;
     }
+    int ind = distance(sst_dat.begin(), elem);
+
     while(ind < sst_dat.size() && sst_dat[ind].first <= end){
         res.emplace_back(sst_dat[ind]);
         ind++;
@@ -95,7 +103,9 @@ bool SortedSSTManager::add_sst(vector<pair<int, int>> data) {
 
 
 vector<pair<int, int>> SortedSSTManager::scan(const int &key1, const int &key2) {
+    cout << "hi scanning" << endl;
     auto res = vector<pair<int, int>>();
+
     for(int i = sizes.size() - 1; i > -1; i -- ){
         res = priority_merge(res, single_sst_scan(get_sst(i), key1, key2));
     }
