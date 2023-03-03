@@ -37,27 +37,9 @@ bool RedBlackMemtable::reset() {
     return true;
 }
 
-//bool RedBlackMemtable::dumpToSst() {
-//    auto *file = new ofstream();
-//    file->open( "./ssts.txt", ios::binary | ios::app);
-//
-//    if (!file->is_open())
-//    {
-//        return false;
-//    }
-//
-//    (* file) << data->getSize() << endl;
-//
-//    for (pair<int,int> pair : inorderTraversal()) {
-//        (* file) << pair.first << "," << pair.second << endl;
-//    }
-//
-//    file->close();
-//
-//    return true;
-//}
-//
+RedBlackMemtable::~RedBlackMemtable() {
 
+}
 
 
 

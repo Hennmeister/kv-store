@@ -24,6 +24,7 @@ public:
     vector<pair<int, int>> inorderTraversal() override;
     int get_size() override;
     bool reset() override;
+    ~RedBlackMemtable() override;
 };
 
 #endif //KV_STORE_REDBLACKMEMTABLE_H

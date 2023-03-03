@@ -10,19 +10,37 @@
 #include "../include/SimpleKVStore.h"
 #include "../include/RedBlackMemtable.h"
 #include "../include/SimpleSSTManager.h"
+#include "../include/constants.h"
+#include "../include/util.h"
+#include <string>
+#include <fstream>
 
 using namespace std;
 
-void simple_get_test(){
+void print_file(string directory, string file_name) {
+    ifstream *read_file = new ifstream();
+    read_file->open(directory + "/" + file_name, ios::in | ios::binary);
 
+    if (!read_file->is_open())
+        throw std::runtime_error(directory + "/" + file_name + " data file could not be opened");
+
+    ofstream *write_file = new ofstream();
+    write_file->open(directory + "/" + file_name + "_debug.txt", ios::binary | ios::app);
+
+    if (!write_file->is_open())
+        throw std::runtime_error(directory + "/" + file_name + "_debug.txt" + " data file could not be opened");
+
+    while(!read_file->eof()) {
+        int32_t first, second;
+        read_file->read(reinterpret_cast<char *>(&first), sizeof(int32_t));
+        read_file->read(reinterpret_cast<char *>(&second), sizeof(int32_t));
+        (*write_file) << to_string(first) + ", " << to_string(second) << endl;
+    }
 }
 
-int main()
-{
-    cout << "Running SimpleKVStore Tests..."<< endl;
 
-    SimpleKVStore db;
-    db.open("new_db", new RedBlackMemtable(), 3, new SimpleSSTManager( "my_db"));
+
+void simple_test(SimpleKVStore db) {
     db.put(1,1);
     db.put(-2, -2);
     db.put(5,5);
@@ -37,14 +55,35 @@ int main()
     db.put(1, 10);
     db.get(1, val);
 //    assert(val == 10); TODO: uncomment this when get is fully implemented with SST traversal
-    db.put(1000,7);
-    db.put(1001,8);
-    db.put(1002,9);
-    db.put(1003,10);
-    db.put(1004,7);
-    db.put(1005,8);
-    db.put(1006,9);
-    db.put(1007,10);
+}
+
+int main()
+{
+    cout << "Running SimpleKVStore Tests..."<< endl;
+
+    string target_dir = "my_db";
+
+    SimpleKVStore db;
+    db.open(target_dir, PAGE_NUM_ENTRIES);
+
+//    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++) {
+//        db.put(i, -i);
+//    }
+
+//    print_file(target_dir, "index");
+//    print_file(target_dir, "ssts");
+//
+    int val;
+    for (int i = 640; i < 3 * PAGE_NUM_ENTRIES + 300; i++) {
+        db.get(i, val);
+        if(val != -i){
+            cout << "failed on i: " << val << endl;
+            assert(val == -i);
+        }
+    }
+//
+    simple_test(db);
+    print_data(db.scan(1,1000));
     db.close();
 
     cout << "All tests passed" << endl;
