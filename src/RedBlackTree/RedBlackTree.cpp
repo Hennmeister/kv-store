@@ -189,12 +189,11 @@ bool RedBlackTree::get(const int &key, int& value) {
 
 void RedBlackTree::inorderTraversalHelper(Node* root, const int &key1, const int &key2, std::vector<std::pair<int, int>> &kv_pairs) {
     if (root != nil) {
-        if (root->value >= key1) {
-            inorderTraversalHelper(root->left, key1, key2, kv_pairs);
+        inorderTraversalHelper(root->left, key1, key2, kv_pairs);
+        if (root->key >= key1 && root->key <= key2) {
             kv_pairs.emplace_back(root->key, root->value);
         }
-        if (root->value <= key2)
-            inorderTraversalHelper(root->right, key1, key2, kv_pairs);
+        inorderTraversalHelper(root->right, key1, key2, kv_pairs);
     }
 }
 
