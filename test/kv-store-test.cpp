@@ -6,13 +6,13 @@
 #define SRC_KV_STORE_KV_STORE_TEST_H
 
 #include <iostream>
-#include <cassert>
 #include "../include/SimpleKVStore.h"
 #include "../include/RedBlackMemtable.h"
 #include "../include/SimpleSSTManager.h"
 #include "../include/constants.h"
 #include "../include/util.h"
 #include "./test_util.h"
+#include "./tests.h"
 #include <string>
 #include <vector>
 #include <filesystem>
@@ -20,107 +20,50 @@
 
 using namespace std;
 
-// ===================== Inner-workings Tests =========================
+string test_dir = "./test_dbs/";
 
-void memtable_puts_and_gets(SimpleKVStore db) {
-
-}
-
-void memtable_puts_and_scans(SimpleKVStore db) {
-
-}
-
-// ===================== User-facing Tests =========================
-
-void sequeantial_puts_and_gets(SimpleKVStore db) {
-
-    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++) {
-       db.put(i, -i);
+#define F_NAME(func)                         \
+    pair<void (*)(SimpleKVStore db), string> \
+    {                                        \
+        func, #func                          \
     }
 
-    int val;
-    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++) {
-        db.get(i, val);
-        assert_val_equals(val, -i, "sequeantial_puts_and_gets");
-    }
-}
+vector<pair<void (*)(SimpleKVStore db), string>>
+    individual_db_tests = {
+        F_NAME(simple_test),
+        F_NAME(memtable_puts_and_gets),
+        F_NAME(memtable_puts_and_scans),
+        F_NAME(sequeantial_puts_and_gets),
+        F_NAME(sequeantial_puts_and_scans),
+        F_NAME(update_keys),
+        F_NAME(edge_case_values),
+        F_NAME(multiple_dbs)};
 
-void sequeantial_puts_and_scans(SimpleKVStore db) {
-
-    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++) {
-       db.put(i, -i);
-    }
-
-    vector<pair<int, int>> key_vals{}; 
-    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++) {
-        key_vals.push_back(pair<int,int>({i, -i}));
-        vector<pair<int, int>> scan = db.scan(0, i);
-        assert_vec_equals(scan, key_vals, "sequeantial_puts_and_scans_1");
-    }
-
-    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++) {
-        vector<pair<int, int>> scan = db.scan(i, 3 * PAGE_NUM_ENTRIES + 300 - 1);
-        assert_vec_equals(scan, key_vals, "sequeantial_puts_and_scans_2");
-        key_vals.erase(key_vals.begin());
-    }
-}
-
-void update_keys(SimpleKVStore db) {
-
-}
-
-void edge_case_values(SimpleKVStore db) {
-    // assert_vec_equals(db.scan(5, 4), vector<pair<int, int>>{}, "edge_case_values");
-}
-
-void simple_test(SimpleKVStore db) {
-    db.put(1, 1);
-    db.put(-2, -2);
-    db.put(5,5);
-    int val = 0;
-    db.get(1,val);
-    assert(val == 1);
-    db.get(-2, val);
-    assert(val == -2);
-    db.get(5,val);
-    assert(val == 5);
-    assert(db.get(-1,val) == false);
-    db.put(1, 10);
-    db.get(1, val);
-    assert(val == 10); 
-}
-
-#define F_NAME(func)  pair<void (*) (SimpleKVStore db), string> {func, #func}
-
-vector<pair<void (*) (SimpleKVStore db), string>> testing_suite = {
-    F_NAME(simple_test),
-    F_NAME(memtable_puts_and_gets), 
-    F_NAME(memtable_puts_and_scans),
-    F_NAME(sequeantial_puts_and_gets),
-    F_NAME(sequeantial_puts_and_scans),
-    F_NAME(update_keys),
-    F_NAME(edge_case_values)
-};
-
-string target_dir = "./test_dbs/";
+vector<pair<void (*)(SimpleKVStore db), string>> shared_db_tests = {
+    F_NAME(close_and_recover)};
 
 int main()
 {
-    cout << "Running SimpleKVStore Tests..."<< endl << endl;
+    cout << endl
+         << "🧪 Running SimpleKVStore Tests 🧪" << endl
+         << endl;
 
-    if(dir_exists(target_dir) == 0)
-        mkdir(target_dir.c_str(), 0777);
-    else if (dir_exists(target_dir) == 1) {
-        for (const auto& entry : std::filesystem::directory_iterator(target_dir))
+    if (dir_exists(test_dir) == 0)
+        mkdir(test_dir.c_str(), 0777);
+    else if (dir_exists(test_dir) == 1)
+    {
+        for (const auto &entry : std::filesystem::directory_iterator(test_dir))
             std::filesystem::remove_all(entry.path());
     }
 
-    for (pair<void (*) (SimpleKVStore db), string> func: testing_suite) {
+    // Individual DBs
+    for (pair<void (*)(SimpleKVStore db), string> func : individual_db_tests)
+    {
 
         // Before all
 
         SimpleKVStore db;
-        db.open(target_dir + func.second + "_db", PAGE_NUM_ENTRIES);
+        db.open(test_dir + func.second + "_db", PAGE_NUM_ENTRIES);
 
         // Call method
 
@@ -132,13 +75,31 @@ int main()
         db.close();
     }
 
-    cout << endl << "All tests passed" << endl;
+    // Shared DBs
+    SimpleKVStore shared_db;
+    shared_db.open(test_dir + "shared_db", PAGE_NUM_ENTRIES);
+
+    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
+    {
+        shared_db.put(i, -i);
+    }
+
+    for (pair<void (*)(SimpleKVStore db), string> func : shared_db_tests)
+    {
+        cout << func.second;
+        func.first(shared_db);
+        cout << " ✅" << endl;
+    }
+
+    cout << endl
+         << "All tests passed ✅" << endl
+         << endl;
 
     // Clear testing data
-    for (const auto& entry : std::filesystem::directory_iterator(target_dir))
-            std::filesystem::remove_all(entry.path());
+    for (const auto &entry : std::filesystem::directory_iterator(test_dir))
+        std::filesystem::remove_all(entry.path());
 
     return 0;
 }
 
-#endif //SRC_KV_STORE_KV_STORE_TEST_H
+#endif // SRC_KV_STORE_KV_STORE_TEST_H

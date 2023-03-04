@@ -42,15 +42,15 @@ void assert_vec_equals(vector<pair<int, int>> val, vector<pair<int, int>> target
     if (val != target)
     {
         cout << endl;
-        
+
         cout << "val: ";
-        for (pair<int, int> i: val)
+        for (pair<int, int> i : val)
             cout << to_string(i.first) << "," << to_string(i.second) << ' ';
 
         cout << endl;
 
         cout << "target: ";
-        for (pair<int, int> i: target)
+        for (pair<int, int> i : target)
             cout << to_string(i.first) << "," << to_string(i.second) << ' ';
 
         cout << endl;

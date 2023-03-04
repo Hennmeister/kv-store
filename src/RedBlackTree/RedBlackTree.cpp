@@ -4,14 +4,16 @@
 
 using namespace std;
 
-Node::Node(int key, int value) {
+Node::Node(int key, int value)
+{
     this->key = key;
     this->value = value;
     left = right = parent = nullptr;
     this->color = RED;
 }
 
-RedBlackTree::RedBlackTree() {
+RedBlackTree::RedBlackTree()
+{
     size = 0;
     min_key = INT_MIN;
     max_key = INT_MAX;
@@ -21,8 +23,9 @@ RedBlackTree::RedBlackTree() {
     root = nil;
 }
 
-void RedBlackTree::rotateLeft(Node*& root, Node*& pt) {
-    Node* pt_right = pt->right;
+void RedBlackTree::rotateLeft(Node *&root, Node *&pt)
+{
+    Node *pt_right = pt->right;
 
     pt->right = pt_right->left;
 
@@ -44,8 +47,9 @@ void RedBlackTree::rotateLeft(Node*& root, Node*& pt) {
     pt->parent = pt_right;
 }
 
-void RedBlackTree::rotateRight(Node*& root, Node*& pt) {
-    Node* pt_left = pt->left;
+void RedBlackTree::rotateRight(Node *&root, Node *&pt)
+{
+    Node *pt_left = pt->left;
 
     pt->left = pt_left->right;
 
@@ -67,28 +71,34 @@ void RedBlackTree::rotateRight(Node*& root, Node*& pt) {
     pt->parent = pt_left;
 }
 
-void RedBlackTree::fixViolation(Node*& root, Node*& pt) {
-    Node* parent_pt = nil;
-    Node* grand_parent_pt = nil;
+void RedBlackTree::fixViolation(Node *&root, Node *&pt)
+{
+    Node *parent_pt = nil;
+    Node *grand_parent_pt = nil;
 
     while ((pt != root) && (pt->color != BLACK) &&
-        (pt->parent->color == RED)) {
+           (pt->parent->color == RED))
+    {
 
         parent_pt = pt->parent;
         grand_parent_pt = pt->parent->parent;
 
-        if (parent_pt == grand_parent_pt->left) {
+        if (parent_pt == grand_parent_pt->left)
+        {
 
-            Node* uncle_pt = grand_parent_pt->right;
+            Node *uncle_pt = grand_parent_pt->right;
 
-            if (uncle_pt->color == RED) {
+            if (uncle_pt->color == RED)
+            {
                 grand_parent_pt->color = RED;
                 parent_pt->color = BLACK;
                 uncle_pt->color = BLACK;
                 pt = grand_parent_pt;
             }
-            else {
-                if (pt == parent_pt->right) {
+            else
+            {
+                if (pt == parent_pt->right)
+                {
                     rotateLeft(root, parent_pt);
                     pt = parent_pt;
                     parent_pt = pt->parent;
@@ -98,17 +108,21 @@ void RedBlackTree::fixViolation(Node*& root, Node*& pt) {
                 pt = parent_pt;
             }
         }
-        else {
-            Node* uncle_pt = grand_parent_pt->left;
+        else
+        {
+            Node *uncle_pt = grand_parent_pt->left;
 
-            if (uncle_pt->color == RED) {
+            if (uncle_pt->color == RED)
+            {
                 grand_parent_pt->color = RED;
                 parent_pt->color = BLACK;
                 uncle_pt->color = BLACK;
                 pt = grand_parent_pt;
             }
-            else {
-                if (pt == parent_pt->left) {
+            else
+            {
+                if (pt == parent_pt->left)
+                {
                     rotateRight(root, parent_pt);
                     pt = parent_pt;
                     parent_pt = pt->parent;
@@ -124,21 +138,26 @@ void RedBlackTree::fixViolation(Node*& root, Node*& pt) {
     root->color = BLACK;
 }
 
-void RedBlackTree::put(const int& key, const int& value) {
-    if (key < min_key) {
+void RedBlackTree::put(const int &key, const int &value)
+{
+    if (key < min_key)
+    {
         min_key = key;
     }
-    if (key > max_key) {
+    if (key > max_key)
+    {
         max_key = key;
     }
 
-    Node* pt = root;
-    Node* parent = nil;
+    Node *pt = root;
+    Node *parent = nil;
 
-    while (pt != nil) {
+    while (pt != nil)
+    {
         parent = pt;
 
-        if (key == pt->key) {
+        if (key == pt->key)
+        {
             pt->value = value;
             return;
         }
@@ -155,7 +174,8 @@ void RedBlackTree::put(const int& key, const int& value) {
     pt->right = nil;
     pt->color = RED;
 
-    if (parent == nil) {
+    if (parent == nil)
+    {
         root = pt;
         root->color = BLACK;
     }
@@ -169,17 +189,22 @@ void RedBlackTree::put(const int& key, const int& value) {
     size++;
 }
 
-bool RedBlackTree::get(const int &key, int& value) {
+bool RedBlackTree::get(const int &key, int &value)
+{
     Node *curr = root;
-    while (curr != nil) {
-        if (curr->key == key) {
+    while (curr != nil)
+    {
+        if (curr->key == key)
+        {
             value = curr->value;
             return true;
         }
-        else if (curr->key < key) {
+        else if (curr->key < key)
+        {
             curr = curr->right;
         }
-        else {
+        else
+        {
             curr = curr->left;
         }
     }
@@ -187,26 +212,32 @@ bool RedBlackTree::get(const int &key, int& value) {
     return false;
 }
 
-void RedBlackTree::inorderTraversalHelper(Node* root, const int &key1, const int &key2, std::vector<std::pair<int, int>> &kv_pairs) {
-    if (root != nil) {
+void RedBlackTree::inorderTraversalHelper(Node *root, const int &key1, const int &key2, std::vector<std::pair<int, int>> &kv_pairs)
+{
+    if (root != nil)
+    {
         inorderTraversalHelper(root->left, key1, key2, kv_pairs);
-        if (root->key >= key1 && root->key <= key2) {
+        if (root->key >= key1 && root->key <= key2)
+        {
             kv_pairs.emplace_back(root->key, root->value);
         }
         inorderTraversalHelper(root->right, key1, key2, kv_pairs);
     }
 }
 
-vector<std::pair<int, int>> RedBlackTree::scan(const int &key1, const int &key2) {
+vector<std::pair<int, int>> RedBlackTree::scan(const int &key1, const int &key2)
+{
     std::vector<std::pair<int, int>> kv_pairs = {};
     inorderTraversalHelper(root, key1, key2, kv_pairs);
     return kv_pairs;
 }
 
-std::vector<std::pair<int, int>> RedBlackTree::inorderTraversal() {
+std::vector<std::pair<int, int>> RedBlackTree::inorderTraversal()
+{
     return scan(min_key, max_key);
 }
 
-int RedBlackTree::getSize() {
+int RedBlackTree::getSize()
+{
     return size;
 }
