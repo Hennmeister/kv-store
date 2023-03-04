@@ -27,6 +27,16 @@ bool SimpleKVStore::get(const int &key, int& value) {
 }
 
 std::vector<std::pair<int, int>> SimpleKVStore::scan(const int &key1, const int &key2) {
+    if (key1 > key2)
+        return std::vector<std::pair<int, int>> {};
+
+    // TODO: change this to be handled in the algorithm
+    if (key1 == key2) {
+        int val;
+        get(key1, val);
+        return {(std::pair<int, int> {key1, val})};
+    }
+
     return priority_merge(memtable->scan(key1, key2), sstManager->scan(key1, key2));
 }
 

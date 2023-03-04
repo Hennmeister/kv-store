@@ -3,24 +3,13 @@
 #include "../../include/SortedSSTManager.h"
 #include "../../include/util.h"
 #include "../../include/constants.h"
+#include "../../include/util.h"
 #include <unistd.h>
 #include <sys/stat.h>
 #include <filesystem>
 #include <iostream>
 
 using namespace std;
-
-int dir_exists(string dir){
-    struct stat info{};
-    if(stat(dir.c_str(), &info) != 0){
-        return 0;
-    }
-    else if(info.st_mode & S_IFDIR)
-    {
-        return 1;
-    }
-    return -1;
-}
 
 int binary_search(vector<pair<int, int>> data, int target, int &value) {
     int left = 0;
@@ -103,7 +92,6 @@ bool SortedSSTManager::add_sst(vector<pair<int, int>> data) {
 
 
 vector<pair<int, int>> SortedSSTManager::scan(const int &key1, const int &key2) {
-    cout << "hi scanning" << endl;
     auto res = vector<pair<int, int>>();
 
     for(int i = sizes.size() - 1; i > -1; i -- ){

@@ -3,6 +3,7 @@
 #define KV_STORE_REDBLACKTREE_H
 
 #include <tuple>
+#include <climits>
 
 enum Color {RED, BLACK};
 

@@ -1,8 +1,20 @@
 #include <unistd.h>
 #include "../include/util.h"
 #include <iostream>
+#include <climits>
+#include <cstring>
+#include <sys/stat.h>
 
 using namespace std;
+
+int dir_exists(std::string dir) {
+    struct stat info{};
+    if(stat(dir.c_str(), &info) != 0)
+        return 0;
+    else if(info.st_mode & S_IFDIR)
+        return 1;
+    return -1;
+}
 
 void pad_data(std::vector<std::pair<int, int>>& src, int size){
     if(src.size() >= size){

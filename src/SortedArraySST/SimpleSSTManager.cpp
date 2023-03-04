@@ -5,22 +5,12 @@
 #include <utility>
 #include "../../include/SimpleSSTManager.h"
 #include "../../include/constants.h"
+#include "../../include/util.h"
 #include <sys/stat.h>
 #include <filesystem>
+#include <cstring>
 
 using namespace std;
-
-int dir_exists(std::string dir){
-    struct stat info{};
-    if(stat(dir.c_str(), &info) != 0){
-        return 0;
-    }
-    else if(info.st_mode & S_IFDIR)
-    {
-        return 1;
-    }
-    return -1;
-}
 
 SimpleSSTManager::SimpleSSTManager(std::string target_dir) {
     this->directory = target_dir;
