@@ -54,12 +54,12 @@ std::vector<std::pair<int, int>> priority_merge(std::vector<std::pair<int, int>>
             ind0++;
         }
     }
-    if(ind0 != master.size() -1){
+    if(ind0 != master.size()){
         for(int i = ind0; i < master.size(); i++){
             res.emplace_back(master[i]);
         }
     }
-    if(ind1 != older.size() -1){
+    if(ind1 != older.size()){
         for(int i = ind1; i < older.size(); i++){
             res.emplace_back(older[i]);
         }
