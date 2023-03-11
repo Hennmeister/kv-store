@@ -6,89 +6,100 @@
 #define SRC_KV_STORE_KV_STORE_TEST_H
 
 #include <iostream>
-#include <cassert>
 #include "../include/SimpleKVStore.h"
 #include "../include/RedBlackMemtable.h"
 #include "../include/SimpleSSTManager.h"
 #include "../include/constants.h"
 #include "../include/util.h"
+#include "./test_util.h"
+#include "./tests.h"
 #include <string>
-#include <fstream>
+#include <vector>
+#include <filesystem>
+#include <sys/stat.h>
 
 using namespace std;
 
-void print_file(string directory, string file_name) {
-    ifstream *read_file = new ifstream();
-    read_file->open(directory + "/" + file_name, ios::in | ios::binary);
+string test_dir = "./test_dbs/";
 
-    if (!read_file->is_open())
-        throw std::runtime_error(directory + "/" + file_name + " data file could not be opened");
-
-    ofstream *write_file = new ofstream();
-    write_file->open(directory + "/" + file_name + "_debug.txt", ios::binary | ios::app);
-
-    if (!write_file->is_open())
-        throw std::runtime_error(directory + "/" + file_name + "_debug.txt" + " data file could not be opened");
-
-    while(!read_file->eof()) {
-        int32_t first, second;
-        read_file->read(reinterpret_cast<char *>(&first), sizeof(int32_t));
-        read_file->read(reinterpret_cast<char *>(&second), sizeof(int32_t));
-        (*write_file) << to_string(first) + ", " << to_string(second) << endl;
+#define F_NAME(func)                         \
+    pair<void (*)(SimpleKVStore db), string> \
+    {                                        \
+        func, #func                          \
     }
-}
 
+vector<pair<void (*)(SimpleKVStore db), string>>
+    individual_db_tests = {
+        F_NAME(simple_test),
+        F_NAME(memtable_puts_and_gets),
+        F_NAME(memtable_puts_and_scans),
+        F_NAME(sequeantial_puts_and_gets),
+        F_NAME(sequeantial_puts_and_scans),
+        F_NAME(update_keys),
+        F_NAME(edge_case_values),
+        F_NAME(multiple_dbs)};
 
-
-void simple_test(SimpleKVStore db) {
-    db.put(1,1);
-    db.put(-2, -2);
-    db.put(5,5);
-    int val = 0;
-    db.get(1,val);
-    assert(val == 1);
-    db.get(-2, val);
-    assert(val == -2);
-    db.get(5,val);
-    assert(val == 5);
-    assert(db.get(-1,val) == false);
-    db.put(1, 10);
-    db.get(1, val);
-//    assert(val == 10); TODO: uncomment this when get is fully implemented with SST traversal
-}
+vector<pair<void (*)(SimpleKVStore db), string>> shared_db_tests = {
+    F_NAME(close_and_recover)};
 
 int main()
 {
-    cout << "Running SimpleKVStore Tests..."<< endl;
+    cout << endl
+         << "🧪 Running SimpleKVStore Tests 🧪" << endl
+         << endl;
 
-    string target_dir = "my_db";
-
-    SimpleKVStore db;
-    db.open(target_dir, PAGE_NUM_ENTRIES);
-
-//    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++) {
-//        db.put(i, -i);
-//    }
-
-//    print_file(target_dir, "index");
-//    print_file(target_dir, "ssts");
-//
-    int val;
-    for (int i = 640; i < 3 * PAGE_NUM_ENTRIES + 300; i++) {
-        db.get(i, val);
-        if(val != -i){
-            cout << "failed on i: " << val << endl;
-            assert(val == -i);
-        }
+    if (dir_exists(test_dir) == 0)
+        mkdir(test_dir.c_str(), 0777);
+    else if (dir_exists(test_dir) == 1)
+    {
+        for (const auto &entry : std::filesystem::directory_iterator(test_dir))
+            std::filesystem::remove_all(entry.path());
     }
-//
-    simple_test(db);
-    print_data(db.scan(1,1000));
-    db.close();
 
-    cout << "All tests passed" << endl;
+    // Individual DBs
+    for (pair<void (*)(SimpleKVStore db), string> func : individual_db_tests)
+    {
+
+        // Before all
+
+        SimpleKVStore db;
+        db.open(test_dir + func.second + "_db", PAGE_NUM_ENTRIES);
+
+        // Call method
+
+        cout << func.second;
+        func.first(db);
+        cout << " ✅" << endl;
+
+        // After all
+        db.close();
+    }
+
+    // Shared DBs
+    SimpleKVStore shared_db;
+    shared_db.open(test_dir + "shared_db", PAGE_NUM_ENTRIES);
+
+    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
+    {
+        shared_db.put(i, -i);
+    }
+
+    for (pair<void (*)(SimpleKVStore db), string> func : shared_db_tests)
+    {
+        cout << func.second;
+        func.first(shared_db);
+        cout << " ✅" << endl;
+    }
+
+    cout << endl
+         << "All tests passed ✅" << endl
+         << endl;
+
+    // Clear testing data
+    for (const auto &entry : std::filesystem::directory_iterator(test_dir))
+        std::filesystem::remove_all(entry.path());
 
     return 0;
 }
 
-#endif //SRC_KV_STORE_KV_STORE_TEST_H
+#endif // SRC_KV_STORE_KV_STORE_TEST_H

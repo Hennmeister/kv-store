@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 project ("kv-store")
 
-add_executable (kv-store-test test/kv-store-test.cpp test/kv-store-test.h)
+add_executable (kv-store-test test/kv-store-test.cpp test/kv-store-test.h test/test_util.cpp test/test_util.h test/tests.cpp test/tests.h)
 
 add_library(kv-store src/KVStore/SimpeKVStore.cpp include/Base/KVStore.h include/RedBlackTree.h
         src/RedBlackTree/RedBlackTree.cpp src/KVStore/RedBlackMemtable.cpp include/RedBlackMemtable.h
