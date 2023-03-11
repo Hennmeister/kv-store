@@ -66,6 +66,7 @@ std::vector<std::pair<int, int>> priority_merge(std::vector<std::pair<int, int>>
         {
             res.emplace_back(master[ind0]);
             ind0++;
+            ind1++;
         }
     }
     if (ind0 != master.size())
