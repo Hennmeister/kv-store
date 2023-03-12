@@ -66,7 +66,33 @@ void sequeantial_puts_and_scans(SimpleKVStore db)
 
 void update_keys(SimpleKVStore db)
 {
-    // TODO: add a few keys, update a few keys and make sure they are updated/maintained properly
+    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
+    {
+        db.put(i, -i);
+    }
+
+    int val;
+    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
+    {
+        db.get(i, val);
+        assert_val_equals(val, -i, "update_keys");
+    }
+
+    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
+    {
+        db.put(i, -i * 2);
+    }
+
+    vector<pair<int, int>> key_vals{};
+    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
+    {
+        db.get(i, val);
+        key_vals.emplace_back(i, -i*2);
+        assert_val_equals(val, -i * 2, "update_keys");
+    }
+    vector<pair<int, int>> scan = db.scan(0, 3 * PAGE_NUM_ENTRIES + 300 - 1);
+    assert_vec_equals(scan, key_vals, "update_keys");
+
 }
 
 void edge_case_values(SimpleKVStore db)
@@ -121,7 +147,19 @@ void multiple_dbs(SimpleKVStore db)
         db3.put(i, i + 2);
     }
 
-    // TODO: gets and scans to ensure it remains the same
+    int val;
+    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
+    {
+        db1.get(i, val);
+        assert_val_equals(val, i, "multiple_dbs_db1");
+        db2.get(i, val);
+        assert_val_equals(val, i + 1, "multiple_dbs_db2");
+        db3.get(i, val);
+        assert_val_equals(val, i + 2, "multiple_dbs_db3");
+    }
+    db1.close();
+    db2.close();
+    db3.close();
 }
 
 void simple_test(SimpleKVStore db)
