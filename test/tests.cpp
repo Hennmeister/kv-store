@@ -2,11 +2,39 @@
 #include "./test_util.h"
 #include "../include/SimpleKVStore.h"
 #include "../include/constants.h"
+#include "../src/BufferPool/BufferPool.h"
+#include "../src/BufferPool/BufferPoolEntry.h"
+#include "../src/BufferPool/Directory.h"
+
 #include <string>
 #include <vector>
 #include <cassert>
 
+#include <iostream>
+
 using namespace std;
+
+// ===================== Buffer Pool Tests =========================
+// TODO: test for hash collisions - maybe modify private fields directly?
+void simple_buffer_pool(SimpleKVStore db)
+{
+    Directory *buf_pool = new Directory(1, 10, NULL);
+    // test inserting and retrieving 10 pages
+    uint8_t in_buf[PAGE_SIZE];
+    uint8_t out_buf[PAGE_SIZE];
+
+    for (int i = 1; i <= 10; i++) {
+        // fill in buf with page num
+        for (int j = 0; j < PAGE_SIZE; j++) {
+            in_buf[j] = (u_int8_t) i;
+        }
+
+        buf_pool->insert_page(i, in_buf);
+        buf_pool->get_page(i, out_buf);
+
+        assert_buf_equals(in_buf, out_buf, "simple_buffer_pool");
+    }
+}
 
 // ===================== Inner-workings Tests =========================
 
@@ -24,7 +52,7 @@ void memtable_puts_and_scans(SimpleKVStore db)
 
 // ===================== User-facing Tests =========================
 
-void sequeantial_puts_and_gets(SimpleKVStore db)
+void sequential_puts_and_gets(SimpleKVStore db)
 {
 
     for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
@@ -36,11 +64,11 @@ void sequeantial_puts_and_gets(SimpleKVStore db)
     for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
     {
         db.get(i, val);
-        assert_val_equals(val, -i, "sequeantial_puts_and_gets");
+        assert_val_equals(val, -i, "sequential_puts_and_gets");
     }
 }
 
-void sequeantial_puts_and_scans(SimpleKVStore db)
+void sequential_puts_and_scans(SimpleKVStore db)
 {
 
     for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
@@ -53,13 +81,13 @@ void sequeantial_puts_and_scans(SimpleKVStore db)
     {
         key_vals.push_back(pair<int, int>({i, -i}));
         vector<pair<int, int>> scan = db.scan(0, i);
-        assert_vec_equals(scan, key_vals, "sequeantial_puts_and_scans_1");
+        assert_vec_equals(scan, key_vals, "sequential_puts_and_scans_1");
     }
 
     for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
     {
         vector<pair<int, int>> scan = db.scan(i, 3 * PAGE_NUM_ENTRIES + 300 - 1);
-        assert_vec_equals(scan, key_vals, "sequeantial_puts_and_scans_2");
+        assert_vec_equals(scan, key_vals, "sequential_puts_and_scans_2");
         key_vals.erase(key_vals.begin());
     }
 }

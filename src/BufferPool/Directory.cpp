@@ -1,22 +1,21 @@
 #include "Directory.h"
 #include "../util/MurmurHash3/MurmurHash3.h"
-#include <iostream>
 #include "math.h"
 
-void Directory::insert_page(uint32_t page_num, ::uint8_t *page) {
-    // TODO: first check that page is not already in buffer pool
+#include <bitset>
 
+// Precondition: page is not in Buffer pool already
+void Directory::insert_page(uint32_t page_num, ::uint8_t page[PAGE_SIZE]) {
     if (num_pages_in_buffer * sizeof(BufferPoolEntry) >= max_size) {
-        // TODO: return err status here
-        return;
+        eviction_strategy->evict();
     }
 
     // Currently increasing buffer size when load factor reaches 75% and under max size
-    if ((num_pages_in_buffer / (1<<num_bits)) > 0.75) {
+    if (((float) num_pages_in_buffer / (float) (1<<  num_bits)) > 0.75) {
         grow(num_bits + 1);
     }
 
-    BufferPoolEntry *entry = new BufferPoolEntry();
+    auto *entry = new BufferPoolEntry();
     entry->page_num = page_num;
     ::memcpy(entry->page, page, PAGE_SIZE);
     entry->prev_entry = entry->next_entry = nullptr;
@@ -26,7 +25,7 @@ void Directory::insert_page(uint32_t page_num, ::uint8_t *page) {
 }
 
 // TODO: create proper statuses/error messages to return
-int Directory::get_page(uint32_t page_num, uint8_t *page_out_buf) {
+int Directory::get_page(uint32_t page_num, uint8_t page_out_buf[PAGE_SIZE]) {
     ::uint32_t bucket_num = hash_to_bucket_index(page_num);
     BufferPoolEntry *curr_entry = entries[bucket_num];
     while (curr_entry != nullptr && curr_entry->page_num != page_num) {
@@ -115,7 +114,7 @@ void Directory::set_size(int new_size) {
 std::uint32_t Directory::hash_to_bucket_index(std::uint32_t page_num) const {
     ::uint32_t bucket_num;
     MurmurHash3_x86_32(&page_num, sizeof(page_num), 1, &bucket_num);
-    return bucket_num^(1<<(num_bits-1));
+    return bucket_num & ((1<<num_bits)-1);
 }
 
 // assuming sizes are passed in as MB
@@ -125,7 +124,11 @@ Directory::Directory(int min_size, int max_size, EvictionStrategy *eviction_stra
     this->eviction_strategy = eviction_strategy;
     this->num_pages_in_buffer = 0;
 
-    this->num_bits = ceil(log2(min_size / (sizeof(BufferPoolEntry) * pow(10, 6) )));
+    this->num_bits = ceil(log2((min_size * pow(10, 6)) / (sizeof(BufferPoolEntry))));
+
+    for (int i = 0; i < (1<<num_bits); i++) {
+        entries.emplace_back(nullptr);
+    }
 }
 
 // assumes this entry is not currently in buffer pool and

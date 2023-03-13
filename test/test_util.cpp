@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <sys/stat.h>
+#include "test_util.h"
 
 using namespace std;
 
@@ -56,5 +57,15 @@ void assert_vec_equals(vector<pair<int, int>> val, vector<pair<int, int>> target
         cout << endl;
 
         throw runtime_error(test_name + ": val != target --> Sizes: " + to_string(val.size()) + " != " + to_string(target.size()));
+    }
+}
+
+void assert_buf_equals(uint8_t in_buf[PAGE_SIZE], uint8_t out_buf[PAGE_SIZE], std::string test_name)
+{
+    for (int i = 0; i < PAGE_SIZE; i++) {
+        if (in_buf[i] != out_buf[i]) {
+            throw runtime_error(test_name + ": in_buf != out_buf --> mismatch at index " + to_string(i) +
+            " : " +  to_string(in_buf[i]) + "!= " + to_string(out_buf[i]));
+        }
     }
 }

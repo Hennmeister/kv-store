@@ -1,7 +1,3 @@
-//
-// Created by Henning Lindig on 2023-01-27.
-//
-
 #ifndef SRC_KV_STORE_KV_STORE_TEST_H
 #define SRC_KV_STORE_KV_STORE_TEST_H
 
@@ -13,6 +9,7 @@
 #include "../include/util.h"
 #include "./test_util.h"
 #include "./tests.h"
+#include "../src/BufferPool/BufferPool.h"
 #include <string>
 #include <vector>
 #include <filesystem>
@@ -33,11 +30,13 @@ vector<pair<void (*)(SimpleKVStore db), string>>
         F_NAME(simple_test),
         F_NAME(memtable_puts_and_gets),
         F_NAME(memtable_puts_and_scans),
-        F_NAME(sequeantial_puts_and_gets),
-        F_NAME(sequeantial_puts_and_scans),
+        F_NAME(sequential_puts_and_gets),
+        F_NAME(sequential_puts_and_scans),
         F_NAME(update_keys),
         F_NAME(edge_case_values),
-        F_NAME(multiple_dbs)};
+        F_NAME(multiple_dbs),
+        F_NAME(simple_buffer_pool)
+};
 
 vector<pair<void (*)(SimpleKVStore db), string>> shared_db_tests = {
     F_NAME(close_and_recover)};
