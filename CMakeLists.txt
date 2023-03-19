@@ -13,7 +13,7 @@ add_library(kv-store src/KVStore/SimpeKVStore.cpp include/Base/KVStore.h include
         src/RedBlackTree/RedBlackTree.cpp src/KVStore/RedBlackMemtable.cpp include/RedBlackMemtable.h
         include/Base/KVStore.h include/SimpleKVStore.h include/Base/Memtable.h include/Base/SSTManager.h
         include/SimpleSSTManager.h include/Base/SST.h src/SortedArraySST/SimpleSSTManager.cpp include/constants.h
-        include/SortedSSTManager.h src/SortedArraySST/SortedSSTManager.cpp include/util.h src/util.cpp include/Base/SSTFileManager.h include/SortedSSTFileManager.h)
+        include/SortedSSTManager.h src/SortedArraySST/SortedSSTManager.cpp include/util.h src/util.cpp include/Base/SSTFileManager.h include/SimpleSSTFileManager.h src/SimpleSSTFileManager.cpp)
 # Add source to this project's executable.
 
 target_link_libraries(kv-store-test PUBLIC kv-store)

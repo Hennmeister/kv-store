@@ -1,13 +1,7 @@
-
-#include <fcntl.h>
 #include "../../include/SortedSSTManager.h"
 #include "../../include/util.h"
 #include "../../include/constants.h"
 #include "../../include/util.h"
-#include <unistd.h>
-#include <sys/stat.h>
-#include <filesystem>
-#include <iostream>
 
 using namespace std;
 
@@ -140,6 +134,9 @@ vector<pair<string, int>> SortedSSTManager::get_ssts(){
 vector<pair<int, int>> SortedSSTManager::get_sst(int sst_ind)
 {
     auto res = vector<pair<int, int>>();
+    if(sst_ind >= sst_count){
+        return res;
+    }
     auto files = this->get_ssts();
 
     int total_read = files[sst_ind].second * PAGE_SIZE;
