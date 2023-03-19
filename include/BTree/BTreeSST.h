@@ -4,6 +4,11 @@
 
 using namespace std;
 class BTreeSST{
+private:
+    int fanout;
+    vector<vector<int>> internal_btree;
+    vector<pair<int, int>> internal_data;
+    void constructBtree(vector<pair<int, int>> data);
 public:
     ~BTreeSST();
     int getSize();
