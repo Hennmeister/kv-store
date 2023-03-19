@@ -22,7 +22,7 @@ BTreeSSTManager::BTreeSSTManager(SSTFileManager *fileManager, int newFanout, int
     ssts = vector<BTreeSST*>();
     int i = 0;
     for(const pair<string, int>& fileDat : files){
-        ssts.insert(ssts.begin(),new BTreeSST(fileManager, i, fileDat.first, useBinary));
+        ssts.insert(ssts.begin(),new BTreeSST(fileManager, newFanout, fileDat.first, fileDat.second, useBinary));
         total_entries += ssts[i]->getSize();
     }
 }

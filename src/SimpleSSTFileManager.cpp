@@ -42,10 +42,11 @@ int SimpleSSTFileManager::get_page(int page, string file, void *data_buf) {
     return successful_read;
 }
 
+// Reads in end page as well (inclusive) e.g. start = 0 end = 0 implies only 0 is read, start = 0 end = 1 implies 0,1 read
 int SimpleSSTFileManager::scan(int start_page, int end_page, string file, void *data_buf) {
     char* filename = string_to_char(dir_name + "/" + file);
     int file_fd = open(filename, O_RDWR, 0777);
-    int diff = end_page - start_page;
+    int diff = (end_page + 1) - start_page;
     int successful_read = safe_read(file_fd, data_buf, PAGE_SIZE * diff, PAGE_SIZE * start_page);
     close(file_fd);
     return successful_read;
