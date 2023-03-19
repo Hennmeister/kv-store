@@ -1,6 +1,6 @@
 ﻿#include "../../include/SimpleKVStore.h"
-#include "../../include/RedBlackMemtable.h"
-#include "../../include/SortedSSTManager.h"
+#include "../../include/RedBlack/RedBlackMemtable.h"
+#include "../../include/ArraySST/SortedSSTManager.h"
 #include "../../include/util.h"
 #include "../../include/SimpleSSTFileManager.h"
 #include <iostream>

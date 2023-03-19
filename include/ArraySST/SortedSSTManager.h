@@ -3,8 +3,8 @@
 
 #include <string>
 #include <fstream>
-#include "Base/SSTManager.h"
-#include "Base/SSTFileManager.h"
+#include "../Base/SSTManager.h"
+#include "../Base/SSTFileManager.h"
 
 using namespace std;
 class SortedSSTManager: public SSTManager{

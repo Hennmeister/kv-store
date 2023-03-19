@@ -1,4 +1,4 @@
-#include "../../include/SortedSSTManager.h"
+#include "../../include/ArraySST/SortedSSTManager.h"
 #include "../../include/util.h"
 #include "../../include/constants.h"
 #include "../../include/util.h"
