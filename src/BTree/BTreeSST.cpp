@@ -71,7 +71,9 @@ void BTreeSST::constructBtree(vector<pair<int, int>> data){
         current = level;
     }
     //TODO: Delete layer 0 - No need to store in memory, pull from File
-    btree.push_back(current);
+    if(current.size() > 0) {
+        btree.push_back(current);
+    }
     internal_btree = btree;
 }
 
@@ -100,8 +102,9 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
 BTreeSST::BTreeSST(SSTFileManager *fileManager, int fanout, string filename,int size, int useBinarySearch) {
     this->fileManager = fileManager;
     this->filename = filename;
-    auto res = this->get_pages(0, size/PAGE_SIZE);
-    size = res.size();
+    this->size = size/ENTRY_SIZE;
+    auto res = this->get_pages(0, ceil(size/PAGE_SIZE) - 1);
+    this->size = res.size();
     this->fanout = fanout;
     this->constructBtree(res);
 }

@@ -63,7 +63,7 @@ int SimpleSSTFileManager::write_file(void *data, int size, string new_filename) 
 vector<pair<string, int>> SimpleSSTFileManager::get_files() {
     auto files =  vector<pair<string, int>>();
     for (const auto &entry : std::filesystem::directory_iterator(dir_name))
-        files.emplace_back(entry.path().filename(), GetFileSize(entry.path())/PAGE_SIZE );
+        files.emplace_back(entry.path().filename(), GetFileSize(entry.path()) );
     return files;
 }
 

@@ -12,17 +12,24 @@ bool BTreeSSTManager::get(const int &key, int &value) {
     }
     return false;
 }
+bool sortByFname(const pair<string,int> &a,
+                 const pair<string,int> &b)
+{
+    int pos_a = stoi(a.first.substr(0, a.first.size()-4));
+    int pos_b = stoi(b.first.substr(0, b.first.size()-4));
+    return (pos_a < pos_b);
+}
 
 BTreeSSTManager::BTreeSSTManager(SSTFileManager *fileManager, int newFanout, int useBinarySearch) {
-    // TODO: Sort in order depending on filename
     auto files = fileManager->get_files();
+    std::sort(files.begin(), files.end(), sortByFname);
     useBinary = useBinarySearch;
     this->fileManager = fileManager;
     this->newFanout = newFanout;
     ssts = vector<BTreeSST*>();
     int i = 0;
     for(const pair<string, int>& fileDat : files){
-        ssts.insert(ssts.begin(),new BTreeSST(fileManager, newFanout, fileDat.first, fileDat.second, useBinary));
+        ssts.push_back(new BTreeSST(fileManager, newFanout, fileDat.first, fileDat.second, useBinary));
         total_entries += ssts[i]->getSize();
     }
 }
