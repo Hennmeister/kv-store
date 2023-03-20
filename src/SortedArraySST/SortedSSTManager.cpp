@@ -84,10 +84,11 @@ bool SortedSSTManager::add_sst(vector<pair<int, int>> data)
 
 
     string fname = to_string(sst_count + 1) + ".sst";
-
-    fileManager->write_file(write_buf, sz * ENTRY_SIZE, fname);
+    int *meta = new int[PAGE_SIZE/sizeof(int)];
+    fileManager->write_file(write_buf, sz * ENTRY_SIZE, fname, meta);
 
     delete[] write_buf;
+    delete[] meta;
 
     sst_count += 1;
     total_entries += sz;
@@ -139,13 +140,13 @@ vector<pair<int, int>> SortedSSTManager::get_sst(int sst_ind)
     }
     auto files = this->get_ssts();
 
-    int total_read = files[sst_ind].second * PAGE_SIZE;
+    int total_read = files[sst_ind].second - PAGE_SIZE;
 
 
 
     int *data = new int[total_read/sizeof(int)];
 
-    fileManager->scan(0, files[sst_ind].second, files[sst_ind].first, data);
+    fileManager->scan(0, total_read/PAGE_SIZE, files[sst_ind].first, data);
 
     for (int ind = 0; ind < total_read/ENTRY_SIZE; ind++)
     {

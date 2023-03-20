@@ -83,24 +83,30 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
         write_buf[i * 2 + 1] = data[i].second;
     }
 
-
     string fname = to_string(ind + 1) + ".sst";
-
-    fileManager->write_file(write_buf, sz * ENTRY_SIZE, fname);
+    int *meta = new int[PAGE_SIZE/sizeof(int)];
+    meta[0] = fanout;
+    fileManager->write_file(write_buf, sz * ENTRY_SIZE, fname, meta);
     size = data.size();
     filename = fname;
     delete[] write_buf;
+    delete[] meta;
 
 }
 
-BTreeSST::BTreeSST(SSTFileManager *fileManager, int fanout, string filename,int size, int useBinarySearch) {
+BTreeSST::BTreeSST(SSTFileManager *fileManager, string filename,int size, int useBinarySearch) {
     this->fileManager = fileManager;
     this->filename = filename;
-    this->size = size/ENTRY_SIZE;
+    int *meta = new int[PAGE_SIZE/sizeof(int)];
+    this->fileManager->get_metadata(meta, filename);
+    this->fanout = meta[0];
+    // Remove metadata from file size (this->size is number of entries)
+    this->size = (size - PAGE_SIZE)/ENTRY_SIZE;
     auto res = this->get_pages(0, ceil(size/PAGE_SIZE) - 1);
+    // Required in case some data was padded (i.e. for memtable drop)
     this->size = res.size();
-    this->fanout = fanout;
     this->constructBtree(res);
+    delete[] meta;
 }
 
 

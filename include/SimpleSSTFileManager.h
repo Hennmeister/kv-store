@@ -14,8 +14,9 @@ public:
     ~SimpleSSTFileManager();
     virtual int get_page(int page, string filename, void* data_buf);
     virtual int scan(int start_page, int end_page, string filename, void* data_buf);
-    virtual int write_file(void* data, int size, string filename);
+    virtual int write_file(void* data, int size, string filename, void* metadata);
     virtual vector<pair<string, int>> get_files();
+    virtual int get_metadata(void* data, string filename);
 };
 
 #endif //KV_STORE_SIMPLESSTFILEMANAGER_H
