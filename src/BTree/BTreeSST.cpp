@@ -13,30 +13,23 @@ int BTreeSST::getSize() {
 int btree_find(vector<vector<int>> btree, int needle, int fanout){
     int offset = 0;
     for(int layer = btree.size() - 1; layer > -1; layer--){
-        //TODO: Delete layer 0
-        for(int i =0; i < fanout; i ++){
-            if(layer == 0 && i + offset >= btree[layer].size()){
-                return -1;
-            }else if(layer == 0 && btree[layer][i + offset] == needle){
-                return i + offset;
-            }else if(layer == 0 && btree[layer][i + offset] > needle){
-                return offset + i;
-            }
+        int i;
+        for(i =0; i < fanout; i ++){
             if(i + offset >= btree[layer].size()){
-                offset = btree[layer].size() * fanout;
                 break;
             }
             if(needle <= btree[layer][i + offset]){
-                offset = (i + offset) * fanout;
                 break;
             }
         }
+        offset = (i + offset) * fanout;
     }
+    return offset;
 }
 
 vector<pair<int, int>> BTreeSST::get_pages(int start_ind, int end_ind){
     auto res = vector<pair<int,int>>();
-    if(start_ind > ceil((double) size/ (double) PAGE_SIZE) || start_ind > end_ind){
+    if(start_ind >= ceil((double) size/ (double) PAGE_SIZE) || start_ind > end_ind){
         return res;
     }
 
@@ -63,15 +56,16 @@ void BTreeSST::constructBtree(vector<pair<int, int>> data){
     vector<vector<int>> btree = vector<vector<int>>();
     auto current = keys;
     while(current.size() > fanout - 1){
-        btree.push_back(current);
+        if(current != keys) {
+            btree.push_back(current);
+        }
         auto level = vector<int>();
         for(int i = fanout - 1; i < current.size(); i += fanout){
             level.push_back(current[i]);
         }
         current = level;
     }
-    //TODO: Delete layer 0 - No need to store in memory, pull from File
-    if(current.size() > 0) {
+    if(current.size() > 0 && current != keys) {
         btree.push_back(current);
     }
     internal_btree = btree;
@@ -115,13 +109,25 @@ bool BTreeSST::get(const int &key, int &value) {
         return false;
     }
     int pos = btree_find(internal_btree, key, fanout);
-    int page = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
+    int page = pos / PAGE_SIZE, offset;
     auto page_data = this->get_pages(page, page);
-    if(pos == -1 || page_data[offset].first > key) {
-        return false;
+
+    int cur = pos;
+    for(int i = 0; i <= fanout; i++){
+
+        offset = cur % PAGE_SIZE;
+        if(offset == 0 && i != 0){
+            page++;
+            page_data = this->get_pages(page, page);
+        }
+        if(page_data[offset].first == key) {
+            value = page_data[offset].second;
+            return true;
+        }
+        cur++;
+
     }
-    value = page_data[offset].second;
-    return true;
+    return false;
 }
 
 std::vector<std::pair<int, int>> BTreeSST::scan(const int &key1, const int &key2) {
@@ -133,6 +139,19 @@ std::vector<std::pair<int, int>> BTreeSST::scan(const int &key1, const int &key2
     int cur = pos;
     int page = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
     auto page_data = this->get_pages(page, page);
+
+    for(int i = 0; i <= fanout; i++){
+        offset = cur % PAGE_SIZE;
+        if(offset == 0 && i != 0){
+            page++;
+            page_data = this->get_pages(page, page);
+        }
+        if(page_data[offset].first >= key1) {
+            break;
+        }
+        cur++;
+    }
+
     while(page_data[offset].first <= key2 and cur < this->getSize()){
         res.emplace_back(page_data[offset]);
         cur++;

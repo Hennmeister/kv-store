@@ -32,6 +32,7 @@ BTreeSSTManager::BTreeSSTManager(SSTFileManager *fileManager, int newFanout, int
         ssts.push_back(new BTreeSST(fileManager, newFanout, fileDat.first, fileDat.second, useBinary));
         total_entries += ssts[i]->getSize();
     }
+    std::reverse(ssts.begin(), ssts.end());
 }
 
 std::vector<std::pair<int, int>> BTreeSSTManager::scan(const int &key1, const int &key2) {
