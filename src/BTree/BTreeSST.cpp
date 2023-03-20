@@ -3,13 +3,13 @@
 #include "../../include/constants.h"
 #include "math.h"
 
-BTreeSST::~BTreeSST() {
-}
+BTreeSST::~BTreeSST() = default;
 
-int BTreeSST::getSize() {
+int BTreeSST::getSize() const {
     return this->size;
 }
 
+// Find the position of an element which lower bounds the given needle in the btree
 int btree_find(vector<vector<int>> btree, int needle, int fanout){
     int offset = 0;
     for(int layer = btree.size() - 1; layer > -1; layer--){
@@ -27,6 +27,7 @@ int btree_find(vector<vector<int>> btree, int needle, int fanout){
     return offset;
 }
 
+// Get a set of pages from the file manager and parse it into a vector of key-value pairs.
 vector<pair<int, int>> BTreeSST::get_pages(int start_ind, int end_ind){
     auto res = vector<pair<int,int>>();
     if(start_ind >= ceil((double) size/ (double) PAGE_SIZE) || start_ind > end_ind){
@@ -47,14 +48,18 @@ vector<pair<int, int>> BTreeSST::get_pages(int start_ind, int end_ind){
     return res;
 }
 
-
-void BTreeSST::constructBtree(vector<pair<int, int>> data){
+// Construct a btree from the given key-value pair data (assuming sorted order)
+void BTreeSST::constructBtree(const vector<pair<int, int>>& data){
     vector<int> keys = vector<int>();
+    // This acts as the lowest level of the btree - does not get added to the final btree.
     for(pair<int, int> p: data){
         keys.push_back(p.first);
     }
+
     vector<vector<int>> btree = vector<vector<int>>();
     auto current = keys;
+
+    // Loop until just 1 root node less than fanout
     while(current.size() > fanout - 1){
         if(current != keys) {
             btree.push_back(current);
@@ -65,12 +70,13 @@ void BTreeSST::constructBtree(vector<pair<int, int>> data){
         }
         current = level;
     }
-    if(current.size() > 0 && current != keys) {
+    if(!current.empty() && current != keys) {
         btree.push_back(current);
     }
     internal_btree = btree;
 }
 
+// New SST creation - construct btree and write data to file.
 BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair<int, int>> data, int useBinarySearch) {
     this->fanout = fanout;
     this->constructBtree(data);
@@ -94,6 +100,7 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
 
 }
 
+// Load existing sst, read data from file and construct btree in memory.
 BTreeSST::BTreeSST(SSTFileManager *fileManager, string filename,int size, int useBinarySearch) {
     this->fileManager = fileManager;
     this->filename = filename;
@@ -119,6 +126,8 @@ bool BTreeSST::get(const int &key, int &value) {
     auto page_data = this->get_pages(page, page);
 
     int cur = pos;
+
+    // Check all elements in node pointed to by btree (i.e. lowest level of a virtually clustered btree)
     for(int i = 0; i <= fanout; i++){
 
         offset = cur % PAGE_SIZE;
@@ -146,6 +155,7 @@ std::vector<std::pair<int, int>> BTreeSST::scan(const int &key1, const int &key2
     int page = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
     auto page_data = this->get_pages(page, page);
 
+    // First find elem which is at least key1
     for(int i = 0; i <= fanout; i++){
         offset = cur % PAGE_SIZE;
         if(offset == 0 && i != 0){

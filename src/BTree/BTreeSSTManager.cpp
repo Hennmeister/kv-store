@@ -12,6 +12,7 @@ bool BTreeSSTManager::get(const int &key, int &value) {
     }
     return false;
 }
+
 bool sortByFname(const pair<string,int> &a,
                  const pair<string,int> &b)
 {
@@ -22,17 +23,23 @@ bool sortByFname(const pair<string,int> &a,
 
 BTreeSSTManager::BTreeSSTManager(SSTFileManager *fileManager, int newFanout, int useBinarySearch) {
     auto files = fileManager->get_files();
+    // Reverse SST order by filename so that newer SSTs are first.
     std::sort(files.begin(), files.end(), sortByFname);
+    std::reverse(files.begin(), files.end());
+
+    // TODO: Unused
     useBinary = useBinarySearch;
+
     this->fileManager = fileManager;
     this->newFanout = newFanout;
     ssts = vector<BTreeSST*>();
+
     int i = 0;
     for(const pair<string, int>& fileDat : files){
         ssts.push_back(new BTreeSST(fileManager, fileDat.first, fileDat.second, useBinary));
         total_entries += ssts[i]->getSize();
     }
-    std::reverse(ssts.begin(), ssts.end());
+
 }
 
 std::vector<std::pair<int, int>> BTreeSSTManager::scan(const int &key1, const int &key2) {
@@ -55,6 +62,7 @@ bool BTreeSSTManager::add_sst(std::vector<std::pair<int, int>> data) {
 }
 
 BTreeSSTManager::~BTreeSSTManager() {
+    // Free memory
     for (BTreeSST* sst: ssts)
     {
         delete sst;

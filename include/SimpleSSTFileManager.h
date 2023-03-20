@@ -12,11 +12,11 @@ private:
 public:
     explicit SimpleSSTFileManager(string target_dir);
     ~SimpleSSTFileManager();
-    virtual int get_page(int page, string filename, void* data_buf);
-    virtual int scan(int start_page, int end_page, string filename, void* data_buf);
-    virtual int write_file(void* data, int size, string filename, void* metadata);
-    virtual vector<pair<string, int>> get_files();
-    virtual int get_metadata(void* data, string filename);
+    int get_page(int page, string filename, void* data_buf);
+    int scan(int start_page, int end_page, string filename, void* data_buf);
+    int write_file(void* data, int size, string filename, void* metadata);
+    vector<pair<string, int>> get_files();
+    int get_metadata(void* data, string filename) override;
 };
 
 #endif //KV_STORE_SIMPLESSTFILEMANAGER_H
