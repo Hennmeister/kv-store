@@ -6,12 +6,12 @@
 
 using namespace std;
 
+template <typename  T>
 struct BufferPoolEntry {
     uint32_t page_num;
-    char dirty; // 1 indicates page is dirty, 0 otherwise
     uint8_t page[PAGE_SIZE]; // 4KB page
-    BufferPoolEntry *next_entry;
-    BufferPoolEntry *prev_entry; // for eviction
+    T *prev_entry; // for eviction
+    T *next_entry;
 };
 
 
