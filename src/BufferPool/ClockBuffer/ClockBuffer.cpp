@@ -4,7 +4,7 @@
 
 ClockBuffer::ClockBuffer(int minSize, int maxSize) : Directory(minSize, maxSize) {
     clock_pointer = nullptr;
-    clock_entry_index = -1;
+    clock_entry_index = 0;
 }
 
 void ClockBuffer::put(int page_num, std::uint8_t *page) {
