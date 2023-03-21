@@ -13,9 +13,10 @@ public:
     int get(int page_num, std::uint8_t page_out_buf[PAGE_SIZE]) override;
 
 private:
-    std::vector<std::pair<int, int>> bitmap;
     ClockBufferEntry *clock_pointer;
     int clock_entry_index;
+
+    void increment_clock();
 };
 
 

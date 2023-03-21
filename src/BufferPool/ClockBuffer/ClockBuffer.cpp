@@ -10,25 +10,11 @@ ClockBuffer::ClockBuffer(int minSize, int maxSize) : Directory(minSize, maxSize)
 void ClockBuffer::put(int page_num, std::uint8_t *page) {
     // check if at capacity and if so evict
     if (num_pages_in_buffer * sizeof(ClockBufferEntry) >= max_size) {
-        while (clock_pointer->bit) {
-            clock_pointer->bit = 0;
-            if (clock_pointer->next_entry == nullptr) {
-                clock_entry_index = (clock_entry_index + 1) % num_pages_in_buffer;
-                clock_pointer = entries[clock_entry_index];
-            }
-            clock_pointer = clock_pointer->next_entry;
-        }
+       increment_clock();
         // reached page to evict
-        if (clock_pointer->prev_entry != nullptr) {
-            clock_pointer->prev_entry->next_entry = clock_pointer->next_entry;
-        }
-        if (clock_pointer->next_entry != nullptr) {
-            clock_pointer->next_entry->prev_entry = clock_pointer->prev_entry;
-        }
-        if (clock_pointer == entries[clock_entry_index]) {
-            entries[clock_entry_index] = nullptr;
-        }
-        delete clock_pointer;
+        ClockBufferEntry *entry_to_delete = clock_pointer;
+        increment_clock();
+        delete_entry(entry_to_delete);
     }
 
     // check if we should grow directory
@@ -59,5 +45,16 @@ int ClockBuffer::get(int page_num, std::uint8_t *page_out_buf) {
     // TODO: verify that we should be copying here, instead of using pointer pointer and changing address
     ::memcpy(page_out_buf, curr_entry->page, PAGE_SIZE);
     return 0;
+}
+
+void ClockBuffer::increment_clock() {
+    while (clock_pointer->bit) {
+        clock_pointer->bit = 0;
+        if (clock_pointer->next_entry == nullptr) {
+            clock_entry_index = (clock_entry_index + 1) % num_pages_in_buffer;
+            clock_pointer = entries[clock_entry_index];
+        }
+        clock_pointer = clock_pointer->next_entry;
+    }
 }
 

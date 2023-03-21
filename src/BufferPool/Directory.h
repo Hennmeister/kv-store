@@ -96,8 +96,26 @@ protected:
         }
     };
 
-    void insert(T *entry); // used internally for moving around entries
+    // internal helpers for page management
+    void insert(T *entry);
+
+    void delete_entry(T *entry);
 };
+
+template<typename T>
+void Directory<T>::delete_entry(T *entry) {
+    if (entry->prev_entry != nullptr) {
+        entry->prev_entry->next_entry = entry->next_entry;
+    }
+    if (entry->next_entry != nullptr) {
+        entry->next_entry->prev_entry = entry->prev_entry;
+    }
+    int bin = hash_to_bucket_index(entry->page_num);
+    if (entry == entries[bin]) {
+        entries[bin] = nullptr;
+    }
+    delete entry;
+}
 
 template<typename T>
 void Directory<T>::insert(T *entry) {
