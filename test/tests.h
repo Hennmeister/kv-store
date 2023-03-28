@@ -3,7 +3,12 @@
 
 
 // ===================== Buffer Pool Tests =========================
-void simple_buffer_pool(SimpleKVStore db);
+void simple_LRU_buffer(SimpleKVStore db);
+void LRU_simple_evict(SimpleKVStore db);
+void LRU_ref_evict(SimpleKVStore db);
+void LRU_max_grow(SimpleKVStore db);
+void LRU_shrink(SimpleKVStore db);
+void LRU_grow(SimpleKVStore db);
 
 // ===================== Inner-workings Tests =========================
 

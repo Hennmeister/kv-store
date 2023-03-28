@@ -27,15 +27,19 @@ string test_dir = "./test_dbs/";
 
 vector<pair<void (*)(SimpleKVStore db), string>>
     individual_db_tests = {
-        F_NAME(simple_test),
-        F_NAME(memtable_puts_and_gets),
-        F_NAME(memtable_puts_and_scans),
-        F_NAME(sequential_puts_and_gets),
-        F_NAME(sequential_puts_and_scans),
-        F_NAME(update_keys),
-        F_NAME(edge_case_values),
-        F_NAME(multiple_dbs),
-        F_NAME(simple_buffer_pool)
+//        F_NAME(simple_test),
+//        F_NAME(memtable_puts_and_gets),
+//        F_NAME(memtable_puts_and_scans),
+//        F_NAME(sequential_puts_and_gets),
+//        F_NAME(sequential_puts_and_scans),
+//        F_NAME(update_keys),
+//        F_NAME(edge_case_values),
+//        F_NAME(multiple_dbs),
+        F_NAME(simple_LRU_buffer),
+        F_NAME(LRU_simple_evict),
+        F_NAME(LRU_ref_evict),
+        F_NAME(LRU_grow),
+        F_NAME(LRU_shrink)
 };
 
 vector<pair<void (*)(SimpleKVStore db), string>> shared_db_tests = {

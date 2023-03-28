@@ -5,6 +5,8 @@
 #include "../src/BufferPool/BufferPool.h"
 #include "../src/BufferPool/BufferPoolEntry.h"
 #include "../src/BufferPool/Directory.h"
+#include "../src/BufferPool/LRUBuffer/LRUBuffer.h"
+#include "../src/BufferPool/ClockBuffer/ClockBuffer.h"
 
 #include <string>
 #include <vector>
@@ -16,9 +18,9 @@ using namespace std;
 
 // ===================== Buffer Pool Tests =========================
 // TODO: test for hash collisions - maybe modify private fields directly?
-void simple_buffer_pool(SimpleKVStore db)
+void simple_LRU_buffer(SimpleKVStore db)
 {
-    Directory *buf_pool = new Directory(1, 10, NULL);
+    LRUBuffer *LRU_cache = new LRUBuffer(1, 10);
     // test inserting and retrieving 10 pages
     uint8_t in_buf[PAGE_SIZE];
     uint8_t out_buf[PAGE_SIZE];
@@ -29,10 +31,116 @@ void simple_buffer_pool(SimpleKVStore db)
             in_buf[j] = (u_int8_t) i;
         }
 
-        buf_pool->insert_page(i, in_buf);
-        buf_pool->get_page(i, out_buf);
+        LRU_cache->put(i, in_buf);
+        LRU_cache->get(i, out_buf);
 
         assert_buf_equals(in_buf, out_buf, "simple_buffer_pool");
+    }
+}
+
+void LRU_simple_evict(SimpleKVStore db) {
+    LRUBuffer *LRU_cache = new LRUBuffer(1, 1);
+    uint8_t in_buf[PAGE_SIZE];
+    uint8_t out_buf[PAGE_SIZE];
+
+    // insert one more page than the buffer can hold
+    for (int i = 1; i <= (MB / sizeof(LRUBufferEntry)) + 1; i++) {
+        // fill in buf with page num
+
+        in_buf[0] = i;
+
+        LRU_cache->put(i, in_buf);
+    }
+
+    // check that the first value (1) was evicted
+    assert_val_equals(LRU_cache->get(1, out_buf), -1, "LRU_simple_evict");
+    // check the second inserted value was not evicted
+    assert_val_equals(LRU_cache->get(2, out_buf), 0, "LRU_simple_evict");
+    assert_val_equals(out_buf[0], 2, "LRU_simple_evict");
+}
+
+// test the referencing a value updates its recency and prevents it from being evicted
+void LRU_ref_evict(SimpleKVStore db) {
+    LRUBuffer *LRU_cache = new LRUBuffer(1, 1);
+    uint8_t in_buf[PAGE_SIZE];
+    uint8_t out_buf[PAGE_SIZE];
+
+    // fill cache
+    for (int i = 1; i <= (MB / sizeof(LRUBufferEntry)); i++) {
+        in_buf[0] = i;
+        LRU_cache->put(i, in_buf);
+    }
+
+    // reference and check that the first value is present
+    assert_val_equals(LRU_cache->get(1, out_buf), 0, "LRU_ref_evict");
+
+    // insert new page
+    LRU_cache->put((MB / sizeof(LRUBufferEntry)) + 1, in_buf);
+
+    // check that the first value is present
+    assert_val_equals(LRU_cache->get(1, out_buf), 0, "LRU_ref_evict");
+
+    // check the second inserted value was evicted
+    assert_val_equals(LRU_cache->get(2, out_buf), -1, "LRU_ref_evict");
+}
+
+// test that we can grow the directory to the max size
+void LRU_grow(SimpleKVStore db) {
+    LRUBuffer *LRU_cache = new LRUBuffer(1, 10);
+    uint8_t in_buf[PAGE_SIZE];
+    uint8_t out_buf[PAGE_SIZE];
+
+    for (int i = 1; i <= (MB / sizeof(LRUBufferEntry)) * 5; i++) {
+        // fill in buf with page num
+        in_buf[0] = i;
+        LRU_cache->put(i, in_buf);
+    }
+
+    // check that every inserted page can still be found
+    for (int i = 1; i <= (MB / sizeof(LRUBufferEntry)) * 5; i++) {
+        assert_val_equals(LRU_cache->get(i, out_buf), 0, "LRU_max_grow");
+        assert_val_equals(out_buf[0], (std::uint8_t ) i, "LRU_max_grow");
+    }
+}
+
+void LRU_shrink(SimpleKVStore db) {
+    LRUBuffer *LRU_cache = new LRUBuffer(1, 10);
+    uint8_t in_buf[PAGE_SIZE];
+    uint8_t out_buf[PAGE_SIZE];
+
+    for (int i = 1; i <= (5 * MB / sizeof(LRUBufferEntry)); i++) {
+        in_buf[0] = i;
+        LRU_cache->put(i, in_buf);
+    }
+
+
+    LRU_cache->set_max_size(1);
+
+
+    // check that every inserted page in the last MB can still be found
+    for (int i = (4 * MB / sizeof(LRUBufferEntry)) + 1; i <= (5 * MB / sizeof(LRUBufferEntry)); i++) {
+        assert_val_equals(LRU_cache->get(i, out_buf), 0, to_string(i));
+        assert_val_equals(out_buf[0], (std::uint8_t ) i, "LRU_max_grow");
+    }
+
+    // check that all other pages were evicted
+    for (int i = 1; i <= (4 * MB / sizeof(LRUBufferEntry)); i++) {
+        assert_val_equals(LRU_cache->get(i, out_buf), -1, to_string(i));
+    }
+
+    LRU_cache->set_max_size(5);
+
+    // check re-growing
+    for (int i = 1; i <= (2 * MB / sizeof(LRUBufferEntry)); i++) {
+        in_buf[0] = i;
+        LRU_cache->put(i, in_buf);
+    }
+    for (int i = 1; i <= (2 * MB / sizeof(LRUBufferEntry)); i++) {
+        assert_val_equals(LRU_cache->get(i, out_buf), 0, to_string(i));
+    }
+    for (int i = (4 * MB / sizeof(LRUBufferEntry)) + 1; i <= (5 * MB / sizeof(LRUBufferEntry)); i++) {
+        assert_val_equals(LRU_cache->get(i, out_buf), 0, to_string(i));
+        assert_val_equals(out_buf[0], (std::uint8_t ) i, "LRU_max_grow");
     }
 }
 
