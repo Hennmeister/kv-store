@@ -7,12 +7,8 @@ LRUBuffer::LRUBuffer(int minSize, int maxSize) : Directory(minSize, maxSize) {
 
 void LRUBuffer::put(int page_num, std::uint8_t *page) {
     // check if at capacity and if so evict
-    if (num_pages_in_buffer * sizeof(LRUBufferEntry) >= max_size) {
-        LRUNode *new_tail = tail->prev;
-        delete_entry(tail->bufferEntry);
-        delete tail;
-        tail = new_tail;
-        tail->next = nullptr;
+    if ((num_pages_in_buffer+1) * sizeof(LRUBufferEntry) >= max_size * MB) {
+        evict();
     }
 
     // check if we should grow directory
@@ -27,12 +23,15 @@ void LRUBuffer::put(int page_num, std::uint8_t *page) {
     entry->prev_entry = entry->next_entry = nullptr;
 
     LRUNode *node = new LRUNode();
+    entry->node = node;
     node->bufferEntry = entry;
     node->next = head;
     if (head != nullptr) head->prev = node;
     head = node;
+    if (tail == nullptr) tail = head;
 
     insert(entry);
+    num_pages_in_buffer++;
 }
 
 int LRUBuffer::get(int page_num, std::uint8_t *page_out_buf) {
@@ -47,6 +46,7 @@ int LRUBuffer::get(int page_num, std::uint8_t *page_out_buf) {
 
     // move the corresponding LRU node to head of LRU linked list tracking recency
     LRUNode *node = curr_entry->node;
+    if (tail == node) tail = node->prev;
     if (node->prev != nullptr) node->prev->next = node->next;
     if (node->next != nullptr) node->next->prev = node->prev;
     node->next = head;
@@ -59,3 +59,11 @@ int LRUBuffer::get(int page_num, std::uint8_t *page_out_buf) {
     return 0;
 }
 
+void LRUBuffer::evict() {
+    LRUNode *new_tail = tail->prev;
+    delete_entry(tail->bufferEntry);
+    num_pages_in_buffer--;
+    delete tail;
+    tail = new_tail;
+    tail->next = nullptr;
+}

@@ -9,12 +9,8 @@ ClockBuffer::ClockBuffer(int minSize, int maxSize) : Directory(minSize, maxSize)
 
 void ClockBuffer::put(int page_num, std::uint8_t *page) {
     // check if at capacity and if so evict
-    if (num_pages_in_buffer * sizeof(ClockBufferEntry) >= max_size) {
-       increment_clock();
-        // reached page to evict
-        ClockBufferEntry *entry_to_delete = clock_pointer;
-        increment_clock();
-        delete_entry(entry_to_delete);
+    if ((num_pages_in_buffer+1) * sizeof(ClockBufferEntry) >= max_size * MB) {
+       evict();
     }
 
     // check if we should grow directory
@@ -56,5 +52,14 @@ void ClockBuffer::increment_clock() {
         }
         clock_pointer = clock_pointer->next_entry;
     }
+}
+
+void ClockBuffer::evict() {
+    increment_clock();
+    // reached page to evict
+    ClockBufferEntry *entry_to_delete = clock_pointer;
+    increment_clock();
+    delete_entry(entry_to_delete);
+    num_pages_in_buffer--;
 }
 

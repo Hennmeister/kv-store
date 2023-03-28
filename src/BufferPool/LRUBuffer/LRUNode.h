@@ -3,6 +3,8 @@
 
 #include "LRUBufferEntry.h"
 
+struct LRUBufferEntry;
+
 struct LRUNode {
     LRUBufferEntry *bufferEntry;
     LRUNode *next = nullptr;

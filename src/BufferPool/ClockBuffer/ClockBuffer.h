@@ -11,6 +11,7 @@ public:
     ClockBuffer(int minSize, int maxSize);
     void put(int page_num, std::uint8_t page[PAGE_SIZE]) override;
     int get(int page_num, std::uint8_t page_out_buf[PAGE_SIZE]) override;
+    void evict() override;
 
 private:
     ClockBufferEntry *clock_pointer;
