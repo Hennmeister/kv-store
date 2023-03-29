@@ -25,6 +25,11 @@ void ClockBuffer::put(int page_num, std::uint8_t *page) {
     entry->prev_entry = entry->next_entry = nullptr;
 
     insert(entry);
+    num_pages_in_buffer++;
+    if (num_pages_in_buffer == 1) {
+        clock_pointer = entry;
+        clock_entry_index = hash_to_bucket_index(entry->page_num);
+    }
 }
 
 int ClockBuffer::get(int page_num, std::uint8_t *page_out_buf) {
@@ -43,23 +48,32 @@ int ClockBuffer::get(int page_num, std::uint8_t *page_out_buf) {
     return 0;
 }
 
+// finds the next entry for the clock
 void ClockBuffer::increment_clock() {
-    while (clock_pointer->bit) {
-        clock_pointer->bit = 0;
-        if (clock_pointer->next_entry == nullptr) {
-            clock_entry_index = (clock_entry_index + 1) % num_pages_in_buffer;
+    // set the bit of the entry we are moving off of to 0
+    clock_pointer->bit = 0;
+    if (clock_pointer->next_entry != nullptr) {
+        clock_pointer = clock_pointer->next_entry;
+        return;
+    }
+    else {
+        clock_pointer = nullptr;
+        while (clock_pointer == nullptr) {
+            clock_entry_index = (clock_entry_index + 1) % (int) entries.size();
             clock_pointer = entries[clock_entry_index];
         }
-        clock_pointer = clock_pointer->next_entry;
     }
 }
 
 void ClockBuffer::evict() {
-    increment_clock();
     // reached page to evict
+    while (clock_pointer->bit == 1) {
+        increment_clock();
+    }
     ClockBufferEntry *entry_to_delete = clock_pointer;
-    increment_clock();
-    delete_entry(entry_to_delete);
     num_pages_in_buffer--;
+    increment_clock();
+    // deleting this entry, but setting bit to 1 so that clock pointer increments
+    delete_entry(entry_to_delete);
 }
 

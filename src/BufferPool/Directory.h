@@ -46,8 +46,13 @@ protected:
     std::vector<T *> entries;
     // entry number to entry number pointing at this bucket, if one exists
     std::map<int, vector<int>> bucket_refs;
+    // holds a bucket number if it is referring to another bucket
+    set<int> is_ref;
 
     virtual void evict() = 0;
+
+
+
 
     int hash_to_bucket_index(int page_num) {
         ::uint32_t bucket_num;

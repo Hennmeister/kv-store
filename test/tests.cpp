@@ -16,8 +16,8 @@
 
 using namespace std;
 
-// ===================== Buffer Pool Tests =========================
-// TODO: test for hash collisions - maybe modify private fields directly?
+// TODO: test updating pages
+// ===================== LRU Pool Tests =========================
 void simple_LRU_buffer(SimpleKVStore db)
 {
     LRUBuffer *LRU_cache = new LRUBuffer(1, 10);
@@ -143,6 +143,50 @@ void LRU_shrink(SimpleKVStore db) {
         assert_val_equals(out_buf[0], (std::uint8_t ) i, "LRU_max_grow");
     }
 }
+
+// ===================== Clock Pool Tests =========================
+void simple_clock_buffer(SimpleKVStore db)
+{
+    ClockBuffer *clock_cache = new ClockBuffer(1, 10);
+    // test inserting and retrieving 10 pages
+    uint8_t in_buf[PAGE_SIZE];
+    uint8_t out_buf[PAGE_SIZE];
+
+    for (int i = 1; i <= 10; i++) {
+        // fill in buf with page num
+        for (int j = 0; j < PAGE_SIZE; j++) {
+            in_buf[j] = (u_int8_t) i;
+        }
+
+        clock_cache->put(i, in_buf);
+        clock_cache->get(i, out_buf);
+
+        assert_buf_equals(in_buf, out_buf, "simple_buffer_pool");
+    }
+}
+
+void clock_simple_evict(SimpleKVStore db) {
+    ClockBuffer *clock_cache = new ClockBuffer(1, 1);
+    uint8_t in_buf[PAGE_SIZE];
+    uint8_t out_buf[PAGE_SIZE];
+
+    // insert one more page than the buffer can hold
+    for (int i = 1; i <= (MB / sizeof(ClockBufferEntry)) + 1; i++) {
+        // fill in buf with page num
+        in_buf[0] = i;
+        clock_cache->put(i, in_buf);
+    }
+
+    // check that one value was evicted
+    int num_misses = 0;
+    for (int i = 1; i <= (MB / sizeof(ClockBufferEntry)); i++) {
+        if (clock_cache->get(i, out_buf) == -1) {
+            num_misses++;
+        }
+    }
+    assert_val_equals(num_misses, 1, "num misses");
+}
+
 
 // ===================== Inner-workings Tests =========================
 

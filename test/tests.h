@@ -6,9 +6,15 @@
 void simple_LRU_buffer(SimpleKVStore db);
 void LRU_simple_evict(SimpleKVStore db);
 void LRU_ref_evict(SimpleKVStore db);
-void LRU_max_grow(SimpleKVStore db);
 void LRU_shrink(SimpleKVStore db);
 void LRU_grow(SimpleKVStore db);
+
+void simple_clock_buffer(SimpleKVStore db);
+void clock_simple_evict(SimpleKVStore db);
+void clock_ref_evict(SimpleKVStore db);
+void clock_shrink(SimpleKVStore db);
+void clock_grow(SimpleKVStore db);
+
 
 // ===================== Inner-workings Tests =========================
 
