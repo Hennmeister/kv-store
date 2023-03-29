@@ -25,17 +25,14 @@ public:
             evict();
         }
 
-        // shrink the directory until we are using at least 25% of our directory entries
-//        int new_num_bits = num_bits;
-//        while ((num_pages_in_buffer / (1 << new_num_bits)) < 0.25) {
-//            new_num_bits--;
-//        }
-//
-//        int size_diff = pow(2, num_bits) - pow(2, new_num_bits);
-//        cout << num_bits << " , " << new_num_bits << endl;
-//        num_bits = new_num_bits;
-//        cout << "size_diff: " << size_diff << endl;
-//        shrink(size_diff);
+//         shrink the directory until we are using at least 25% of our directory entries
+        int new_num_bits = num_bits;
+        while (((double) num_pages_in_buffer / (double) (1 << new_num_bits)) < 0.25) {
+            new_num_bits--;
+        }
+
+        num_bits = new_num_bits;
+        shrink();
     };
 
 protected:
@@ -51,9 +48,6 @@ protected:
 
     virtual void evict() = 0;
 
-
-
-
     int hash_to_bucket_index(int page_num) {
         ::uint32_t bucket_num;
         MurmurHash3_x86_32(&page_num, sizeof(page_num), 1, &bucket_num);
@@ -66,6 +60,7 @@ protected:
         for (int i = 0; i < size_diff; i++) {
             entries.emplace_back(entries[i]);
             if (entries[i] == nullptr) continue;
+            is_ref.insert(i + size_diff);
             auto it = bucket_refs.find(i);
             if (it != bucket_refs.end()) {
                 it->second.push_back(i + size_diff);
@@ -86,6 +81,7 @@ protected:
                 // set all entries that point to this bucket to nullptr
                 // (since no elements in the original bucket belongs in this bucket after rehashing)
                 entries[i] = nullptr;
+                is_ref.erase(i);
                 vector<int> queue{i};
                 while (!queue.empty()) {
                     auto it = bucket_refs.find(queue.back());
@@ -94,6 +90,7 @@ protected:
                     for (int erase_bucket_num : it->second) {
                         queue.push_back(erase_bucket_num);
                         entries[erase_bucket_num] = nullptr;
+                        is_ref.erase(erase_bucket_num);
                     }
                     bucket_refs.erase(it);
                     // continues down the chain of references, since these all point to the original bucket
@@ -111,36 +108,42 @@ protected:
     };
 
     // shrink the directory itself
-    void shrink(int size_diff) {
+    void shrink() {
         // iterate over all out-of-bounds entries, rehash them, and move the entries
         T *curr_entry;
         T *next;
-        while (entries.size() > pow(2, num_bits)) {
-            // TODO: only reinsert / rehash these entries if this is not a reference to an earlier bucket
+        for (int i = entries.size() - 1; i >= pow(2, num_bits); i--) {
             curr_entry = entries.back();
-            while (curr_entry != nullptr) {
-                cout << curr_entry->page_num << endl;
-                next = curr_entry->next_entry;
-                curr_entry->prev_entry = curr_entry->next_entry = nullptr;
-                insert(curr_entry);
-                curr_entry = next;
+            // only reinsert / rehash these entries if this is not a reference to an earlier bucket
+            if (is_ref.find(i) == is_ref.end()) {
+                while (curr_entry != nullptr) {
+                    next = curr_entry->next_entry;
+                    curr_entry->prev_entry = curr_entry->next_entry = nullptr;
+                    insert(curr_entry);
+                    curr_entry = next;
+                }
             }
+            is_ref.erase(i);
+
             entries.pop_back();
         }
+
         std::map<int, vector<int>>::iterator it;
         int cutoff = entries.size();
-        for (it = bucket_refs.begin(); it != bucket_refs.end(); it++) {
+        for (it = bucket_refs.begin(); it != bucket_refs.end(); it) {
             if (it->first >= cutoff) {
                 it = bucket_refs.erase(it);
             } else {
                 vector<int>::iterator vector_it;
-                for (vector_it = it->second.begin(); vector_it !=  it->second.end(); vector_it++) {
+                for (vector_it = it->second.begin(); vector_it !=  it->second.end(); ) {
                     if (*vector_it >= cutoff) {
                         vector_it = it->second.erase(vector_it);
+                    } else {
+                        ++vector_it;
                     }
                 }
+                ++it;
             }
-
         }
     };
 
