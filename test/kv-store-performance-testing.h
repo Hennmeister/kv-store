@@ -1,7 +1,3 @@
-//
-// Created by Henning Lindig on 2023-02-20.
-//
-
 #ifndef KV_STORE_KV_STORE_PERFORMANCE_TESTING_H
 #define KV_STORE_KV_STORE_PERFORMANCE_TESTING_H
 

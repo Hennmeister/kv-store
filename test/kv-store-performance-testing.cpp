@@ -1,7 +1,3 @@
-//
-// Created by Henning Lindig on 2023-02-20.
-//
-
 #include "kv-store-performance-testing.h"
 
 #include <iostream>
@@ -42,12 +38,12 @@ bool cmdOptionExists(char** begin, char** end, const std::string& option)
 void experiment1(int num_MB, int step_size) {
     cout << "Running Experiment 1" << endl;
     SimpleKVStore db;
-    db.open("experiment_1",new RedBlackMemtable(), 30, new SimpleSSTManager( "experiment_1"));
+    db.open("experiment_1",new RedBlackMemtable(), 30, new SimpleSSTManager("experiment_1"));
 
     // Multiply size of int by two since we are inserting both a key and a value
     long long num_inserts = num_MB * MEGABYTE / (2 * sizeof(int));
 
-    std::vector<long long > x;
+    std::vector<long long> x;
     std::vector<long long> put_durations;
     std::vector<long long> get_durations;
     std::vector<long long> scan_durations;
