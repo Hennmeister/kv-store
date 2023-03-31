@@ -5,7 +5,7 @@
 
 
 struct ClockBufferEntry: BufferPoolEntry<ClockBufferEntry> {
-    short used_bit = 0;
+    unsigned char used_bit = 0;
 };
 
 #endif //KV_STORE_CLOCKBUFFERENTRY_H
