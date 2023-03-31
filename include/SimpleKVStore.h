@@ -17,7 +17,7 @@ private:
     int maxMemtableSize;
 public:
     // Opens the database with the given name and prepares it to run
-    void open(const std::string& database_name, Memtable *memt,int maxMemtableSize, SSTManager *sstManager) override;
+    void open(const std::string& database_name, int maxMemtableSize) override;
 
     // Stores a key associated with a value
     bool put(const int& key, const int& value) override;
