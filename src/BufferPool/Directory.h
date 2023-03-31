@@ -10,30 +10,37 @@
 #include "../util/MurmurHash3/MurmurHash3.h"
 using namespace std;
 
-
+// An abstract class of a buffer pool using extendable hashing
 template <typename T> class Directory: BufferPool {
 public:
     Directory(int min_size, int max_size);
+    // Allow the user to increase or decrease the maximum hash table size
     void set_max_size(int new_size) override;
 
 protected:
-    double min_size;
-    double max_size;
+    int min_size;
+    int max_size;
+    // The current size of the directory is 2^(num_bits). Used to find the bucket number of a page.
     int num_bits;
     int num_pages_in_buffer;
+    //
     std::vector<T *> entries;
-    // entry number to entry number pointing at this bucket, if one exists
+    // Entry number to entry number pointing at this bucket, if one exists
     std::map<int, vector<int>> bucket_refs;
-    // holds a bucket number if it is referring to another bucket
+    // Holds a bucket number if it is referring to another bucket
     set<int> is_ref;
 
     virtual void evict() = 0;
-    int hash_to_bucket_index(int page_num);
+    // Calculate the bucket number of a given page
+    int hash_to_bucket_index(uint32_t page_num);
+    // Double the size of the directory
     void grow(int new_num_bits);
-    // shrink the directory itself
+    // Shrink the directory itself - note that this does not evict entries, only the directory size
     void shrink();
-    // internal helpers for page management
+    /// Internal helpers for page management ///
+    // Insert an entry into its correct bucket
     void insert(T *entry);
+    // Delete a reference of an entry relative to its adjacent entries
     void delete_entry(T *entry);
 };
 

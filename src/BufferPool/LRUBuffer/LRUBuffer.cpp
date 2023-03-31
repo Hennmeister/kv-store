@@ -5,21 +5,24 @@ LRUBuffer::LRUBuffer(int minSize, int maxSize) : Directory(minSize, maxSize) {
     tail = nullptr;
 }
 
+// Inserts a new page into the buffer, evicting the LRU page if necessary.
+// If the directory is at capacity, evicts the LRU page.
+// If the directory is more than 75% full, grows the directory to increase capacity
 void LRUBuffer::put(int page_num, std::uint8_t *page) {
-    // check if at capacity and if so evict
+    // evict if the buffer pool is at capacity
     if ((num_pages_in_buffer+1) * sizeof(LRUBufferEntry) >= max_size * MB) {
         evict();
     }
 
-    // check if we should grow directory
-    if ((num_pages_in_buffer / (1<<num_bits)) > 0.75) {
+    // grow the directory if we are at a load factor of at least 75%
+    if (((double) num_pages_in_buffer / (1<<num_bits)) > 0.75) {
         grow(num_bits + 1);
     }
 
-    // insert page
+    // insert the new page
     LRUBufferEntry *entry = new LRUBufferEntry();
     entry->page_num = page_num;
-    ::memcpy(entry->page, page, PAGE_SIZE);
+    memcpy(entry->page, page, PAGE_SIZE);
     entry->prev_entry = entry->next_entry = nullptr;
 
     LRUNode *node = new LRUNode();
@@ -34,6 +37,9 @@ void LRUBuffer::put(int page_num, std::uint8_t *page) {
     num_pages_in_buffer++;
 }
 
+// Retrieve the page with a page number of page_num, filling the page_out_buf, or return -1 otherwise
+// Make retrieved page the most recently used entry
+// TODO: return not found error status
 int LRUBuffer::get(int page_num, std::uint8_t *page_out_buf) {
     int bucket_num = hash_to_bucket_index(page_num);
     LRUBufferEntry *curr_entry = entries[bucket_num];
@@ -59,6 +65,7 @@ int LRUBuffer::get(int page_num, std::uint8_t *page_out_buf) {
     return 0;
 }
 
+// Delete the entry least recently used
 void LRUBuffer::evict() {
     LRUNode *new_tail = tail->prev;
     delete_entry(tail->bufferEntry);

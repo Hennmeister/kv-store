@@ -6,6 +6,7 @@
 #include "LRUNode.h"
 #include <set>
 
+// An implementation of an extendable hashing directory employing an LRU eviction policy
 class LRUBuffer: public Directory<LRUBufferEntry> {
 public:
     LRUBuffer(int minSize, int maxSize);
