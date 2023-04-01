@@ -9,13 +9,13 @@ LRUBuffer::LRUBuffer(int minSize, int maxSize) : Directory(minSize, maxSize) {
 // If the directory is at capacity, evicts the LRU page.
 // If the directory is more than 75% full, grows the directory to increase capacity
 void LRUBuffer::put(int page_num, std::uint8_t *page) {
-    // evict if the buffer pool is at capacity
-    if ((num_pages_in_buffer+1) * sizeof(LRUBufferEntry) >= max_size * MB) {
+    // evict if the buffer pool if near capacity
+    if ((double) (num_pages_in_buffer+1) * sizeof(LRUBufferEntry) >= (max_size * MB) * max_load_factor) {
         evict();
     }
 
-    // grow the directory if we are at a load factor of at least 75%
-    if (((double) num_pages_in_buffer / (1<<num_bits)) > 0.75) {
+    // grow the directory if we are at a high enough load factor
+    if (((double) num_pages_in_buffer / (1<<num_bits)) > max_load_factor) {
         grow(num_bits + 1);
     }
 
@@ -61,7 +61,7 @@ int LRUBuffer::get(int page_num, std::uint8_t *page_out_buf) {
     head = node;
 
     // TODO: verify that we should be copying here, instead of using pointer pointer and changing address
-    ::memcpy(page_out_buf, curr_entry->page, PAGE_SIZE);
+    memcpy(page_out_buf, curr_entry->page, PAGE_SIZE);
     return 0;
 }
 

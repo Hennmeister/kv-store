@@ -18,6 +18,10 @@ public:
     void set_max_size(int new_size) override;
 
 protected:
+    // the load factor at which we double the directory
+    const double max_load_factor = 0.8;
+    // the minimum load factor we reach by shrinking directory after evicting entries to reach new max size
+    const double min_load_factor = 0.25;
     int min_size;
     int max_size;
     // The current size of the directory is 2^(num_bits). Used to find the bucket number of a page.

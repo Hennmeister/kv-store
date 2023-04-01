@@ -21,13 +21,13 @@ void Directory<T>::set_max_size(int new_size) {
         return; // TODO: add error here
     }
     max_size = new_size;
-    while (num_pages_in_buffer * sizeof(T) > max_size * MB) {
+    while (num_pages_in_buffer * sizeof(T) > (max_size * MB) * max_load_factor) {
         evict();
     }
 
     //  shrink the directory until we reach a load factor of a least 25%
     int new_num_bits = num_bits;
-    while (((double) num_pages_in_buffer / (double) (1 << new_num_bits)) < 0.25) {
+    while (((double) num_pages_in_buffer / (double) (1 << new_num_bits)) < min_load_factor) {
         new_num_bits--;
     }
 
@@ -38,7 +38,7 @@ void Directory<T>::set_max_size(int new_size) {
 // Hash from a page number to a bucket index, using the number of bits to map to a bucket within the table
 template<typename T>
 int Directory<T>::hash_to_bucket_index(uint32_t page_num) {
-    ::uint32_t bucket_num;
+    uint32_t bucket_num;
     MurmurHash3_x86_32(&page_num, sizeof(page_num), 1, &bucket_num);
     return bucket_num & ((1<<num_bits)-1);
 };

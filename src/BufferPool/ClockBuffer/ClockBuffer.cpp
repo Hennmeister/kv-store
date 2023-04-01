@@ -13,19 +13,19 @@ ClockBuffer::ClockBuffer(int minSize, int maxSize) : Directory(minSize, maxSize)
 // If the directory is more than 75% full, grows the directory to increase capacity
 void ClockBuffer::put(int page_num, std::uint8_t *page) {
     // evict if the buffer pool is at capacity
-    if ((num_pages_in_buffer+1) * sizeof(ClockBufferEntry) >= max_size * MB) {
+    if ((double) (num_pages_in_buffer+1) * sizeof(ClockBufferEntry) >= (max_size * MB) * max_load_factor) {
        evict();
     }
 
     // grow the directory if we are at a load factor of at least 75%
-    if (((double) num_pages_in_buffer / (1<<num_bits)) > 0.75) {
+    if (((double) num_pages_in_buffer / (1<<num_bits)) > max_load_factor) {
         grow(num_bits + 1);
     }
 
     // insert the new page
     ClockBufferEntry *entry = new ClockBufferEntry();
     entry->page_num = page_num;
-    ::memcpy(entry->page, page, PAGE_SIZE);
+    memcpy(entry->page, page, PAGE_SIZE);
     entry->prev_entry = entry->next_entry = nullptr;
 
     insert(entry);
