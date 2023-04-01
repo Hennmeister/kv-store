@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-#include "../../include/RedBlackTree.h"
+#include "../../include/RedBlack/RedBlackTree.h"
 
 using namespace std;
 

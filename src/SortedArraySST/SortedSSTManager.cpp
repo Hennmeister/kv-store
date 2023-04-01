@@ -1,13 +1,7 @@
-
-#include <fcntl.h>
-#include "../../include/SortedSSTManager.h"
+#include "../../include/ArraySST/SortedSSTManager.h"
 #include "../../include/util.h"
 #include "../../include/constants.h"
 #include "../../include/util.h"
-#include <unistd.h>
-#include <sys/stat.h>
-#include <filesystem>
-#include <iostream>
 
 using namespace std;
 
@@ -65,7 +59,7 @@ std::vector<std::pair<int, int>> single_sst_scan(std::vector<std::pair<int, int>
 
 bool SortedSSTManager::get(const int &key, int &value)
 {
-    for (int i = sizes.size() - 1; i > -1; i--)
+    for (int i = sst_count - 1; i > -1; i--)
     {
         if (binary_search(get_sst(i), key, value) != -1)
         {
@@ -88,15 +82,15 @@ bool SortedSSTManager::add_sst(vector<pair<int, int>> data)
         write_buf[i * 2 + 1] = data[i].second;
     }
 
-    safe_write(sst_fd, write_buf, sz * ENTRY_SIZE,
-               total_entries * ENTRY_SIZE);
+
+    string fname = to_string(sst_count + 1) + ".sst";
+    int *meta = new int[PAGE_SIZE/sizeof(int)];
+    fileManager->write_file(write_buf, sz * ENTRY_SIZE, fname, meta);
 
     delete[] write_buf;
+    delete[] meta;
 
-    safe_write(index_fd, &sz, sizeof(int),
-               sizes.size() * sizeof(int));
-
-    sizes.emplace_back(sz);
+    sst_count += 1;
     total_entries += sz;
     //    print_data(this->get_sst(sizes.size() - 1)); - Can be used to debug writes
     return true;
@@ -106,82 +100,55 @@ vector<pair<int, int>> SortedSSTManager::scan(const int &key1, const int &key2)
 {
     auto res = vector<pair<int, int>>();
 
-    for (int i = sizes.size() - 1; i > -1; i--)
+    for (int i = sst_count - 1; i > -1; i--)
     {
         res = priority_merge(res, single_sst_scan(get_sst(i), key1, key2));
     }
     return res;
 }
 
-SortedSSTManager::SortedSSTManager(string prefix)
+SortedSSTManager::SortedSSTManager(SSTFileManager *fileManager)
 {
-    char *index_file = string_to_char(prefix + "/index.sdb");
-    char *sst_file = string_to_char(prefix + "/sst.sdb");
-
-    int dir = dir_exists(prefix);
-
-    if (dir == 0)
-    {
-        filesystem::create_directory(prefix);
-    }
-    else if (dir != 1)
-    {
-        throw invalid_argument("Provided path is a file: unable to initialize database");
-    }
-
-    // TODO: O_DIRECT DOES NOT exist on Mac os or windows - Perhaps someone can try using O_DIRECT on linux?
-    index_fd = open(index_file, O_RDWR | O_CREAT, 0777);
-    sst_fd = open(sst_file, O_RDWR | O_CREAT, 0777);
-
-    delete[] index_file;
-    delete[] sst_file;
-
-    if (index_fd == -1 || sst_fd == -1)
-    {
-        ::perror("Open Failed");
-    }
-
-    sizes = vector<int>();
-
-    // Read first line of index file
-    int read_buf;
-    int byte_read_count = pread(index_fd, &read_buf, sizeof(int), 0);
-    int offset = byte_read_count;
-    total_entries = 0;
-
-    // Populate the sizes vector with sizes
-    while (byte_read_count > 0)
-    {
-        sizes.push_back(read_buf);
-        total_entries += read_buf;
-        byte_read_count = pread(index_fd, &read_buf, sizeof(int), offset);
-        offset += byte_read_count;
-    }
+    this->fileManager = fileManager;
+    sst_count = fileManager->get_files().size();
 }
 
 SortedSSTManager::~SortedSSTManager()
 {
-    close(index_fd);
-    close(sst_fd);
+}
+
+bool sortByFname(const pair<string,int> &a,
+               const pair<string,int> &b)
+{
+    int pos_a = stoi(a.first.substr(0, a.first.size()-4));
+    int pos_b = stoi(b.first.substr(0, b.first.size()-4));
+    return (pos_a < pos_b);
+}
+
+
+vector<pair<string, int>> SortedSSTManager::get_ssts(){
+    auto files = fileManager->get_files();
+    std::sort(files.begin(), files.end(), sortByFname);
+    return files;
 }
 
 vector<pair<int, int>> SortedSSTManager::get_sst(int sst_ind)
 {
     auto res = vector<pair<int, int>>();
-
-    int start_offset = 0;
-    int total_read = sizes[sst_ind] * ENTRY_SIZE;
-
-    for (int i = 0; i < sst_ind; i++)
-    {
-        start_offset += sizes[i];
+    if(sst_ind >= sst_count){
+        return res;
     }
-    start_offset *= ENTRY_SIZE;
+    auto files = this->get_ssts();
 
-    int *data = new int[sizes[sst_ind] * 2];
-    safe_read(sst_fd, data, total_read, start_offset);
+    int total_read = files[sst_ind].second - PAGE_SIZE;
 
-    for (int ind = 0; ind < sizes[sst_ind]; ind++)
+
+
+    int *data = new int[total_read/sizeof(int)];
+
+    fileManager->scan(0, total_read/PAGE_SIZE, files[sst_ind].first, data);
+
+    for (int ind = 0; ind < total_read/ENTRY_SIZE; ind++)
     {
         res.emplace_back(data[ind * 2], data[ind * 2 + 1]);
     }

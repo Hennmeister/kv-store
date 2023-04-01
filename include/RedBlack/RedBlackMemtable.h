@@ -7,7 +7,7 @@
 
 #include <string>
 #include <vector>
-#include "Base/Memtable.h"
+#include "../Base/Memtable.h"
 #include "RedBlackTree.h"
 
 using namespace std;

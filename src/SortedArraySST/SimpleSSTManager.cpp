@@ -3,7 +3,7 @@
 #include <fstream>
 #include <string>
 #include <utility>
-#include "../../include/SimpleSSTManager.h"
+#include "../../include/ArraySST/SimpleSSTManager.h"
 #include "../../include/constants.h"
 #include "../../include/util.h"
 #include <sys/stat.h>

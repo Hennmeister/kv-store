@@ -7,8 +7,8 @@
 
 #include <iostream>
 #include "../include/SimpleKVStore.h"
-#include "../include/RedBlackMemtable.h"
-#include "../include/SimpleSSTManager.h"
+#include "../include/RedBlack/RedBlackMemtable.h"
+#include "../include/ArraySST/SimpleSSTManager.h"
 #include "../include/constants.h"
 #include "../include/util.h"
 #include "./test_util.h"
