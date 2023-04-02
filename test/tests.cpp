@@ -104,7 +104,7 @@ void close_and_recover(SimpleKVStore db)
 {
     db.close();
 
-    db.open(test_dir + "shared_db", PAGE_NUM_ENTRIES);
+    db.open(test_dir + "shared_db", MEMTABLE_TEST_SIZE);
 
     // Test gets
     int val;
@@ -136,9 +136,9 @@ void multiple_dbs(SimpleKVStore db)
     SimpleKVStore db1;
     SimpleKVStore db2;
     SimpleKVStore db3;
-    db1.open(test_dir + "db1", PAGE_NUM_ENTRIES);
-    db2.open(test_dir + "db2", PAGE_NUM_ENTRIES);
-    db3.open(test_dir + "db3", PAGE_NUM_ENTRIES);
+    db1.open(test_dir + "db1", MEMTABLE_TEST_SIZE);
+    db2.open(test_dir + "db2", MEMTABLE_TEST_SIZE);
+    db3.open(test_dir + "db3", MEMTABLE_TEST_SIZE);
 
     for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
     {

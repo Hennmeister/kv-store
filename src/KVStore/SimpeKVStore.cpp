@@ -8,7 +8,7 @@
 void SimpleKVStore::open(const std::string &db_name, int maxMemtableSize)
 {
     this->memtable = new RedBlackMemtable();
-    this->sstManager = new BTreeSSTManager(new SimpleSSTFileManager(db_name), 5, 1);
+    this->sstManager = new BTreeSSTManager(new SimpleSSTFileManager(db_name), 5, 0);
     this->maxMemtableSize = maxMemtableSize;
 }
 

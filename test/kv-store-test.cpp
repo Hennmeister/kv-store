@@ -63,7 +63,7 @@ int main()
         // Before all
 
         SimpleKVStore db;
-        db.open(test_dir + func.second + "_db", PAGE_NUM_ENTRIES);
+        db.open(test_dir + func.second + "_db", MEMTABLE_TEST_SIZE);
 
         // Call method
 
@@ -77,7 +77,7 @@ int main()
 
     // Shared DBs
     SimpleKVStore shared_db;
-    shared_db.open(test_dir + "shared_db", PAGE_NUM_ENTRIES);
+    shared_db.open(test_dir + "shared_db", MEMTABLE_TEST_SIZE);
 
     for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
     {
