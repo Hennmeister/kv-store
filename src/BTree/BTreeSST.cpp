@@ -93,6 +93,7 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
     int *meta = new int[PAGE_SIZE/sizeof(int)];
     meta[0] = fanout;
     fileManager->write_file(write_buf, sz * ENTRY_SIZE, fname, meta);
+    this->useBinary = useBinarySearch;
     this->size = data.size();
     this->filename = fname;
     delete[] write_buf;
@@ -104,6 +105,7 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
 BTreeSST::BTreeSST(SSTFileManager *fileManager, string filename,int size, int useBinarySearch) {
     this->fileManager = fileManager;
     this->filename = filename;
+    this->useBinary = useBinarySearch;
     int *meta = new int[PAGE_SIZE/sizeof(int)];
     this->fileManager->get_metadata(meta, filename);
     this->fanout = meta[0];
@@ -122,7 +124,7 @@ bool BTreeSST::get(const int &key, int &value) {
         return false;
     }
     int pos = btree_find(internal_btree, key, fanout);
-    int page = pos / PAGE_SIZE, offset;
+    int page = pos / PAGE_NUM_ENTRIES, offset;
     auto page_data = this->get_pages(page, page);
 
     int cur = pos;
@@ -130,7 +132,7 @@ bool BTreeSST::get(const int &key, int &value) {
     // Check all elements in node pointed to by btree (i.e. lowest level of a virtually clustered btree)
     for(int i = 0; i <= fanout; i++){
 
-        offset = cur % PAGE_SIZE;
+        offset = cur % PAGE_NUM_ENTRIES;
         if(offset == 0 && i != 0){
             page++;
             page_data = this->get_pages(page, page);
@@ -152,26 +154,26 @@ std::vector<std::pair<int, int>> BTreeSST::scan(const int &key1, const int &key2
         return res;
     }
     int cur = pos;
-    int page = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
+    int page = pos / PAGE_NUM_ENTRIES, offset = pos % PAGE_NUM_ENTRIES;
     auto page_data = this->get_pages(page, page);
 
     // First find elem which is at least key1
     for(int i = 0; i <= fanout; i++){
-        offset = cur % PAGE_SIZE;
+        offset = cur % PAGE_NUM_ENTRIES;
         if(offset == 0 && i != 0){
             page++;
             page_data = this->get_pages(page, page);
         }
-        if(page_data[offset].first >= key1) {
+        if(cur >= this->getSize() or page_data[offset].first >= key1) {
             break;
         }
         cur++;
     }
 
-    while(page_data[offset].first <= key2 and cur < this->getSize()){
+    while(cur < this->getSize() and page_data[offset].first <= key2){
         res.emplace_back(page_data[offset]);
         cur++;
-        offset = cur % PAGE_SIZE;
+        offset = cur % PAGE_NUM_ENTRIES;
         if(offset == 0){
             page++;
             page_data = this->get_pages(page, page);

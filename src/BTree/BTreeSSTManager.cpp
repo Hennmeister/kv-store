@@ -27,7 +27,6 @@ BTreeSSTManager::BTreeSSTManager(SSTFileManager *fileManager, int newFanout, int
     std::sort(files.begin(), files.end(), sortByFname);
     std::reverse(files.begin(), files.end());
 
-    // TODO: Unused
     this->useBinary = useBinarySearch;
 
     this->fileManager = fileManager;
@@ -53,7 +52,7 @@ std::vector<std::pair<int, int>> BTreeSSTManager::scan(const int &key1, const in
 }
 
 bool BTreeSSTManager::add_sst(std::vector<std::pair<int, int>> data) {
-    if (data.size() % PAGE_NUM_ENTRIES == 0)
+    if (data.size() % PAGE_NUM_ENTRIES != 0)
         return false;
     auto* new_sst = new BTreeSST(fileManager, ssts.size() - 1, newFanout, data, useBinary);
     ssts.insert(ssts.begin(),new_sst);
