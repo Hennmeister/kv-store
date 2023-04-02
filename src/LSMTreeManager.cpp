@@ -74,8 +74,8 @@ std::vector<std::pair<int, int>> LSMTreeManager::scan(const int &key1, const int
 }
 
 bool LSMTreeManager::add_sst(std::vector<std::pair<int, int>> data) {
-    if (data.size() % PAGE_NUM_ENTRIES != 0)
-        return false;
+//    if (data.size() % PAGE_NUM_ENTRIES != 0)
+//        return false;
     auto* new_sst = new BTreeSST(fileManager, sst_counter, newFanout, data, useBinary);
     sst_counter++;
     levels[0].push_back(new_sst);
@@ -94,7 +94,7 @@ LSMTreeManager::~LSMTreeManager() {
 //    }
 }
 
-// Todo: perform operation using IO without memory
+
 BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
     auto data_newer = newer->scan(INT_MIN, INT_MAX);
     auto data_older = older->scan(INT_MIN, INT_MAX);
