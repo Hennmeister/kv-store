@@ -11,6 +11,7 @@ private:
     string filename;
     SSTFileManager *fileManager;
     int useBinary;
+    int internal_node_pages;
     vector<vector<int>> internal_btree;
     vector<pair<int, int>> get_pages(int start_ind, int end_ind);
     void constructBtree(const vector<pair<int, int>>& data);

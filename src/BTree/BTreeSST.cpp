@@ -108,7 +108,9 @@ vector<pair<int, int>> BTreeSST::get_pages(int start_ind, int end_ind){
     int num_entries = (end_ind - start_ind + 1) * PAGE_NUM_ENTRIES;
     int *data = new int[num_entries * PAGE_NUM_ENTRIES * 2];
 
-    fileManager->scan(start_ind, end_ind, filename, data);
+    // Ignore internal node pages
+    fileManager->scan(this->internal_node_pages + start_ind,
+                      this->internal_node_pages+ end_ind, filename, data);
 
     for (int ind = 0; ind < num_entries; ind++)
     {
@@ -154,17 +156,47 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
     this->constructBtree(data);
     this->fileManager = fileManager;
     int sz = data.size();
-    int *write_buf = new int[sz * 2];
+
+    // Calculate how to write out internal nodes and required padding
+    int total_internal_nodes = 0;
+    for(const vector<int>& level: this->internal_btree){
+        total_internal_nodes += level.size();
+    }
+    this->internal_node_pages = ceil((double) (total_internal_nodes + this->internal_btree.size() + 1) * sizeof(int)
+            / (double) PAGE_SIZE);
+
+    int internal_node_ints = internal_node_pages * (PAGE_SIZE / sizeof(int));
+
+    int *write_buf = new int[internal_node_ints + sz * 2];
+    write_buf[0] += this->internal_btree.size();
+    int counter = 1;
+    for( auto level: this->internal_btree){
+        for(int val : level){
+            write_buf[counter] = val;
+            counter ++;
+        }
+        write_buf[counter] = INT_MAX - 1;
+        counter ++;
+    }
+
+    // Pad remaining internal_node pages with data
+    while(counter % (PAGE_SIZE/sizeof(int)) != 0){
+        write_buf[counter] = INT_MAX - 1;
+        counter ++;
+    }
+
     for (int i = 0; i < sz; i++)
     {
-        write_buf[i * 2] = data[i].first;
-        write_buf[i * 2 + 1] = data[i].second;
+        write_buf[counter + i * 2] = data[i].first;
+        write_buf[counter + i * 2 + 1] = data[i].second;
     }
 
     string fname = to_string(ind + 1) + ".sst";
     int *meta = new int[PAGE_SIZE/sizeof(int)];
     meta[0] = fanout;
-    fileManager->write_file(write_buf, sz * ENTRY_SIZE, fname, meta);
+    meta[1] = this->internal_node_pages;
+    meta[2] = data.size();
+    fileManager->write_file(write_buf, (internal_node_ints + sz * 2) * sizeof(int), fname, meta);
     this->useBinary = useBinarySearch;
     this->size = data.size();
     this->filename = fname;
@@ -181,12 +213,35 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, string filename,int size, int us
     int *meta = new int[PAGE_SIZE/sizeof(int)];
     this->fileManager->get_metadata(meta, filename);
     this->fanout = meta[0];
+    this->internal_node_pages = meta[1];
+
+
+    int *data = new int[this->internal_node_pages * (PAGE_SIZE / sizeof(int))];
+
+    // Ignore internal node pages
+    fileManager->scan(0,
+                      this->internal_node_pages - 1, filename, data);
+
+    // Load internal nodes
+    vector<int> tmp_level = vector<int>();
+    for(int read_counter = 0; read_counter < this->internal_node_pages * (PAGE_SIZE / sizeof(int)); read_counter++){
+        if(data[read_counter] == INT_MAX - 1 && tmp_level.size() == 0){
+            break;
+        }
+        else if(data[read_counter] == INT_MAX - 1){
+            this->internal_btree.push_back(tmp_level);
+            tmp_level = vector<int>();
+        }else{
+            tmp_level.emplace_back(data[read_counter]);
+        }
+    }
+
     // Remove metadata from file size (this->size is number of entries)
-    this->size = (size - PAGE_SIZE)/ENTRY_SIZE;
-    auto res = this->get_pages(0, ceil((double) this->size/ (double) PAGE_NUM_ENTRIES) - 1);
+    this->size = meta[2];
+    auto res = this->get_pages(0,
+                               ceil((double) this->size/ (double) PAGE_NUM_ENTRIES) - 1);
     // Required in case some data was padded (i.e. for memtable drop)
     this->size = res.size();
-    this->constructBtree(res);
     delete[] meta;
 }
 
