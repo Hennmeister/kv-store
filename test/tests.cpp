@@ -75,7 +75,7 @@ void update_keys(SimpleKVStore db)
     for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
     {
         db.get(i, val);
-        assert_val_equals(val, -i, "update_keys");
+        assert_val_equals(val, -i, "update_keys_initial");
     }
 
     for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
@@ -91,7 +91,7 @@ void update_keys(SimpleKVStore db)
         assert_val_equals(val, -i * 2, "update_keys");
     }
     vector<pair<int, int>> scan = db.scan(0, 3 * PAGE_NUM_ENTRIES + 300 - 1);
-    assert_vec_equals(scan, key_vals, "update_keys");
+    assert_vec_equals(scan, key_vals, "update_keys_scan");
 
 }
 

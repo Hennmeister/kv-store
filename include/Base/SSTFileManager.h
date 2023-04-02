@@ -18,6 +18,9 @@ public:
 
     // Get 1st page (metadata)
     virtual int get_metadata(void* data, string filename)=0;
+
+    // Delete file
+    virtual bool delete_file(string filename)=0;
 };
 
 #endif //KV_STORE_SSTFILEMANAGER_H

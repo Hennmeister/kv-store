@@ -1,6 +1,6 @@
 ﻿#include "../../include/SimpleKVStore.h"
 #include "../../include/RedBlack/RedBlackMemtable.h"
-#include "../../include/BTree/BTreeSSTManager.h"
+#include "../../include/LSMTreeManager.h"
 #include "../../include/util.h"
 #include "../../include/SimpleSSTFileManager.h"
 #include <iostream>
@@ -8,7 +8,8 @@
 void SimpleKVStore::open(const std::string &db_name, int maxMemtableSize)
 {
     this->memtable = new RedBlackMemtable();
-    this->sstManager = new BTreeSSTManager(new SimpleSSTFileManager(db_name), 5, 0);
+    this->sstManager = new LSMTreeManager(new SimpleSSTFileManager(db_name),
+                                          5, 0, maxMemtableSize);
     this->maxMemtableSize = maxMemtableSize;
 }
 

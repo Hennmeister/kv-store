@@ -4,7 +4,9 @@
 #include "math.h"
 #include "../../include/util.h"
 
-BTreeSST::~BTreeSST() = default;
+BTreeSST::~BTreeSST(){
+    fileManager->delete_file(this->filename);
+};
 
 int BTreeSST::getSize() const {
     return this->size;

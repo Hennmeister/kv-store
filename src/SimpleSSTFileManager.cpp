@@ -79,4 +79,12 @@ int SimpleSSTFileManager::get_metadata(void *data, string filename) {
     return this->get_page(-1, filename, data);
 }
 
+bool SimpleSSTFileManager::delete_file(string filename) {
+    if(remove((dir_name + "/" + filename).c_str()) == -1) {
+        perror("Error deleting file");
+        return false;
+    }
+    return true;
+}
+
 

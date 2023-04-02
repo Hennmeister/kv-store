@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include "../include/constants.h"
-#define MEMTABLE_TEST_SIZE (PAGE_NUM_ENTRIES * 2)
+#define MEMTABLE_TEST_SIZE (PAGE_NUM_ENTRIES)
 
 
 extern std::string test_dir;

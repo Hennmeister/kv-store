@@ -37,6 +37,7 @@ BTreeSSTManager::BTreeSSTManager(SSTFileManager *fileManager, int newFanout, int
     for(const pair<string, int>& fileDat : files){
         ssts.push_back(new BTreeSST(fileManager, fileDat.first, fileDat.second, useBinary));
         total_entries += ssts[i]->getSize();
+        i++;
     }
 
 }

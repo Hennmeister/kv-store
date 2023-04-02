@@ -124,7 +124,7 @@ int safe_read(int fd, void *buf, long nbyte, long offset)
 {
     int res = pread(fd, buf, nbyte, offset);
     int read_completion = res;
-    while (read_completion != nbyte)
+    while (read_completion < nbyte)
     {
         if (res < 0)
         {
