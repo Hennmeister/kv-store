@@ -46,20 +46,23 @@ void experiment1(int num_MB, int step_size) {
     // Multiply size of int by two since we are inserting both a key and a value
     long long int num_inserts = num_MB * MEGABYTE / (2 * sizeof(int));
 
-    std::vector<double> x;
-    std::vector<double> num_puts;
-    std::vector<double> num_gets;
-    std::vector<double> num_scans;
-    std::vector<double> puts_msecs;
-    std::vector<double> gets_msecs;
-    std::vector<double> scans_msecs;
+    std::vector<long long int> x;
+    std::vector<long long int> num_puts;
+    std::vector<long long int> num_gets;
+    std::vector<long long int> num_scans;
+    std::vector<long long int> puts_microsecs;
+    std::vector<long long int> gets_microsecs;
+    std::vector<long long int> scans_microsecs;
 
-    // Add more keys for increased randomness and guaranteed enough unique values
-    long long int key_max = 2.0 * num_inserts;
+    int num_samples = 1.2 * num_inserts; // take a few extra samples to cover repeated puts
+    long long int key_max = 50 * num_inserts; // expect 2% of repeated puts
 
-    long long int rand_keys[key_max];
-    for (int j = 0; j < key_max; j++) {
-        rand_keys[j] = ::rand() % key_max;
+    assert(key_max < INT_MAX);
+    assert(step_size < num_inserts);
+
+    long long int rand_keys[num_samples];
+    for (int j = 0; j < num_samples; j++) {
+        rand_keys[j] = ::rand() % key_max; // not necessarily uniformly distributed to simulate real workload (skewed towards lower keys)
     }
 
     std::unordered_set<long long int> unique_keys;
@@ -79,7 +82,10 @@ void experiment1(int num_MB, int step_size) {
         // timed measurements 
         int puts_count = 0;
         while (unique_keys.size() < (i + 1) * step_size) {
-            unique_keys.insert(rand_keys[offset + puts_count]);
+            long long int key = rand_keys[offset + puts_count];
+            if (unique_keys.find(key) == unique_keys.end()) {
+                unique_keys.insert(key);
+            } 
             puts_count++;
         }
 
@@ -90,16 +96,16 @@ void experiment1(int num_MB, int step_size) {
             db.put(rand_keys[offset + j], 0); // paylod is irrelevant
         }
         auto stop = chrono::high_resolution_clock::now();
-        double msecs = chrono::duration_cast<chrono::microseconds>(stop-start).count() / 1000;
-        puts_msecs.push_back(msecs);
+        int microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
+        puts_microsecs.push_back(microsecs);
         num_puts.push_back(puts_count);
 
-        offset = puts_count;
+        offset += puts_count;
 
         // generate step_size random keys from the unique inserted keys
         long long int rand_gets[step_size];
         for (int j = 0; j < step_size; j++) {
-            long long key;
+            long long int key;
             std::mt19937 gen(std::random_device{}());
             std::sample(unique_keys.begin(), unique_keys.end(), &key, 1, gen);
             rand_gets[j] = key;
@@ -112,8 +118,8 @@ void experiment1(int num_MB, int step_size) {
             db.get(rand_gets[j], (int &) val);
 
         stop = chrono::high_resolution_clock::now();
-        msecs = chrono::duration_cast<chrono::microseconds>(stop-start).count() / 1000;
-        gets_msecs.push_back(msecs);
+        microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
+        gets_microsecs.push_back(microsecs);
         num_gets.push_back(step_size);
 
         // step_size number of random scans
@@ -122,23 +128,23 @@ void experiment1(int num_MB, int step_size) {
             db.scan(min(rand_gets[j-1], rand_gets[j]), max(rand_gets[j-1], rand_gets[j]));
 
         stop = chrono::high_resolution_clock::now();
-        msecs = chrono::duration_cast<chrono::microseconds>(stop-start).count() / 1000;
-        scans_msecs.push_back(msecs);
+        microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
+        scans_microsecs.push_back(microsecs);
         num_scans.push_back(step_size);
 
-        x.push_back(unique_keys.size());
+        x.push_back(unique_keys.size() * 2 * sizeof(int));
     }
 
     std::cout << std::endl;
     std::cout << "Printing to file..." << std::endl;
 
     std::ofstream exp1_data ("./experiments/data/exp1_data.txt");
-    assert(x.size() == puts_msecs.size());
-    assert(puts_msecs.size() == gets_msecs.size());
-    assert(scans_msecs.size() == gets_msecs.size());
+    assert(x.size() == puts_microsecs.size());
+    assert(puts_microsecs.size() == gets_microsecs.size());
+    assert(scans_microsecs.size() == gets_microsecs.size());
 
     for (int i = 0; i < x.size(); i++) {
-        exp1_data << x[i] << "," << to_string(puts_msecs[i]) << "-" << to_string(num_puts[i]) << "," << to_string(gets_msecs[i]) << "-" << to_string(num_gets[i]) << "," << to_string(scans_msecs[i]) << "-" << to_string(num_scans[i]) << std::endl;
+        exp1_data << x[i] << " " << to_string(num_puts[i]) << "," << to_string(puts_microsecs[i]) << " " << to_string(num_gets[i]) << "," << to_string(gets_microsecs[i]) << " " << to_string(num_scans[i]) << "," << to_string(scans_microsecs[i]) << std::endl;
     }
 
     // // display the plots
@@ -146,21 +152,21 @@ void experiment1(int num_MB, int step_size) {
     // ::sprintf(y_label, "Throughput (operations/msec) - Averaged from %d samples", step_size);
 
     // plt::figure(1);
-    // plt::plot(x, scans_msecs);
+    // plt::plot(x, scans_microsecs);
     // plt::title("Experiment 1 - Scan Throughput");
     // plt::xlabel("Unique keys");
     // plt::ylabel(y_label);
     // plt::save("experiment1_scan");
 
     // plt::figure(2);
-    // plt::plot(x, gets_msecs);
+    // plt::plot(x, gets_microsecs);
     // plt::title("Experiment 1 - Get Throughput");
     // plt::xlabel("Unique keys");
     // plt::ylabel(y_label);
     // plt::save("experiment1_get");
 
     // plt::figure(3);
-    // plt::plot(x, puts_msecs);
+    // plt::plot(x, puts_microsecs);
     // plt::title("Experiment 1 - Put Throughput");
     // plt::xlabel("Unique keys");
     // plt::ylabel(y_label);
@@ -171,6 +177,17 @@ void experiment1(int num_MB, int step_size) {
     db.delete_data();
     db.close();
 }
+
+// Experiment 2.1: Compare the efficiency of LRU vs clock by measuring query throughput (on the y-axis) 
+// as a function of the maximum buffer pool size (on the x-axis) by designing an appropriate experiment. 
+// Try to identify one workload where LRU performs better and another workload where clock performs better. 
+
+
+// Experiment 2.2: Design an experiment comparing your binary search to B-tree search in terms of query 
+// throughput (on the y-axis) as you increase the data size (on the x-axis). 
+// This experiment should be done with uniformly randomly distributed queries and data.
+
+
 
 int main(int argc, char * argv[])
 {

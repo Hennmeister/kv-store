@@ -1,44 +1,44 @@
 import matplotlib.pyplot as plt
 
-y_label = "Average Throughput (operations/msec)"
+y_label = "Average Throughput (operations/microsec)"
 
-with open("exp1_data.txt", "r") as data:
+with open("./data/exp1_data.txt", "r") as data:
     x = []
-    puts_per_msec = []
-    gets_per_msec = []
-    scans_per_msec = []
+    put_throughput = []
+    get_throughput = []
+    scan_throughput = []
 
-    i = 0
     for line in data.readlines():
-        line.split(",")
-        x = line[0]
-        puts_per_msec = line[1]
-        gets_per_msec = line[2]
-        scans_per_msec = line[3]
+        line = line.split(" ")
+        x.append(float(line[0]))
+        temp_num_puts = float(line[1].split(",")[0])
+        temp_num_gets = float(line[2].split(",")[0])
+        temp_num_scans = float(line[3].split(",")[0])
 
-    plt.figure(1)
-    plt.plot(x, puts_per_msec)
-    plt.title("Put Throughput")
-    plt.xlabel("Unique keys")
-    plt.ylabel(y_label)
-    plt.save("experiment1_put")
-    plt.save_fig("experiment1_put")
+        temp_puts_microsec = float(line[1].split(",")[1])
+        temp_gets_microsec = float(line[2].split(",")[1])
+        temp_scans_microsec = float(line[3].split(",")[1])
 
-    plt.figure(2)
-    plt.plot(x, gets_per_msec)
-    plt.title("Get Throughput")
-    plt.xlabel("Unique keys")
-    plt.ylabel(y_label)
-    plt.save("experiment1_get")
-    plt.save_fig("experiment1_get")
+        put_throughput.append(temp_num_puts / temp_puts_microsec)
+        get_throughput.append(temp_num_gets / temp_gets_microsec)
+        scan_throughput.append(temp_num_scans / temp_scans_microsec)
 
-    plt.figure(3)
-    plt.plot(x, scans_per_msec)
-    plt.title("Scan Throughput")
-    plt.xlabel("Unique keys")
-    plt.ylabel(y_label)
-    plt.save("experiment1_scan")
-    plt.save_fig("experiment1_scan")
+    fig, (ax1, ax2, ax3) = plt.subplots(3)  
+    fig.set_figheight(17)
 
-    plt.show()
-    plt.save_fig("Experiment1.png")
+    ax1.plot(x, put_throughput)
+    ax1.set_title("Put Throughput")
+    ax1.set_xlabel("Inserted data (Bytes)")
+    ax1.set_ylabel(y_label)
+
+    ax2.plot(x, get_throughput)
+    ax2.set_title("Get Throughput")
+    ax2.set_xlabel("Inserted data (Bytes)")
+    ax2.set_ylabel(y_label)
+
+    ax3.plot(x, scan_throughput)
+    ax3.set_title("Scan Throughput")
+    ax3.set_xlabel("Inserted data (Bytes)")
+    ax3.set_ylabel(y_label)
+
+    fig.savefig("experiment1")
