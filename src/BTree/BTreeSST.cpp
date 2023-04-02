@@ -224,7 +224,7 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, string filename,int size, int us
 
     // Load internal nodes
     vector<int> tmp_level = vector<int>();
-    for(int read_counter = 0; read_counter < this->internal_node_pages * (PAGE_SIZE / sizeof(int)); read_counter++){
+    for(int read_counter = 1; read_counter < this->internal_node_pages * (PAGE_SIZE / sizeof(int)); read_counter++){
         if(data[read_counter] == INT_MAX - 1 && tmp_level.size() == 0){
             break;
         }

@@ -20,7 +20,8 @@ private:
 public:
     ~BTreeSST();
     int getSize() const;
-    explicit BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair<int, int>> data, int useBinarySearch);
+    explicit BTreeSST(SSTFileManager *fileManager, int ind, int fanout,
+                      vector<pair<int, int>> data, int useBinarySearch);
     explicit BTreeSST(SSTFileManager *fileManager, string filename, int size, int useBinarySearch);
     bool get(const int& key, int &value);
     std::vector<std::pair<int, int>> scan(const int& key1, const int& key2);
