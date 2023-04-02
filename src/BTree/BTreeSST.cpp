@@ -152,7 +152,7 @@ void BTreeSST::constructBtree(const vector<pair<int, int>>& data){
     this->internal_btree = btree;
 }
 
-// New SST creation - construct btree and write data to file.
+// New SST creation - construct btree and write data to file. (Should only be called with small SSTs)
 BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair<int, int>> data, int useBinarySearch) {
     this->fanout = fanout;
     this->constructBtree(data);
@@ -207,7 +207,7 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
 
 }
 
-// Load existing sst, read data from file and construct btree in memory.
+// Load existing sst, read internal nodes from file and load into memory
 BTreeSST::BTreeSST(SSTFileManager *fileManager, string filename,int size, int useBinarySearch) {
     this->fileManager = fileManager;
     this->filename = filename;

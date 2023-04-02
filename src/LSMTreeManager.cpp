@@ -94,7 +94,7 @@ LSMTreeManager::~LSMTreeManager() {
 //    }
 }
 
-
+// Todo: perform operation using IO without memory
 BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
     auto data_newer = newer->scan(INT_MIN, INT_MAX);
     auto data_older = older->scan(INT_MIN, INT_MAX);
