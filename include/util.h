@@ -14,4 +14,7 @@ std::vector<std::pair<int, int>> priority_merge(std::vector<std::pair<int, int>>
 void print_data(const std::vector<std::pair<int, int>>& data);
 
 void pad_data(std::vector<std::pair<int, int>>& src, int size);
+
+
+int binary_search(std::vector<std::pair<int, int>> data, int target, int &value);
 #endif //KV_STORE_UTIL_H

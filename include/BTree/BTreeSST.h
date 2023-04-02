@@ -14,6 +14,8 @@ private:
     vector<vector<int>> internal_btree;
     vector<pair<int, int>> get_pages(int start_ind, int end_ind);
     void constructBtree(const vector<pair<int, int>>& data);
+    int binary_scan(int key);
+    int binary_lower_bound(int key);
 public:
     ~BTreeSST();
     int getSize() const;
