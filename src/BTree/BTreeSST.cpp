@@ -73,7 +73,7 @@ void BTreeSST::constructBtree(const vector<pair<int, int>>& data){
     if(!current.empty() && current != keys) {
         btree.push_back(current);
     }
-    internal_btree = btree;
+    this->internal_btree = btree;
 }
 
 // New SST creation - construct btree and write data to file.
@@ -93,8 +93,8 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
     int *meta = new int[PAGE_SIZE/sizeof(int)];
     meta[0] = fanout;
     fileManager->write_file(write_buf, sz * ENTRY_SIZE, fname, meta);
-    size = data.size();
-    filename = fname;
+    this->size = data.size();
+    this->filename = fname;
     delete[] write_buf;
     delete[] meta;
 

@@ -28,7 +28,7 @@ BTreeSSTManager::BTreeSSTManager(SSTFileManager *fileManager, int newFanout, int
     std::reverse(files.begin(), files.end());
 
     // TODO: Unused
-    useBinary = useBinarySearch;
+    this->useBinary = useBinarySearch;
 
     this->fileManager = fileManager;
     this->newFanout = newFanout;
