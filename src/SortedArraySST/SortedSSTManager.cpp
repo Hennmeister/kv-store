@@ -115,6 +115,7 @@ vector<pair<int, int>> SortedSSTManager::scan(const int &key1, const int &key2)
 
 SortedSSTManager::SortedSSTManager(string prefix)
 {
+    this->directory = prefix;
     char *index_file = string_to_char(prefix + "/index.sdb");
     char *sst_file = string_to_char(prefix + "/sst.sdb");
 
@@ -188,4 +189,11 @@ vector<pair<int, int>> SortedSSTManager::get_sst(int sst_ind)
 
     delete[] data;
     return res;
+}
+
+void SortedSSTManager::delete_data() {
+    std::error_code errorCode;
+    if (!filesystem::remove_all(this->directory, errorCode)) {
+        throw std::runtime_error("Error deleting data: " + errorCode.message());
+    }
 }

@@ -1,2 +1,2 @@
 
-cmake -Bbuild -DCMAKE_BUILD_TYPE=Release && make -C build && ./build/kv-store-test
+cmake -Bbuild -DCMAKE_BUILD_TYPE=Release && make -C build

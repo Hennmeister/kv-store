@@ -1,5 +1,4 @@
 #include <iostream>
-#include <filesystem>
 #include <fstream>
 #include <string>
 #include <utility>
@@ -230,3 +229,11 @@ bool SimpleSSTManager::get(const int &key, int &value)
 SimpleSSTManager::~SimpleSSTManager()
 {
 }
+
+void SimpleSSTManager::delete_data() {
+    std::error_code errorCode;
+    if (!filesystem::remove_all(this->directory, errorCode)) {
+        throw std::runtime_error("Error deleting data: " + errorCode.message());
+    }
+}
+
