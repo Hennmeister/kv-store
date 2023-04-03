@@ -3,7 +3,7 @@
 
 #include <string>
 #include <fstream>
-#include "Base/SSTManager.h"
+#include "../Base/SSTManager.h"
 
 class SimpleSSTManager: public SSTManager{
 private:
