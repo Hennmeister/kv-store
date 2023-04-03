@@ -161,11 +161,7 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
     int data_pages = ceil((double) this->size/ (double) PAGE_NUM_ENTRIES);
 
     // Calculate how to write out internal nodes and required padding
-    int total_internal_nodes = 0;
-    for(const vector<int>& level: this->internal_btree){
-        total_internal_nodes += level.size();
-    }
-    this->internal_node_pages = ceil((double) (total_internal_nodes + this->internal_btree.size() + 1) * sizeof(int)
+    this->internal_node_pages = ceil((double) (get_internal_node_count() + this->internal_btree.size() + 1) * sizeof(int)
             / (double) PAGE_SIZE);
 
     int internal_node_ints = internal_node_pages * (PAGE_SIZE / sizeof(int));
@@ -187,7 +183,6 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
         write_buf[counter] = INT_MAX - 1;
         counter ++;
     }
-
 
 
     for (int i = 0; i < data_pages * PAGE_NUM_ENTRIES; i++)
@@ -215,6 +210,14 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
     delete[] meta;
 
 }
+int BTreeSST::get_internal_node_count(){
+    int total_internal_nodes = 0;
+    for(const vector<int>& level: this->internal_btree){
+        total_internal_nodes += level.size();
+    }
+    return total_internal_nodes;
+}
+
 
 // Load existing sst, read internal nodes from file and load into memory
 BTreeSST::BTreeSST(SSTFileManager *fileManager, string filename,int size, int useBinarySearch) {

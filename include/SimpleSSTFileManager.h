@@ -18,6 +18,7 @@ public:
     vector<pair<string, int>> get_files() override;
     int get_metadata(void* data, string filename) override;
     bool delete_file(string filename) override;
+    int write_page(void *data, int size, int start_page_num, string fname) override;
 };
 
 #endif //KV_STORE_SIMPLESSTFILEMANAGER_H

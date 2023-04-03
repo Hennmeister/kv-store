@@ -12,14 +12,15 @@ private:
     SSTFileManager *fileManager;
     int useBinary;
     int internal_node_pages;
-    vector<vector<int>> internal_btree;
-    vector<pair<int, int>> get_pages(int start_ind, int end_ind);
     void constructBtree(const vector<pair<int, int>>& data);
     int binary_scan(int key);
     int binary_lower_bound(int key);
 public:
+    vector<vector<int>> internal_btree;
     ~BTreeSST();
     int getSize() const;
+    int get_internal_node_count();
+    vector<pair<int, int>> get_pages(int start_ind, int end_ind);
     explicit BTreeSST(SSTFileManager *fileManager, int ind, int fanout,
                       vector<pair<int, int>> data, int useBinarySearch);
     explicit BTreeSST(SSTFileManager *fileManager, string filename, int size, int useBinarySearch);
