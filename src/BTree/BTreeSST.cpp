@@ -157,7 +157,8 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
     this->fanout = fanout;
     this->constructBtree(data);
     this->fileManager = fileManager;
-    int sz = data.size();
+    this->size = data.size();
+    int data_pages = ceil((double) this->size/ (double) PAGE_NUM_ENTRIES);
 
     // Calculate how to write out internal nodes and required padding
     int total_internal_nodes = 0;
@@ -169,7 +170,7 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
 
     int internal_node_ints = internal_node_pages * (PAGE_SIZE / sizeof(int));
 
-    int *write_buf = new int[internal_node_ints + sz * 2];
+    int *write_buf = new int[internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) * 2];
     write_buf[0] += this->internal_btree.size();
     int counter = 1;
     for( auto level: this->internal_btree){
@@ -187,10 +188,17 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
         counter ++;
     }
 
-    for (int i = 0; i < sz; i++)
+
+
+    for (int i = 0; i < data_pages * PAGE_NUM_ENTRIES; i++)
     {
-        write_buf[counter + i * 2] = data[i].first;
-        write_buf[counter + i * 2 + 1] = data[i].second;
+        if(i >= data.size()){
+            write_buf[counter + i * 2] = INT_MAX;
+            write_buf[counter + i * 2 + 1] = 0;
+        }else {
+            write_buf[counter + i * 2] = data[i].first;
+            write_buf[counter + i * 2 + 1] = data[i].second;
+        }
     }
 
     string fname = to_string(ind + 1) + ".sst";
@@ -198,9 +206,10 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
     meta[0] = fanout;
     meta[1] = this->internal_node_pages;
     meta[2] = data.size();
-    fileManager->write_file(write_buf, (internal_node_ints + sz * 2) * sizeof(int), fname, meta);
+    fileManager->write_file(write_buf,
+                            (internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) * 2) * sizeof(int),
+                            fname, meta);
     this->useBinary = useBinarySearch;
-    this->size = data.size();
     this->filename = fname;
     delete[] write_buf;
     delete[] meta;
