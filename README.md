@@ -18,6 +18,14 @@ We implement this key-value store using various data structures covered in class
 
 KV-stores are widely used in industry. Note that they have a far simpler API than traditional relational database systems, which expose SQL as an API to the user. There are many applications for which a simple KV API is sufficient. Note, however, that KV-stores can also be used as the backbone for relational database management systems. For example, MyRocks by Meta is an example of a relational database utilizing as its backbone a key-value store very similar to the one we built, namely RocksDB.
 
+## Experiments
+
+Parameters of `kv-store-performance-test.cpp`:
+
+    -e [num]: The experiment number to run
+    -d [data amount]: The amount of data to run the experiement on in MB
+    -s [num steps]: The number of operations to time (ex: 1000 means the time is measured every 1000 get operations)
+
 ## Implementation Steps
 
 Here we outline the process of implementation the various parts of our system. For simplicity, our simple KV-Store only handles integer keys and integer values.
@@ -42,26 +50,24 @@ We set a maximum capacity (e.g. a page size of 4KB) to the Memtable, at which po
 
 #### Experiments
 
-Run `./kv-store-performance-test -e 1 -d MB_OF_DATA -s STEP_SIZE`.
+Run `/build/kv-store-performance-test -e 1 -d MB_OF_DATA -s STEP_SIZE` to collect data and `python plot_experiments.py` to plot them.
 
 Experiment 1 aims to measure the throughput of the `put`, `get`, and `scan` operations. The current methodology is as follows:
-1. Perform STEP_SIZE number of puts, where the key increments every iteration and the data is always 0, and measure the time taken
-2. Generate random indices between 1 and the current key size
-3. Perform STEP_SIZE number of gets on the random indices, and measure the time taken
-4. Perform STEP_SIZE (-1) number of random scans over random, and measure the time
-5. Graph the above times against the amount of data inserted into the kv-store at the time of measurement
+1. Randomly sample a set of keys for insertion. Note that this could cause insertion of an existing key (uptade), so we sample a few extra keys to guarantee we will get the correct number of unique insertions by the end. 
+2. Perform STEP_SIZE number of unique puts, where keys are randomly sampled and the data payload is always 0, and measure the time taken.
+3. From the keys in the database, sample STEP_SIZE random unique keys and perform STEP_SIZE number of gets on these keys. Also measure the time taken.
+5. Perform STEP_SIZE - 1 number of random scans over the inserted keys and measure the time.
+6. Graph the above times against the amount of data inserted into the kv-store at the time of measurement.
 
-The graphs are displayed and saved under the names `experiment1-{OPERATION}`.
-Parameters:
+The graphs are saved under the name `experiment1.png` and shown below:
 
-    -e [num]: The experiment number to run
-    -d [data amount]: The amount of data to run the experiement on in MB
-    -s [num steps]: The number of operations to time (ex: 1000 means the time is measured every 1000 get operations)
+[]()
 
-Potential Issues:
-- This is not an accurate measure of throughput. For this, we should do a multi-threaded approach. However, if the goal is simply to compare how our operations scale with the datastore size and compare our implementations, I think it's fine.
-- How to best parameterize the experiment
-- What keys/data we are inserting/querying for. For example, should we choose keys that are in the database for gets and scans? Would that help us gauge our performance better?
+**Analysis**
+
+- **Put**:
+- **Get**:
+- **Scan**:
 
 ### Step2
 
