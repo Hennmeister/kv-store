@@ -3,6 +3,7 @@
 #include "../../include/constants.h"
 #include "math.h"
 #include "../../include/util.h"
+#include <climits>
 
 BTreeSST::~BTreeSST(){
     fileManager->delete_file(this->filename);

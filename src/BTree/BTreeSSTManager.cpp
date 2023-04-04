@@ -1,8 +1,10 @@
 #include "../../include/BTree/BTreeSSTManager.h"
 #include "../../include/BTree/BTreeSST.h"
-#include "string"
 #include "../../include/util.h"
 #include "../../include/constants.h"
+#include <string>
+
+using namespace std;
 
 bool BTreeSSTManager::get(const int &key, int &value) {
     for(BTreeSST* sst  : ssts){

@@ -2,7 +2,7 @@
 #define KV_STORE_LSMTREEMANAGER_H
 #include "./Base/SSTManager.h"
 #include "./Base/SSTFileManager.h"
-#include "./Btree/BTreeSST.h"
+#include "./BTree/BTreeSST.h"
 
 using namespace std;
 class LSMTreeManager: public SSTManager{

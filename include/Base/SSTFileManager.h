@@ -1,6 +1,7 @@
 #ifndef KV_STORE_SSTFILEMANAGER_H
 #define KV_STORE_SSTFILEMANAGER_H
 #include <vector>
+#include <string>
 using namespace std;
 class SSTFileManager {
 public:
