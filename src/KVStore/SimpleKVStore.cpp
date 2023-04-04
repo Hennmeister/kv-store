@@ -1,13 +1,14 @@
 ﻿#include "../../include/SimpleKVStore.h"
-#include "../../include/RedBlackMemtable.h"
-#include "../../include/SortedSSTManager.h"
+#include "../../include/RedBlack/RedBlackMemtable.h"
+#include "../../include/BTree/BTreeSSTManager.h"
 #include "../../include/util.h"
+#include "../../include/SimpleSSTFileManager.h"
 #include <iostream>
 
 void SimpleKVStore::open(const std::string &db_name, int maxMemtableSize)
 {
     this->memtable = new RedBlackMemtable();
-    this->sstManager = new SortedSSTManager(db_name);
+    this->sstManager = new BTreeSSTManager(new SimpleSSTFileManager(db_name), 5, 0);
     this->maxMemtableSize = maxMemtableSize;
 }
 
@@ -57,8 +58,3 @@ void SimpleKVStore::close()
     delete this->sstManager;
 }
 
-// Delete all data in database, both on disk and in memory
-void SimpleKVStore::delete_data() {
-    sstManager->delete_data();
-    memtable->reset();
-}

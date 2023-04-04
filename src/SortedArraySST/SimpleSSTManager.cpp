@@ -2,7 +2,7 @@
 #include <fstream>
 #include <string>
 #include <utility>
-#include "../../include/SimpleSSTManager.h"
+#include "../../include/ArraySST/SimpleSSTManager.h"
 #include "../../include/constants.h"
 #include "../../include/util.h"
 #include <sys/stat.h>
@@ -230,10 +230,4 @@ SimpleSSTManager::~SimpleSSTManager()
 {
 }
 
-void SimpleSSTManager::delete_data() {
-    std::error_code errorCode;
-    if (!filesystem::remove_all(this->directory, errorCode)) {
-        throw std::runtime_error("Error deleting data: " + errorCode.message());
-    }
-}
 

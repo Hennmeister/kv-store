@@ -3,7 +3,7 @@
 
 #include <string>
 #include <fstream>
-#include "Base/SSTManager.h"
+#include "../Base/SSTManager.h"
 
 class SimpleSSTManager: public SSTManager{
 private:
@@ -18,6 +18,5 @@ public:
     std::vector<std::pair<int, int>> scan(const int& key1, const int& key2) override;
     bool add_sst(std::vector<std::pair<int, int>> data) override;
     ~SimpleSSTManager();
-    void delete_data() override;
 };
 #endif //KV_STORE_SIMPLESSTMANAGER_H

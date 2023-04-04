@@ -30,7 +30,5 @@ public:
 
     // Closes the database
     void close() override;
-
-    void delete_data() override;
 };
 #endif //KV_STORE_SIMPLEKVSTORE_H

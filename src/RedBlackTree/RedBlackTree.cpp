@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-#include "../../include/RedBlackTree.h"
+#include "../../include/RedBlack/RedBlackTree.h"
 #include "../../include/constants.h"
 
 using namespace std;

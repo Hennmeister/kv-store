@@ -2,6 +2,8 @@
 #ifndef KV_STORE_CONSTANTS_H
 #define KV_STORE_CONSTANTS_H
 
+#define MB (1024 * 1024)
+
 #define PAGE_SIZE 4096
 
 // Entry in a page: sizeof(key) + sizeof(val) = 8B (2 ints)

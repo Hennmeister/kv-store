@@ -13,7 +13,6 @@
 #include <iostream>
 #include <fstream>
 
-
 using namespace std;
 
 const long long int MEGABYTE = 2 << 19;
@@ -32,6 +31,13 @@ char* getCmdOption(char ** begin, char ** end, const std::string & option)
 bool cmdOptionExists(char** begin, char** end, const std::string& option)
 {
     return std::find(begin, end, option) != end;
+}
+
+int rand_int(int range_from, int range_to) {
+    std::random_device rand_dev;
+    std::mt19937 generator(rand_dev());
+    std::uniform_int_distribution<int> distr(range_from, range_to);
+    return distr(generator);
 }
 
 // Generate experiments that measure the performance of your three operators, put, get and scan,
@@ -150,44 +156,56 @@ void experiment1(int num_MB, int step_size) {
         exp1_data << x[i] << "," << to_string(num_puts[i]) << "," << to_string(puts_microsecs[i]) << "," << to_string(num_gets[i]) << "," << to_string(gets_microsecs[i]) << "," << to_string(num_scans[i]) << "," << to_string(scans_microsecs[i]) << std::endl;
     }
 
-    db.delete_data();
     db.close();
 }
 
 // Experiment 2.1: Compare the efficiency of LRU vs clock by measuring query throughput (on the y-axis) 
 // as a function of the maximum buffer pool size (on the x-axis) by designing an appropriate experiment. 
 // Try to identify one workload where LRU performs better and another workload where clock performs better. 
+//
+// 1. Clock better than LRU:
+// Uniformly and randomly load and acess keys in the database.
+// The extra overhead associated with LRU should be enough to
+// yield worst performance and this overhead is not payed off
+// as keys are sampled uniformly random across entire DB
+//
+// 2. LRU better than Clock:
+// Load keys in order so we can have a sense of spacial locality.
+// Access keys in a way that we benefit from the overhead of LRU 
+// putting the page to the front while clock evicts page earlier
+// since it just sets a bit that is already 1 to 1 again (effectively doing nothing).
+// For that, we have to access a page once to put it in cache,
+// and then access it again fast enough so that the clock did 
+// not reach said page and changed to 0, while still trying to 
+// wait as long as possible so that LRU can still keep the page 
+// while clock evicted on a third access
 void experiment2p1(int num_MB, int step_size) {
-    cout << "Running Experiment 1" << endl;
-    SimpleKVStore lru_db;
-    SimpleKVStore clock_db;
-    lru_db.open("lru_db", PAGE_SIZE); // TODO make lru only and no LSM tree
-    clock_db.open("clock_db", PAGE_SIZE); // TODO make clocl only and no LSM tree
-
-    // Clock better than LRU:
-    // Uniformly and randomly load and acess keys in the database.
-    // The extra overhead associated with LRU should be enough to
-    // yield worst performance and this overhead is not payed off
-    // as keys are sampled uniformly random across entire DB
-
-    // LRU better than Clock:
-    // Load keys 
+    cout << "Running Experiment 2.1" << endl;
+    SimpleKVStore lru_db1;
+    SimpleKVStore clock_db1;
+    SimpleKVStore lru_db2;
+    SimpleKVStore clock_db2;
+    lru_db1.open("lru_db", PAGE_SIZE); // TODO make lru only and no LSM tree
+    clock_db1.open("clock_db", PAGE_SIZE); // TODO make clock only and no LSM tree
+    lru_db2.open("lru_db", PAGE_SIZE); // TODO make lru only and no LSM tree
+    clock_db2.open("clock_db", PAGE_SIZE); // TODO make clock only and no LSM tree
 
     long long int max_buf_size = num_MB * MEGABYTE;
 
     // Load 100 * max_buf_size bytes of entries in the database
     long long int num_inserts = 100 * max_buf_size / ENTRY_SIZE;
+    long long int num_queries = num_inserts;
 
     std::vector<long long int> x;
-    std::vector<long long int> lru_count;
-    std::vector<long long int> clock_count;
-    std::vector<long long int> lru_microsecs;
-    std::vector<long long int> clock_microsecs;
+    std::vector<long long int> lru_throughput1;
+    std::vector<long long int> clock_throughput1;
+    std::vector<long long int> lru_throughput2;
+    std::vector<long long int> clock_thrlru_throughput2;
 
     assert(step_size < num_inserts);
 
     std::vector<long long int> rand_keys(num_inserts);
-    std::iota(rand_keys.begin(), rand_keys.end(), 0); // fills vector with increasing keys
+    std::iota(rand_keys.begin(), rand_keys.end(), 1); // fills vector with increasing keys
     
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -195,82 +213,120 @@ void experiment2p1(int num_MB, int step_size) {
 
     // Load dbs with randomly ordered keys
     for (int i = 0; i < rand_keys.size(); i++) {
-        clock_db.put(rand_keys[i], 0);
-        lru_db.put(i, 0);
+        clock_db1.put(rand_keys[i], 0);
+        lru_db1.put(rand_keys[i], 0);
+        clock_db2.put(i, 0);
+        lru_db2.put(i, 0);
     }
 
     std::cout << "Generating " + to_string(max_buf_size / step_size) + " datapoints..." << std::endl;
     std::cout << "Iteration: ";
 
-    // // CLOCK BETTER
-    // long long int offset = 0;
-    // for (int i = 0; i < max_buf_size / step_size; i++) {
+    long long int offset = 0;
+    for (int i = 0; i < max_buf_size / step_size; i++) {
+        int buffer_size = (i + 1) * step_size;
 
-    //     auto start = chrono::high_resolution_clock::now();
+        // TODO: set buffer size here to buffer_size
+        
+        // 1. === CLOCK BETTER ===
 
-    //     // actually run and time correct number of puts
-    //     for (int j = 0; j < puts_count; j++) {
-    //         db.put(rand_keys[offset + j], 0); // paylod is irrelevant
-    //     }
-    //     auto stop = chrono::high_resolution_clock::now();
-    //     int microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
-    //     puts_microsecs.push_back(microsecs);
-    //     lru_count.push_back(puts_count);
+        int val;
 
-    //     offset += puts_count;
+        // Time LRU
+        auto start = chrono::high_resolution_clock::now();
+        
+        for (int i = 0; i < num_queries; i++) 
+            lru_db1.get(rand_int(1, num_inserts), (int &) val);
 
-    //     // generate step_size random keys from the unique inserted keys
-    //     long long int rand_gets[step_size];
-    //     for (int j = 0; j < step_size; j++) {
-    //         long long int key;
-    //         std::mt19937 gen(std::random_device{}());
-    //         std::sample(unique_keys.begin(), unique_keys.end(), &key, 1, gen);
-    //         rand_gets[j] = key;
-    //     }
+        auto stop = chrono::high_resolution_clock::now();
+        double microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
 
-    //     // step_size number of random gets
-    //     int val;
-    //     start = chrono::high_resolution_clock::now();
-    //     for (int j = 0; j < step_size; j++) 
-    //         db.get(rand_gets[j], (int &) val);
+        lru_throughput1.push_back(((double) num_queries) / microsecs);
 
-    //     stop = chrono::high_resolution_clock::now();
-    //     microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
-    //     gets_microsecs.push_back(microsecs);
-    //     clock_count.push_back(step_size);
+        // Time Clock
+        auto start = chrono::high_resolution_clock::now();
+        
+        for (int i = 0; i < num_queries; i++) 
+            clock_db1.get(rand_int(1, num_inserts), (int &) val);
 
-    //     // step_size number of random scans
-    //     start = chrono::high_resolution_clock::now();
-    //     for (int j = 1; j < step_size; j++)
-    //         db.scan(min(rand_gets[j-1], rand_gets[j]), max(rand_gets[j-1], rand_gets[j]));
+        auto stop = chrono::high_resolution_clock::now();
+        double microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
 
-    //     stop = chrono::high_resolution_clock::now();
-    //     microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
-    //     scans_microsecs.push_back(microsecs);
-    //     num_scans.push_back(step_size);
+        clock_throughput1.push_back(((double) num_queries) / microsecs);
+        
+        // 2. === LRU BETTER ===
 
-    //     x.push_back(unique_keys.size() * ENTRY_SIZE);
-    // }
+        // Set key range we are iterating over
 
-    // std::cout << std::endl;
-    // std::cout << "Printing to file..." << std::endl;
+        int num_pages_in_buf = buffer_size / PAGE_SIZE;
 
-    // assert(x.size() == puts_microsecs.size());
-    // assert(puts_microsecs.size() == gets_microsecs.size());
-    // assert(scans_microsecs.size() == gets_microsecs.size());
+        // Reaccess the same page after querying 30% of the buffer size new pages
+        // This tries to be long enough so that clock handle did not tick
+        int reaccess_after = 0.30 * num_pages_in_buf; // take the floor of 30%
+
+        // Get keys PAGE_NUM_ENTRIES apart to gurantee different entries
+        int start_key = rand_int(1, num_entries - (reaccess_after * PAGE_NUM_ENTRIES));
+
+        std::vector<long long int> keys_iterated = {start_key};
+        for (int i = 0; i < reaccess_after; i++)
+            keys_inserted.push_back(start_key + i * PAGE_NUM_ENTRIES);
+
+        // Time LRU
+        start = chrono::high_resolution_clock::now();
+
+        for (int i = 0; i < num_queries; i++) {
+            // To avoid synchronizing with the clock handle, query from
+            // random key after 10% of buffer size queries happened
+            if (i % (0.1 * num_page_buf) == 0) {
+                lru_db2.get(rand_int(1, num_inserts), (int &) val);
+            } else {
+                lru_db2.get(keys_iterated[i % reaccess_after + 1], (int &) val);
+            }
+        }
+
+        stop = chrono::high_resolution_clock::now();
+        microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
+
+        lru_throughput2.push_back(((double) num_queries) / microsecs);
+
+        // Time Clock
+        start = chrono::high_resolution_clock::now();
+
+        for (int i = 0; i < num_queries; i++) {
+            // To avoid synchronizing with the clock handle, query from
+            // random key after 10% of buffer size queries happened
+            if (i % (0.1 * num_page_buf) == 0) {
+                clock_db2.get(rand_int(1, num_inserts), (int &) val);
+            } else {
+                clock_db2.get(keys_iterated[i % reaccess_after + 1], (int &) val);
+            }
+        }
+
+        stop = chrono::high_resolution_clock::now();
+        microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
+
+        clock_throughput2.push_back(((double) num_queries) / microsecs);
+
+        x.push_back((i + 1) * ENTRY_SIZE);
+    } 
+
+    std::cout << std::endl;
+    std::cout << "Printing to file..." << std::endl;
+
+    assert(x.size() == lru_throughput1.size());
+    assert(lru_throughput1.size() == clock_throughput1.size());
+    assert(clock_throughput1.size() == lru_throughput2.size());
+    assert(lru_throughput2.size() == clock_throughput2.size());
     
-    // std::ofstream exp2_data ("./experiments/data/exp2_data.csv");
+    std::ofstream exp2_data ("./experiments/data/exp2_data.csv");
 
-    // exp1_data << "Inserted data (Bytes),Puts Count,Puts time (microsecs),Gets Count,Gets time (microsecs),Scans Count,Scans time (microsecs)" << std::endl;
+    exp1_data << "Max Cache Size (Bytes),LRU Throughput (Clock better),Clock Throughput (Clock better),LRU Throughput (LRU better),Clock Throughput (LRU better)" << std::endl;
 
-    // for (int i = 0; i < x.size(); i++) {
-    //     exp1_data << x[i] << "," << to_string(num_puts[i]) << "," << to_string(puts_microsecs[i]) << "," << to_string(num_gets[i]) << "," << to_string(gets_microsecs[i]) << "," << to_string(num_scans[i]) << "," << to_string(scans_microsecs[i]) << std::endl;
-    // }
+    for (int i = 0; i < x.size(); i++) {
+        exp1_data << x[i] << "," << to_string(lru_throughput1[i]) << "," << to_string(clock_throughput1[i]) << "," << to_string(lru_throughput2[i]) << "," << to_string(clock_throughput2[i]) << std::endl;
+    }
 
-    // // LRU OPTIMAL
-
-    // db.delete_data();
-    // db.close();
+    db.close();
 }
 
 // Experiment 2.2: Design an experiment comparing your binary search to B-tree search in terms of query 
