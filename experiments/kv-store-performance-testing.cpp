@@ -53,12 +53,9 @@ void experiment1(int num_MB, int step_size) {
     long long int num_inserts = num_MB * MEGABYTE / ENTRY_SIZE;
 
     std::vector<long long int> x;
-    std::vector<long long int> num_puts;
-    std::vector<long long int> num_gets;
-    std::vector<long long int> num_scans;
-    std::vector<long long int> puts_microsecs;
-    std::vector<long long int> gets_microsecs;
-    std::vector<long long int> scans_microsecs;
+    std::vector<long long int> puts_throughput;
+    std::vector<long long int> gets_throughput;
+    std::vector<long long int> scans_throughput;
 
     int num_samples = 1.2 * num_inserts; // take a few extra samples to cover repeated puts
     long long int key_max = 50 * num_inserts; // add some randomness 
@@ -102,9 +99,8 @@ void experiment1(int num_MB, int step_size) {
             db.put(rand_keys[offset + j], 0); // paylod is irrelevant
         }
         auto stop = chrono::high_resolution_clock::now();
-        int microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
-        puts_microsecs.push_back(microsecs);
-        num_puts.push_back(puts_count);
+        double microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
+        puts_throughput.push_back((1000 * (double)puts_count) / microsecs);
 
         offset += puts_count;
 
@@ -125,8 +121,7 @@ void experiment1(int num_MB, int step_size) {
 
         stop = chrono::high_resolution_clock::now();
         microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
-        gets_microsecs.push_back(microsecs);
-        num_gets.push_back(step_size);
+        gets_throughput.push_back((1000 * (double)step_size) / microsecs);
 
         // step_size number of random scans
         start = chrono::high_resolution_clock::now();
@@ -135,8 +130,7 @@ void experiment1(int num_MB, int step_size) {
 
         stop = chrono::high_resolution_clock::now();
         microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
-        scans_microsecs.push_back(microsecs);
-        num_scans.push_back(step_size);
+        scans_throughput.push_back((1000 * (double)step_size) / microsecs);
 
         x.push_back(unique_keys.size() * ENTRY_SIZE);
     }
@@ -144,16 +138,16 @@ void experiment1(int num_MB, int step_size) {
     std::cout << std::endl;
     std::cout << "Printing to file..." << std::endl;
 
-    assert(x.size() == puts_microsecs.size());
-    assert(puts_microsecs.size() == gets_microsecs.size());
-    assert(scans_microsecs.size() == gets_microsecs.size());
+    assert(x.size() == puts_throughput.size());
+    assert(puts_throughput.size() == gets_throughput.size());
+    assert(gets_throughput.size() == scans_throughput.size());
     
     std::ofstream exp1_data ("./experiments/data/exp1_data.csv");
 
-    exp1_data << "Inserted data (Bytes),Puts Count,Puts time (microsecs),Gets Count,Gets time (microsecs),Scans Count,Scans time (microsecs)" << std::endl;
+    exp1_data << "Inserted data (Bytes),Puts Throughput (operations/msec),Gets Throughput (operations/msec),Scans Throughput (operations/msec)" << std::endl;
 
     for (int i = 0; i < x.size(); i++) {
-        exp1_data << x[i] << "," << to_string(num_puts[i]) << "," << to_string(puts_microsecs[i]) << "," << to_string(num_gets[i]) << "," << to_string(gets_microsecs[i]) << "," << to_string(num_scans[i]) << "," << to_string(scans_microsecs[i]) << std::endl;
+        exp1_data << x[i] << "," << to_string(puts_throughput[i]) << "," << to_string(gets_throughput[i]) << "," << to_string(scans_throughput[i]) << std::endl;
     }
 
     db.close();
@@ -205,16 +199,20 @@ void experiment2p1(int num_MB, int step_size) {
     assert(step_size < num_inserts);
 
     std::vector<long long int> rand_keys(num_inserts);
-    std::iota(rand_keys.begin(), rand_keys.end(), 1); // fills vector with increasing keys
+
+    // fills vector with increasing keys starting from 1
+    std::iota(rand_keys.begin(), rand_keys.end(), 1); 
     
     std::random_device rd;
     std::mt19937 gen(rd());
     std::shuffle(rand_keys.begin(), rand_keys.end(), gen);
 
-    // Load dbs with randomly ordered keys
     for (int i = 0; i < rand_keys.size(); i++) {
+        // Load dbs with randomly ordered keys
         clock_db1.put(rand_keys[i], 0);
         lru_db1.put(rand_keys[i], 0);
+
+        // Load dbs with sequential keys
         clock_db2.put(i, 0);
         lru_db2.put(i, 0);
     }
@@ -222,7 +220,6 @@ void experiment2p1(int num_MB, int step_size) {
     std::cout << "Generating " + to_string(max_buf_size / step_size) + " datapoints..." << std::endl;
     std::cout << "Iteration: ";
 
-    long long int offset = 0;
     for (int i = 0; i < max_buf_size / step_size; i++) {
         int buffer_size = (i + 1) * step_size;
 
@@ -241,7 +238,7 @@ void experiment2p1(int num_MB, int step_size) {
         auto stop = chrono::high_resolution_clock::now();
         double microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
 
-        lru_throughput1.push_back(((double) num_queries) / microsecs);
+        lru_throughput1.push_back((1000 * (double) num_queries) / microsecs);
 
         // Time Clock
         auto start = chrono::high_resolution_clock::now();
@@ -307,7 +304,7 @@ void experiment2p1(int num_MB, int step_size) {
 
         clock_throughput2.push_back(((double) num_queries) / microsecs);
 
-        x.push_back((i + 1) * ENTRY_SIZE);
+        x.push_back((i + 1) * step_size * ENTRY_SIZE);
     } 
 
     std::cout << std::endl;
@@ -318,9 +315,9 @@ void experiment2p1(int num_MB, int step_size) {
     assert(clock_throughput1.size() == lru_throughput2.size());
     assert(lru_throughput2.size() == clock_throughput2.size());
     
-    std::ofstream exp2_data ("./experiments/data/exp2_data.csv");
-
-    exp1_data << "Max Cache Size (Bytes),LRU Throughput (Clock better),Clock Throughput (Clock better),LRU Throughput (LRU better),Clock Throughput (LRU better)" << std::endl;
+    std::ofstream exp2_data ("./experiments/data/exp2p1_data.csv");
+    
+    exp1_data << "Max Cache Size (Bytes),LRU Throughput - Clock better (operations/msec),Clock Throughput - Clock better (operations/msec),LRU Throughput - LRU better (operations/msec),Clock Throughput - LRU better (operations/msec)" << std::endl;
 
     for (int i = 0; i < x.size(); i++) {
         exp1_data << x[i] << "," << to_string(lru_throughput1[i]) << "," << to_string(clock_throughput1[i]) << "," << to_string(lru_throughput2[i]) << "," << to_string(clock_throughput2[i]) << std::endl;
@@ -332,8 +329,93 @@ void experiment2p1(int num_MB, int step_size) {
 // Experiment 2.2: Design an experiment comparing your binary search to B-tree search in terms of query 
 // throughput (on the y-axis) as you increase the data size (on the x-axis). 
 // This experiment should be done with uniformly randomly distributed queries and data.
+void experiment2p2(int num_MB, int step_size) {
+    cout << "Running Experiment 2.2" << endl;
+    SimpleKVStore btree_db;
+    SimpleKVStore bs_db;
+    btree_db.open("btree_db", PAGE_SIZE);
+    bs_db.open("bs_db", PAGE_SIZE);
 
+    // Multiply size of int by two since we are inserting both a key and a value
+    long long int num_inserts = num_MB * MEGABYTE / ENTRY_SIZE;
 
+    std::vector<long long int> x;
+    std::vector<long long int> btree_throughput;
+    std::vector<long long int> bs_throughput;
+
+    assert(step_size < num_inserts);
+
+    std::vector<long long int> rand_keys(num_inserts);
+
+    // fills vector with increasing keys starting from 1
+    std::iota(rand_keys.begin(), rand_keys.end(), 1); 
+    
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::shuffle(rand_keys.begin(), rand_keys.end(), gen);
+
+    // Load dbs with randomly ordered keys
+    for (int i = 0; i < rand_keys.size(); i++) {
+        btree_db.put(rand_keys[i], 0);
+        bs_db.put(rand_keys[i], 0);
+    }
+
+    std::cout << "Generating " + to_string(num_inserts / step_size) + " datapoints..." << std::endl;
+    std::cout << "Iteration: ";
+
+    for (int i = 0; i < num_inserts / step_size; i++) {
+
+        int val;
+        // Time and query Binary Search keys uniformly at random
+        auto start = chrono::high_resolution_clock::now();
+        
+        for (int i = 0; i < num_queries; i++) 
+            btree_db.get(rand_int(1, num_inserts), (int &) val);
+
+        auto stop = chrono::high_resolution_clock::now();
+        double microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
+
+        btree_throughput.push_back(((double) num_queries) / microsecs);
+
+        // Time and query BTree keys uniformly at random
+        auto start = chrono::high_resolution_clock::now();
+        
+        for (int i = 0; i < num_queries; i++) 
+            bs_db.get(rand_int(1, num_inserts), (int &) val);
+
+        auto stop = chrono::high_resolution_clock::now();
+        double microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
+
+        bs_throughput.push_back(((double) num_queries) / microsecs);
+        
+        x.push_back((i + 1) * step_size * ENTRY_SIZE);
+    } 
+
+    std::cout << std::endl;
+    std::cout << "Printing to file..." << std::endl;
+
+    assert(x.size() == btree_throughput.size());
+    assert(btree_throughput.size() == bs_throughput.size());
+    
+    std::ofstream exp2_data ("./experiments/data/exp2p2_data.csv");
+
+    exp1_data << "Inserted data (Bytes),BTree Throughput (),Clock Throughput - Clock better (operations/msec),LRU Throughput - LRU better (operations/msec),Clock Throughput - LRU((operations/msec) better" << std::endl;
+
+    for (int i = 0; i < x.size(); i++) {
+        exp1_data << x[i] << "," << to_string(lru_throughput1[i]) << "," << to_string(clock_throughput1[i]) << "," << to_string(lru_throughput2[i]) << "," << to_string(clock_throughput2[i]) << std::endl;
+    }
+
+    db.close();
+}
+
+// Experiment 3.1: Measure insertion, get, and scan throughput for your implementation over time as the data size 
+// grows. Describe your experimental setup and make sure all relevant variables are controlled. Please fix the buffer 
+// pool size to 10 MB, the Bloom filters to use 5 bits per entry, and the memtable to 1 MB. Run this experiment as you 
+// insert 1 GB of data. Measure get and scan throughput at regular intervals as you inser\\t this data.
+ 
+// Experiment 3.2: Illustrate an experiment showing get performance as you vary the number of bits per entry used for 
+// your Bloom filters. Each experiment should commence from an empty database and grow up to 1 GB. All other variables
+// should be controlled.   
 
 int main(int argc, char * argv[])
 {
@@ -360,6 +442,11 @@ int main(int argc, char * argv[])
         case 1:
             experiment1(num_MB, step_size);
             break;
+        case 21:
+            experiment2p1(num_MB, step_size);
+            break;
+        case 22:
+            experiment2p2(num_MB, step_size);
         default:
             experiment1(num_MB, step_size);
     }
