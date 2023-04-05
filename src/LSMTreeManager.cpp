@@ -132,7 +132,9 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
                             (internal_node_pages) * PAGE_NUM_ENTRIES,
                             fname, meta);
 
-    vector<pair<int,int>> res = vector<pair<int, int>>();;
+    vector<pair<int,int>> res = vector<pair<int, int>>();
+
+    // Use get pages to avoid storing data into the buffer pool
     auto master = newer->get_pages(newer_pg_ctr, newer_pg_ctr);
     auto older_page = older->get_pages(older_pg_ctr, older_pg_ctr);
 

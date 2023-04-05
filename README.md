@@ -55,8 +55,7 @@ TODO
 TODO
 
 - **B-Tree for SST**
-
-TODO
+Note: When do we use `get_page` and when do we use `get_pages` in order to buffer/not buffer calls?
 
 #### Experiments
 
