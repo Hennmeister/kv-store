@@ -157,8 +157,9 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
             }
             else
             {
-                // TODO: Handle deletes (simple if value == INT_MIN)
-                res.emplace_back(master[ind0]);
+                if(master[ind0].second != INT_MIN) {
+                    res.emplace_back(master[ind0]);
+                }
                 ind0++;
                 ind1++;
             }

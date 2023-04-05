@@ -45,7 +45,6 @@ void print_data(const vector<pair<int, int>> &data)
 std::vector<std::pair<int, int>> priority_merge(std::vector<std::pair<int, int>> master,
                                                 std::vector<std::pair<int, int>> older)
 {
-    // TODO: This function needs checking and testing.
     int ind0 = 0;
     int ind1 = 0;
     auto res = vector<pair<int, int>>();
@@ -64,7 +63,9 @@ std::vector<std::pair<int, int>> priority_merge(std::vector<std::pair<int, int>>
         }
         else
         {
-            res.emplace_back(master[ind0]);
+            if(master[ind0].second != INT_MIN) {
+                res.emplace_back(master[ind0]);
+            }
             ind0++;
             ind1++;
         }
