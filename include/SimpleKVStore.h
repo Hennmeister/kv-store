@@ -9,7 +9,6 @@ class SimpleKVStore:public KVStore {
 private:
     Memtable *memtable;
     SSTManager *sstManager;
-    std::string databaseName;
     int maxMemtableSize;
 public:
     // Opens the database with the given name and prepares it to run
