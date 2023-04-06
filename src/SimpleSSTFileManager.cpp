@@ -52,6 +52,9 @@ int SimpleSSTFileManager::get_page(int page, string file, void *data_buf) {
     int file_fd = open(filename, O_RDWR, 0777);
     int successful_read = safe_read(file_fd, data_buf, PAGE_SIZE, PAGE_SIZE * page);
     close(file_fd);
+
+    // Add page to cache
+    this->cache->put(page, (std::uint8_t *) data_buf);
     return successful_read;
 }
 

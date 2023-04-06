@@ -51,7 +51,7 @@ int LRUBuffer::get(int page_num, std::uint8_t *page_out_buf) {
         curr_entry = curr_entry->next_entry;
     }
     if (curr_entry == nullptr) {
-        return -1;
+        return 0; // TODO: error status: return -1; 
     }
 
     // move the corresponding LRU node to head of LRU linked list tracking recency
@@ -66,7 +66,7 @@ int LRUBuffer::get(int page_num, std::uint8_t *page_out_buf) {
 
     // TODO: verify that we should be copying here, instead of using pointer pointer and changing address
     memcpy(page_out_buf, curr_entry->page, PAGE_SIZE);
-    return 0;
+    return 1; // TODO: error status: return 0;
 }
 
 // Delete the entry least recently used

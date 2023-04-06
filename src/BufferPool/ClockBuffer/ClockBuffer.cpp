@@ -50,13 +50,13 @@ int ClockBuffer::get(int page_num, std::uint8_t *page_out_buf) {
         curr_entry = curr_entry->next_entry;
     }
     if (curr_entry == nullptr) {
-        return -1;
+        return 0; // return -1;
     }
     // set this entries clock used_bit since it was referenced
     curr_entry->used_bit = 1;
     // TODO: verify that we should be copying here, instead of using pointer pointer and changing address
     memcpy(page_out_buf, curr_entry->page, PAGE_SIZE);
-    return 0;
+    return 1; // return 0;
 }
 
 // finds the next entry for the clock
