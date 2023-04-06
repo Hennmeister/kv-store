@@ -277,7 +277,7 @@ void update_keys(SimpleKVStore db)
 
 void edge_case_values(SimpleKVStore db)
 {
-    // assert_vec_equals(db.scan(5, 4), vector<pair<int, int>>{}, "edge_case_values1");
+    assert_vec_equals(db.scan(5, 4), vector<pair<int, int>>{}, "edge_case_values1");
 }
 
 void close_and_recover(SimpleKVStore db)
