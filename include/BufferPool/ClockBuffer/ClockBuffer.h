@@ -3,7 +3,7 @@
 #include "../Directory.h"
 #include "ClockBufferEntry.h"
 #include "../BufferPoolEntry.h"
-
+#include <stdint.h>
 #include "vector"
 
 // An implementation of an extendable hashing directory employing a clock eviction policy

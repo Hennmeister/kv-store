@@ -1,4 +1,8 @@
-#include "LRUBuffer.h"
+#include "../../../include/BufferPool/LRUBuffer/LRUBuffer.h"
+#include <stdint.h>
+
+
+using namespace std;
 
 LRUBuffer::LRUBuffer(int minSize, int maxSize) : Directory(minSize, maxSize) {
     head = nullptr;

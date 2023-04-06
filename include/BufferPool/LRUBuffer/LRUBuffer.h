@@ -4,6 +4,8 @@
 #include "LRUBufferEntry.h"
 #include "../Directory.h"
 #include "LRUNode.h"
+#include <stdint.h>
+#include <cstring>
 #include <set>
 
 // An implementation of an extendable hashing directory employing an LRU eviction policy

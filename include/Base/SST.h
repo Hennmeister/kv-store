@@ -1,7 +1,3 @@
-//
-// Created by Sambamurthy Vijay on 2023-02-06.
-//
-
 #ifndef KV_STORE_SST_H
 #define KV_STORE_SST_H
 

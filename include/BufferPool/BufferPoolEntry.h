@@ -1,7 +1,7 @@
 #ifndef KV_STORE_BUFFERPOOLENTRY_H
 #define KV_STORE_BUFFERPOOLENTRY_H
 
-#include "../../include/constants.h"
+#include "../constants.h"
 #include <stdint.h>
 
 using namespace std;

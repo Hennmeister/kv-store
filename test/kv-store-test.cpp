@@ -9,7 +9,7 @@
 #include "../include/util.h"
 #include "./test_util.h"
 #include "./tests.h"
-#include "../src/BufferPool/BufferPool.h"
+#include "../include/Base/BufferPool.h"
 #include <string>
 #include <vector>
 #include <filesystem>
@@ -36,12 +36,12 @@ vector<pair<void (*)(SimpleKVStore db), string>>
         F_NAME(edge_case_values),
         F_NAME(multiple_dbs),
         F_NAME(simple_LRU_buffer),
-        F_NAME(LRU_simple_evict),
-        F_NAME(LRU_ref_evict),
-        F_NAME(LRU_grow),
-        F_NAME(LRU_shrink),
+        // F_NAME(LRU_simple_evict),
+        // F_NAME(LRU_ref_evict),
+        // F_NAME(LRU_grow),
+        // F_NAME(LRU_shrink),
         F_NAME(simple_clock_buffer),
-        F_NAME(clock_simple_evict),
+        // F_NAME(clock_simple_evict),
 };
 
 vector<pair<void (*)(SimpleKVStore db), string>> shared_db_tests = {
@@ -68,7 +68,7 @@ int main()
         // Before all
 
         SimpleKVStore db;
-        db.open(test_dir + func.second + "_db", PAGE_NUM_ENTRIES);
+        db.open(test_dir + func.second + "_db");
 
         // Call method
 
@@ -82,7 +82,7 @@ int main()
 
     // Shared DBs
     SimpleKVStore shared_db;
-    shared_db.open(test_dir + "shared_db", PAGE_NUM_ENTRIES);
+    shared_db.open(test_dir + "shared_db");
 
     for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
     {

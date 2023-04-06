@@ -1,7 +1,3 @@
-//
-// Created by vijay on 6/2/2023.
-//
-
 #ifndef KV_STORE_SIMPLEKVSTORE_H
 #define KV_STORE_SIMPLEKVSTORE_H
 
@@ -13,11 +9,11 @@ class SimpleKVStore:public KVStore {
 private:
     Memtable *memtable;
     SSTManager *sstManager;
-    std::string database_name;
+    std::string databaseName;
     int maxMemtableSize;
 public:
     // Opens the database with the given name and prepares it to run
-    void open(const std::string& database_name, int maxMemtableSize) override;
+    void open(std::string db_path, DbOptions *options = new DbOptions()) override;
 
     // Stores a key associated with a value
     bool put(const int& key, const int& value) override;

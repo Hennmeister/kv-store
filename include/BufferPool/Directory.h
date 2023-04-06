@@ -2,16 +2,16 @@
 #define KV_STORE_DIRECTORY_H
 
 #include "vector"
-#include "BufferPool.h"
+#include "../Base/BufferPool.h"
 #include <iostream>
 #include "math.h"
 #include <set>
 #include <map>
-#include "../util/MurmurHash3/MurmurHash3.h"
+#include "../MurmurHash3.h"
 using namespace std;
 
 // An abstract class of a buffer pool using extendable hashing
-template <typename T> class Directory: BufferPool {
+template <typename T> class Directory: public BufferPool {
 public:
     Directory(int min_size, int max_size);
     // Allow the user to increase or decrease the maximum hash table size

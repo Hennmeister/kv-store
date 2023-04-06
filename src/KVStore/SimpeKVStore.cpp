@@ -3,32 +3,44 @@
 #include "../../include/BTree/BTreeSSTManager.h"
 #include "../../include/util.h"
 #include "../../include/SimpleSSTFileManager.h"
+#include "../../include/Base/BufferPool.h"
+#include "../../include/BufferPool/LRUBuffer/LRUBuffer.h"
+#include "../../include/BufferPool/ClockBuffer/ClockBuffer.h"
 #include <iostream>
 
-void SimpleKVStore::open(const std::string &db_name, int maxMemtableSize)
+void SimpleKVStore::open(std::string db_path, DbOptions *options)
 {
     this->memtable = new RedBlackMemtable();
-    this->sstManager = new BTreeSSTManager(new SimpleSSTFileManager(db_name), 5, 0);
-    this->maxMemtableSize = maxMemtableSize;
+    
+    // defaults to no buffer (buffer of size 0)
+    BufferPool *bufferPool = new LRUBuffer(0, 0); 
+    
+    if (options->bufferPoolType == "LRU") 
+        bufferPool = new LRUBuffer(options->bufferPoolMinSize, options->bufferPoolMaxSize);
+    else if (options->bufferPoolType == "Clock") {
+        bufferPool = new ClockBuffer(options->bufferPoolMinSize, options->bufferPoolMaxSize);
+    }
+    this->sstManager = new BTreeSSTManager(new SimpleSSTFileManager(db_path, bufferPool), options->btreeFanout, options->useBinarySearch);
+    
+    this->maxMemtableSize = options->maxMemtableSize;
+    
 }
 
 bool SimpleKVStore::put(const int &key, const int &value)
 {
-    if (memtable->get_size() >= maxMemtableSize)
+    if (this->memtable->get_size() >= this->maxMemtableSize)
     {
-        if (!sstManager->add_sst(memtable->inorderTraversal()))
+        if (!this->sstManager->add_sst(this->memtable->inorderTraversal()))
             return false;
-        memtable->reset();
+        this->memtable->reset();
     }
-    return memtable->put(key, value);
+    return this->memtable->put(key, value);
 }
 
 bool SimpleKVStore::get(const int &key, int &value)
 {
-    if (!memtable->get(key, value))
-    {
-        return sstManager->get(key, value);
-    }
+    if (!this->memtable->get(key, value))
+        return this->sstManager->get(key, value);
     return true;
 }
 
@@ -45,15 +57,15 @@ std::vector<std::pair<int, int>> SimpleKVStore::scan(const int &key1, const int 
         return {(std::pair<int, int>{key1, val})};
     }
 
-    return priority_merge(memtable->scan(key1, key2), sstManager->scan(key1, key2));
+    return priority_merge(this->memtable->scan(key1, key2), this->sstManager->scan(key1, key2));
 }
 
 void SimpleKVStore::close()
 {
     // Pad and dump memtable contents to file
-    auto dat = memtable->inorderTraversal();
+    auto dat = this->memtable->inorderTraversal();
     pad_data(dat, maxMemtableSize);
-    sstManager->add_sst(dat);
+    this->sstManager->add_sst(dat);
     delete this->memtable;
     delete this->sstManager;
 }

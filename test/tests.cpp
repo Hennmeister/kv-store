@@ -2,11 +2,11 @@
 #include "./test_util.h"
 #include "../include/SimpleKVStore.h"
 #include "../include/constants.h"
-#include "../src/BufferPool/BufferPool.h"
-#include "../src/BufferPool/BufferPoolEntry.h"
-#include "../src/BufferPool/Directory.h"
-#include "../src/BufferPool/LRUBuffer/LRUBuffer.h"
-#include "../src/BufferPool/ClockBuffer/ClockBuffer.h"
+#include "../include/Base/BufferPool.h"
+#include "../include/BufferPool/BufferPoolEntry.h"
+#include "../include/BufferPool/Directory.h"
+#include "../include/BufferPool/LRUBuffer/LRUBuffer.h"
+#include "../include/BufferPool/ClockBuffer/ClockBuffer.h"
 
 #include <string>
 #include <vector>
@@ -284,7 +284,7 @@ void close_and_recover(SimpleKVStore db)
 {
     db.close();
 
-    db.open(test_dir + "shared_db", PAGE_NUM_ENTRIES);
+    db.open(test_dir + "shared_db");
 
     // Test gets
     int val;
@@ -316,9 +316,9 @@ void multiple_dbs(SimpleKVStore db)
     SimpleKVStore db1;
     SimpleKVStore db2;
     SimpleKVStore db3;
-    db1.open(test_dir + "db1", PAGE_NUM_ENTRIES);
-    db2.open(test_dir + "db2", PAGE_NUM_ENTRIES);
-    db3.open(test_dir + "db3", PAGE_NUM_ENTRIES);
+    db1.open(test_dir + "db1");
+    db2.open(test_dir + "db2");
+    db3.open(test_dir + "db3");
 
     for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
     {

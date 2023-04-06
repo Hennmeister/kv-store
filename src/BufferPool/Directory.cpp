@@ -1,6 +1,6 @@
-#include "Directory.h"
-#include "LRUBuffer/LRUBufferEntry.h"
-#include "ClockBuffer/ClockBufferEntry.h"
+#include "../../include/BufferPool/Directory.h"
+#include "../../include/BufferPool/LRUBuffer/LRUBufferEntry.h"
+#include "../../include/BufferPool/ClockBuffer/ClockBufferEntry.h"
 
 template <typename T> Directory<T>::Directory(int min_size, int max_size){
     this->min_size = min_size;

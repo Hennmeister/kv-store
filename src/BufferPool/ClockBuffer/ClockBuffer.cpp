@@ -1,6 +1,10 @@
-#include "ClockBuffer.h"
-#include "ClockBufferEntry.h"
+#include "../../../include/BufferPool/ClockBuffer/ClockBuffer.h"
+#include "../../../include/BufferPool/ClockBuffer/ClockBufferEntry.h"
 #include "map"
+#include <cstring>
+#include <stdint.h>
+
+using namespace std;
 
 ClockBuffer::ClockBuffer(int minSize, int maxSize) : Directory(minSize, maxSize) {
     clock_pointer = nullptr;
