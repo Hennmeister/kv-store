@@ -2,6 +2,7 @@
 #include "string"
 #include "../../include/constants.h"
 #include "math.h"
+#include <climits>
 
 BTreeSST::~BTreeSST() = default;
 

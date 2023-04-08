@@ -1,4 +1,5 @@
 #include "../include/SimpleSSTFileManager.h"
+#include "../include/Base/BufferPool.h"
 #include <filesystem>
 #include <fcntl.h>
 #include "../include/util.h"
@@ -8,6 +9,7 @@
 #include <string>
 #include <iostream>
 #include <filesystem>
+#include <stdint.h>
 
 long GetFileSize(std::string filename)
 {
@@ -16,8 +18,9 @@ long GetFileSize(std::string filename)
     return rc == 0 ? stat_buf.st_size : -1;
 }
 
-SimpleSSTFileManager::SimpleSSTFileManager(std::string target_dir) {
-    dir_name = target_dir;
+SimpleSSTFileManager::SimpleSSTFileManager(std::string target_dir, BufferPool *cache) {
+    this->cache = cache;
+    this->dir_name = target_dir;
     int dir = dir_exists(target_dir);
 
     if (dir == 0)
@@ -38,10 +41,20 @@ int SimpleSSTFileManager::get_page(int page, string file, void *data_buf) {
     // Account for metadata_page
     page++;
 
+    // Check if page is cached
+    if (this->cache->get(page, (std::uint8_t *) data_buf)) {
+        // Reinsert page into buffer to acknowledge acess
+        this->cache->put(page, (std::uint8_t *) data_buf);
+        return PAGE_SIZE;
+    }
+
     char* filename = string_to_char(dir_name + "/" + file);
     int file_fd = open(filename, O_RDWR, 0777);
     int successful_read = safe_read(file_fd, data_buf, PAGE_SIZE, PAGE_SIZE * page);
     close(file_fd);
+
+    // Add page to cache
+    this->cache->put(page, (std::uint8_t *) data_buf);
     return successful_read;
 }
 
@@ -50,6 +63,8 @@ int SimpleSSTFileManager::scan(int start_page, int end_page, string file, void *
     // Account for metadata page.
     start_page++;
     end_page++;
+
+    // Don't cache scanned pages to avoid sequential flooding
 
     char* filename = string_to_char(dir_name + "/" + file);
     int file_fd = open(filename, O_RDWR, 0777);
@@ -63,7 +78,7 @@ int SimpleSSTFileManager::write_file(void *data, int size, string new_filename, 
     char* filename = string_to_char(dir_name + "/" + new_filename);
     int file_fd = open(filename, O_RDWR | O_CREAT, 0777);
     int meta_write = safe_write(file_fd, metadata, PAGE_SIZE, 0);
-    int successful_write = safe_write(file_fd, data, size,PAGE_SIZE);
+    int successful_write = safe_write(file_fd, data, size, PAGE_SIZE);
     close(file_fd);
     return successful_write + meta_write;
 }

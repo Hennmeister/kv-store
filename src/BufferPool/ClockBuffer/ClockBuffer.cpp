@@ -1,8 +1,13 @@
-#include "ClockBuffer.h"
-#include "ClockBufferEntry.h"
+#include "../../../include/BufferPool/ClockBuffer/ClockBuffer.h"
+#include "../../../include/BufferPool/ClockBuffer/ClockBufferEntry.h"
 #include "map"
+#include <cstring>
+#include <stdint.h>
 
-ClockBuffer::ClockBuffer(int minSize, int maxSize) : Directory(minSize, maxSize) {
+using namespace std;
+
+// Note that min_load_factor and max_load_factor are optional
+ClockBuffer::ClockBuffer(int minSize, int maxSize, double min_load_factor, double max_load_factor) : Directory(minSize, maxSize, min_load_factor, max_load_factor) {
     clock_pointer = nullptr;
     clock_entry_index = 0;
 }
@@ -11,9 +16,9 @@ ClockBuffer::ClockBuffer(int minSize, int maxSize) : Directory(minSize, maxSize)
 // pointer with a used used_bit of 0
 // If the directory is at capacity, evicts the LRU page.
 // If the directory is more than 75% full, grows the directory to increase capacity
-void ClockBuffer::put(int page_num, std::uint8_t *page) {
+bool ClockBuffer::put(int page_num, uint8_t page[4096]) {
     // evict if the buffer pool is at capacity
-    if ((double) (num_pages_in_buffer+1) * sizeof(ClockBufferEntry) >= (max_size * MB) * max_load_factor) {
+    if ((double) (num_pages_in_buffer+1) * sizeof(ClockBufferEntry) > (max_size * MB) * max_load_factor) {
        evict();
     }
 
@@ -34,25 +39,26 @@ void ClockBuffer::put(int page_num, std::uint8_t *page) {
         clock_pointer = entry;
         clock_entry_index = hash_to_bucket_index(entry->page_num);
     }
+    return true;
 }
 
 // Retrieve the page with a page number of page_num, filling the page_out_buf, or return -1 otherwise
 // Update used used_bit of requested entry
 // TODO: return not found error status
-int ClockBuffer::get(int page_num, std::uint8_t *page_out_buf) {
+bool ClockBuffer::get(int page_num, uint8_t page_out_buf[4096]) {
     int bucket_num = hash_to_bucket_index(page_num);
     ClockBufferEntry *curr_entry = entries[bucket_num];
     while (curr_entry != nullptr && curr_entry->page_num != page_num) {
         curr_entry = curr_entry->next_entry;
     }
     if (curr_entry == nullptr) {
-        return -1;
+        return false;
     }
     // set this entries clock used_bit since it was referenced
     curr_entry->used_bit = 1;
     // TODO: verify that we should be copying here, instead of using pointer pointer and changing address
     memcpy(page_out_buf, curr_entry->page, PAGE_SIZE);
-    return 0;
+    return true;
 }
 
 // finds the next entry for the clock
@@ -77,6 +83,25 @@ void ClockBuffer::evict() {
     while (clock_pointer->used_bit == 1) {
         increment_clock();
     }
+    // remove all the references to evicted buckets
+    auto next_page_in_bucket = clock_pointer->next_entry;
+    auto it = bucket_refs.find(hash_to_bucket_index(clock_pointer->page_num));
+    // the bucket holding the page to be evicted has at least one other bucket pointing to it
+    if (it != bucket_refs.end()) {
+        for (auto vector_it = it->second.begin(); vector_it != it->second.end(); vector_it++) {
+            entries[*vector_it] = next_page_in_bucket; // could be nullptr
+            // if we are emptying this bucket by deleting the last page in the bucket,
+            // unmark buckets pointing to this bucket as references
+            if (next_page_in_bucket == nullptr) {
+                is_ref.erase(*vector_it);
+            }
+        }
+        // if we are deleting the last entry in this bucket, nothing will be referencing this bucket anymore
+        if (next_page_in_bucket == nullptr) {
+            bucket_refs.erase(it);
+        }
+    }
+
     ClockBufferEntry *entry_to_delete = clock_pointer;
     num_pages_in_buffer--;
     increment_clock();

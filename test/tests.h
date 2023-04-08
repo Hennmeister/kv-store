@@ -1,5 +1,5 @@
 #include "../include/SimpleKVStore.h"
-#include "../src/BufferPool/BufferPool.h"
+#include "../include/Base/BufferPool.h"
 
 
 // ===================== Buffer Pool Tests =========================

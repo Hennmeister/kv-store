@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include "../../include/RedBlack/RedBlackTree.h"
+#include "../../include/constants.h"
 
 using namespace std;
 
@@ -186,7 +187,7 @@ void RedBlackTree::put(const int &key, const int &value)
 
     fixViolation(root, pt);
 
-    size++;
+    size += ENTRY_SIZE;
 }
 
 bool RedBlackTree::get(const int &key, int &value)
