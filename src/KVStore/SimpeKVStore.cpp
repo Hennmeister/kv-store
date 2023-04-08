@@ -64,7 +64,7 @@ void SimpleKVStore::close()
 {
     // Pad and dump memtable contents to file
     auto dat = this->memtable->inorderTraversal();
-    pad_data(dat, maxMemtableSize);
+    // pad_data(dat, maxMemtableSize);
     this->sstManager->add_sst(dat);
     delete this->memtable;
     delete this->sstManager;
