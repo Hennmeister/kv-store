@@ -1,7 +1,3 @@
-//
-// Created by vijay on 6/2/2023.
-//
-
 #ifndef KV_STORE_MEMTABLE_H
 #define KV_STORE_MEMTABLE_H
 #include <vector>

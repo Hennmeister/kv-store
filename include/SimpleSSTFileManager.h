@@ -3,14 +3,16 @@
 
 #include <string>
 #include "Base/SSTFileManager.h"
+#include "Base/BufferPool.h"
 
 using namespace std;
 class SimpleSSTFileManager : public SSTFileManager {
 private:
     string dir_name;
     vector<int> files;
+    BufferPool *cache;
 public:
-    explicit SimpleSSTFileManager(string target_dir);
+    explicit SimpleSSTFileManager(string target_dir, BufferPool *cache);
     ~SimpleSSTFileManager();
     int get_page(int page, string filename, void* data_buf) override;
     int scan(int start_page, int end_page, string filename, void* data_buf) override;

@@ -3,14 +3,30 @@
 #include "../../include/LSMTreeManager.h"
 #include "../../include/util.h"
 #include "../../include/SimpleSSTFileManager.h"
+#include "../../include/Base/BufferPool.h"
+#include "../../include/BufferPool/LRUBuffer/LRUBuffer.h"
+#include "../../include/BufferPool/ClockBuffer/ClockBuffer.h"
 #include <iostream>
 
-void SimpleKVStore::open(const std::string &db_name, int maxMemtableSize)
+void SimpleKVStore::open(std::string db_path, DbOptions *options)
 {
     this->memtable = new RedBlackMemtable();
-    this->sstManager = new LSMTreeManager(new SimpleSSTFileManager(db_name),
-                                          5, 0, maxMemtableSize);
-    this->maxMemtableSize = maxMemtableSize;
+
+    // defaults to no buffer (buffer of size 0)
+    BufferPool *bufferPool = new LRUBuffer(0, 0);
+
+    if (options->bufferPoolType == "LRU")
+        bufferPool = new LRUBuffer(options->bufferPoolMinSize, options->bufferPoolMaxSize);
+    else if (options->bufferPoolType == "Clock") {
+        bufferPool = new ClockBuffer(options->bufferPoolMinSize, options->bufferPoolMaxSize);
+    }
+    this->sstManager = new LSMTreeManager(new SimpleSSTFileManager(db_path, bufferPool),
+                                          options->btreeFanout,
+                                          options->useBinarySearch,
+                                          options->maxMemtableSize);
+
+    this->maxMemtableSize = options->maxMemtableSize;
+
 }
 
 bool SimpleKVStore::put(const int &key, const int &value)
@@ -18,19 +34,17 @@ bool SimpleKVStore::put(const int &key, const int &value)
     int discard;
     if (!memtable->get(key, discard) && memtable->get_size() >= maxMemtableSize)
     {
-        if (!sstManager->add_sst(memtable->inorderTraversal()))
+        if (!this->sstManager->add_sst(this->memtable->inorderTraversal()))
             return false;
-        memtable->reset();
+        this->memtable->reset();
     }
-    return memtable->put(key, value);
+    return this->memtable->put(key, value);
 }
 
 bool SimpleKVStore::get(const int &key, int &value)
 {
-    if (!memtable->get(key, value))
-    {
-        return sstManager->get(key, value);
-    }
+    if (!this->memtable->get(key, value))
+        return this->sstManager->get(key, value);
     return true;
 }
 
@@ -47,7 +61,7 @@ std::vector<std::pair<int, int>> SimpleKVStore::scan(const int &key1, const int 
         return {(std::pair<int, int>{key1, val})};
     }
 
-    return priority_merge(memtable->scan(key1, key2), sstManager->scan(key1, key2));
+    return priority_merge(this->memtable->scan(key1, key2), this->sstManager->scan(key1, key2));
 }
 
 void SimpleKVStore::close()

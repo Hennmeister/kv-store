@@ -52,7 +52,7 @@ LSMTreeManager::LSMTreeManager(SSTFileManager *fileManager, int newFanout, int u
     }
 
 
-    int start_log = log2(memtable_size);
+    int start_log = log2(memtable_size/ENTRY_SIZE);
     for(BTreeSST* sst: tmp_ssts){
         int level = ceil(log2((double) sst->getSize())) - start_log;
         while(this->levels.size() <= level){
