@@ -3,7 +3,7 @@ import sys
 
 
 def plot_exp1():
-    with open("./data/exp1_data.txt", "r") as data:
+    with open("./data/exp1_data.csv", "r") as data:
         y_label = "Average Throughput (operations/microsec)"
         x = []
         put_throughput = []

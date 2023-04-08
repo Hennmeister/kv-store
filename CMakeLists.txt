@@ -22,3 +22,7 @@ target_link_libraries(kv-store-test PUBLIC kv-store)
 add_executable(kv-store-performance-test experiments/kv-store-performance-testing.cpp experiments/kv-store-performance-testing)
 
 target_link_libraries(kv-store-performance-test PUBLIC kv-store) 
+
+add_executable(playground experiments/playground.cpp experiments/playground)
+
+target_link_libraries(playground PUBLIC kv-store) 
