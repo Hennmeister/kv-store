@@ -39,7 +39,7 @@ void simple_LRU_buffer(SimpleKVStore db)
 }
 
 void LRU_simple_evict(SimpleKVStore db) {
-    LRUBuffer *LRU_cache = new LRUBuffer(1, 1);
+    LRUBuffer *LRU_cache = new LRUBuffer(1, 1, 0.25, 1);
     uint8_t in_buf[PAGE_SIZE];
     uint8_t out_buf[PAGE_SIZE];
 
@@ -53,15 +53,15 @@ void LRU_simple_evict(SimpleKVStore db) {
     }
 
     // check that the first value (1) was evicted
-    assert_val_equals(LRU_cache->get(1, out_buf), -1, "LRU_simple_evict");
+    assert_val_equals(LRU_cache->get(1, out_buf), false, "LRU_simple_evicted");
     // check the second inserted value was not evicted
-    assert_val_equals(LRU_cache->get(2, out_buf), 0, "LRU_simple_evict");
-    assert_val_equals(out_buf[0], 2, "LRU_simple_evict");
+    assert_val_equals(LRU_cache->get(2, out_buf), true, "LRU_simple_not_evicted");
+    assert_val_equals(out_buf[0], 2, "LRU_simple_evict_buf");
 }
 
 // test the referencing a value updates its recency and prevents it from being evicted
 void LRU_ref_evict(SimpleKVStore db) {
-    LRUBuffer *LRU_cache = new LRUBuffer(1, 1);
+    LRUBuffer *LRU_cache = new LRUBuffer(1, 1, 0.25, 1);
     uint8_t in_buf[PAGE_SIZE];
     uint8_t out_buf[PAGE_SIZE];
 
@@ -72,21 +72,21 @@ void LRU_ref_evict(SimpleKVStore db) {
     }
 
     // reference and check that the first value is present
-    assert_val_equals(LRU_cache->get(1, out_buf), 0, "LRU_ref_evict");
+    assert_val_equals(LRU_cache->get(1, out_buf), true, "LRU_ref_evict");
 
     // insert new page
     LRU_cache->put((MB / sizeof(LRUBufferEntry)) + 1, in_buf);
 
     // check that the first value is present
-    assert_val_equals(LRU_cache->get(1, out_buf), 0, "LRU_ref_evict");
+    assert_val_equals(LRU_cache->get(1, out_buf), true, "LRU_ref_evict");
 
     // check the second inserted value was evicted
-    assert_val_equals(LRU_cache->get(2, out_buf), -1, "LRU_ref_evict");
+    assert_val_equals(LRU_cache->get(2, out_buf), false, "LRU_ref_evict");
 }
 
 // test that we can grow the directory to the max size
 void LRU_grow(SimpleKVStore db) {
-    LRUBuffer *LRU_cache = new LRUBuffer(1, 10);
+    LRUBuffer *LRU_cache = new LRUBuffer(1, 10, 0.25, 1);
     uint8_t in_buf[PAGE_SIZE];
     uint8_t out_buf[PAGE_SIZE];
 
@@ -98,34 +98,33 @@ void LRU_grow(SimpleKVStore db) {
 
     // check that every inserted page can still be found
     for (int i = 1; i <= (MB / sizeof(LRUBufferEntry)) * 5; i++) {
-        assert_val_equals(LRU_cache->get(i, out_buf), 0, "LRU_max_grow");
+        assert_val_equals(LRU_cache->get(i, out_buf), true, "LRU_max_grow");
         assert_val_equals(out_buf[0], (std::uint8_t ) i, "LRU_max_grow");
     }
 }
 
 void LRU_shrink(SimpleKVStore db) {
-    LRUBuffer *LRU_cache = new LRUBuffer(1, 10);
+    LRUBuffer *LRU_cache = new LRUBuffer(1, 10, 0.25, 1);
     uint8_t in_buf[PAGE_SIZE];
     uint8_t out_buf[PAGE_SIZE];
 
     for (int i = 1; i <= (5 * MB / sizeof(LRUBufferEntry)); i++) {
+        cout << i << endl;
         in_buf[0] = i;
         LRU_cache->put(i, in_buf);
     }
 
-
     LRU_cache->set_max_size(1);
-
 
     // check that every inserted page in the last MB can still be found
     for (int i = (4 * MB / sizeof(LRUBufferEntry)) + 1; i <= (5 * MB / sizeof(LRUBufferEntry)); i++) {
-        assert_val_equals(LRU_cache->get(i, out_buf), 0, to_string(i));
+        assert_val_equals(LRU_cache->get(i, out_buf), true, to_string(i));
         assert_val_equals(out_buf[0], (std::uint8_t ) i, "LRU_max_grow");
     }
 
     // check that all other pages were evicted
     for (int i = 1; i <= (4 * MB / sizeof(LRUBufferEntry)); i++) {
-        assert_val_equals(LRU_cache->get(i, out_buf), -1, to_string(i));
+        assert_val_equals(LRU_cache->get(i, out_buf), false, to_string(i));
     }
 
     LRU_cache->set_max_size(5);
@@ -136,10 +135,10 @@ void LRU_shrink(SimpleKVStore db) {
         LRU_cache->put(i, in_buf);
     }
     for (int i = 1; i <= (2 * MB / sizeof(LRUBufferEntry)); i++) {
-        assert_val_equals(LRU_cache->get(i, out_buf), 0, to_string(i));
+        assert_val_equals(LRU_cache->get(i, out_buf), true, to_string(i));
     }
     for (int i = (4 * MB / sizeof(LRUBufferEntry)) + 1; i <= (5 * MB / sizeof(LRUBufferEntry)); i++) {
-        assert_val_equals(LRU_cache->get(i, out_buf), 0, to_string(i));
+        assert_val_equals(LRU_cache->get(i, out_buf), true, to_string(i));
         assert_val_equals(out_buf[0], (std::uint8_t ) i, "LRU_max_grow");
     }
 }
@@ -147,7 +146,7 @@ void LRU_shrink(SimpleKVStore db) {
 // ===================== Clock Pool Tests =========================
 void simple_clock_buffer(SimpleKVStore db)
 {
-    ClockBuffer *clock_cache = new ClockBuffer(1, 10);
+    ClockBuffer *clock_cache = new ClockBuffer(1, 10, 0.25, 1);
     // test inserting and retrieving 10 pages
     uint8_t in_buf[PAGE_SIZE];
     uint8_t out_buf[PAGE_SIZE];
@@ -166,7 +165,7 @@ void simple_clock_buffer(SimpleKVStore db)
 }
 
 void clock_simple_evict(SimpleKVStore db) {
-    ClockBuffer *clock_cache = new ClockBuffer(1, 1);
+    ClockBuffer *clock_cache = new ClockBuffer(1, 1, 0.25, 1);
     uint8_t in_buf[PAGE_SIZE];
     uint8_t out_buf[PAGE_SIZE];
 
@@ -180,7 +179,7 @@ void clock_simple_evict(SimpleKVStore db) {
     // check that one value was evicted
     int num_misses = 0;
     for (int i = 1; i <= (MB / sizeof(ClockBufferEntry)); i++) {
-        if (clock_cache->get(i, out_buf) == -1) {
+        if (clock_cache->get(i, out_buf) == false) {
             num_misses++;
         }
     }

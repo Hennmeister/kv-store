@@ -9,9 +9,9 @@
 // An implementation of an extendable hashing directory employing a clock eviction policy
 class ClockBuffer: public Directory<ClockBufferEntry> {
 public:
-    ClockBuffer(int minSize, int maxSize);
-    void put(int page_num, std::uint8_t page[PAGE_SIZE]) override;
-    int get(int page_num, std::uint8_t page_out_buf[PAGE_SIZE]) override;
+    ClockBuffer(int minSize, int maxSize, double min_load_factor = 0.25, double max_load_factor = 0.8);
+    bool put(int page_num, std::uint8_t page[PAGE_SIZE]) override;
+    bool get(int page_num, std::uint8_t page_out_buf[PAGE_SIZE]) override;
     void evict() override;
 
 private:
