@@ -2,6 +2,22 @@
 
 Refer to [this page](https://docs.google.com/document/d/1dsIuIzXiIBbiZcNYi1cC62PVE4mF-MdksmIQ1hikFGM) for the official project handout.
 
+# Table of Contents
+1. [Introduction](#introduction)
+2. [Execution](#execution)
+3. [Playground](#playground)
+4. [Experiments](#experiments)
+5. [Project Status](#status)
+6. [Database Initialization and Parameters](#init_param)
+    1. [DbOptions](#dboptions)
+7. [Implementation Steps](#steps)
+    1. [Abstractions](#abstractions)
+    2. [Step 1](#step1)
+    3. [Step 2](#step2)
+    4. [Step 3](#step3)
+8. [Testing](#testing)
+
+
 ## Introduction
 
 In this project, we build a key-value store from scratch. A key-value store (KV-store) is a kind of database system that stores key-value pairs and allows retrieval of a value based on its key. KV-stores exhibit the following simple API:
@@ -18,7 +34,7 @@ We implement this key-value store using various data structures covered in class
 
 KV-stores are widely used in industry. Note that they have a far simpler API than traditional relational database systems, which expose SQL as an API to the user. There are many applications for which a simple KV API is sufficient. Note, however, that KV-stores can also be used as the backbone for relational database management systems. For example, MyRocks by Meta is an example of a relational database utilizing as its backbone a key-value store very similar to the one we built, namely RocksDB.
 
-## "I don't care, just tell me how to run it." - Fine...
+## "I don't care, just tell me how to run it." - Fine... (Execution) <a name="execution"></a>
 
 Run `./make.sh` to compile the program and run the tests in one command. The test executable file will be located under `/build/kv-store-test`. It also compiles the experiments executable at `/build/kv-store-performance-test` and a playground executable at `/build/kv-store-performance-test`.
 
@@ -30,11 +46,11 @@ We provide an empty C++ file with a default version of our database (that you ar
 
 Run `./experiments.sh` to run the excutable that generates all experiments data. You can also generate data individually for each experiment by calling the executable file `/build/kv-store-performance-test` with the parameters indicated on the calls of `experiments.sh`. We also provide a `plot_experiments.sh` script that plots the data generated for each experiment. You can also plot the data of individual experiments by using the same approach.
 
-## Project Status
+## Project Status <a name="status"></a>
 
 TODO: at the end
 
-## Database Initialization and Parameters
+## Database Initialization and Parameters <a name="init_param"></a>
 
 We provide the user with a DbOptions object that is used to set default configurations for any database instantiated, and also giving the freedom to specify some options based on the user's preference.
 
@@ -53,20 +69,26 @@ An example is as follows:
   example
   example
 ````
-
-## Implementation Steps
+---
+## Implementation Steps <a name="steps"></a>
 
 Here we outline the process of implementation the various parts of our system. For simplicity, our simple KV-Store only handles integer keys and integer values.
 
 The general flow is the following: entries get populated in a memtable (fitting entirely in memory) that holds the most recent key-value insertions in the database. Once the memtable grows beyond its capacity, the contents of the memtable are dumped to an SST sorted
 
-### Abtractions
+### Abstractions
 
 Aware of the possible changes to the algorithms as well as our methodology, either as a consequence of efficiency tradeoffs or improvements to the system, we tried to structure our OOP code in a way that maximizes the use of abstractions/interfaces while minimizing the amount of coupling our classes have between each other.
 
-TODO: @VijayS02 feel free to elaborate if needed
+We have a few base interfaces that can be found under the `/include/Base` directory of the project.
 
-### Step 1
+
+### Utility <a name="utility"></a>
+
+- `priority_merge` - This function is a core utility function used throughout our implementation. It allows the neat compaction of various sources of data in order to produce output data which prioritizes the newest data. The function takes in 2 inputs, 1 set of newer data (key-value pairs) and one set of older data. If there is ever an entry which is present in both sources, the function will use the newer version of the key. An example of usage would be when priority merging data from the memtable with data found in SSTs. 
+
+
+### Step 1 <a name="step1"></a>
 
 - **Memtable**
 
@@ -76,11 +98,13 @@ We implement a memtable as a balanced binary search tree ([red-black tree](https
 
 We set a maximum capacity (e.g. a page size of 4KB) to the Memtable, at which point we dump the contents key-value pairs in sorted order to an SST file `sstX`. The SSTs are thus stored in decreasing order of longevity where `sst1` is the oldest Memtable dumped. On a get query that is not found on the current Memtable, our database traverses over the SSTs from newest to oldest to find a key. Note that we implement the SST dump so that it writes in binary so an append-only file to maximize efficiency in sequential writes.
 
+Our initial implementation was quite raw and assumed that a new SST File was made every time a memtable was dumped. This implies that each operation performed on any SST's loaded from disk could be performed in memory seeing as they do not grow in size. This assumption is later relaxed as we introduce more complications to our implementation. 
+
 #### Experiments
 
 TODO: step1 experiments
 
-### Step 2
+### Step 2 <a name="step2"></a>
 
 - **Buffer Pool**
 
@@ -92,17 +116,38 @@ TODO
 
 - **B-Tree for SST**
 
-TODO
+In order to execute a BTree correctly, we increased the complexity of our program by now introducing the SSTFileManager class that adds a layer of abstraction and allows the BufferPool to not have to interface directly with any SSTManager. The BTree SST was implemented in stages, the first of which being the exact same as the Append Only SST. In this stage, the data on disk was the exact same but every time an SST was loaded/created, an in-memory BTree was built, allowing Get/Scan calls to query the in memory structure before needing to access disk. 
+
+This in-memory structure was simply a vector of vector of ints. Where each level of the BTree is represented by a vector of ints. Through some simple maths and the knowledge of the fannout (which was stored in the metadata page of each SST), the in-memory structure could be easily used to find the position or lower bound of an element for get or scan calls. 
+
+Slowly, we transitioned to having these in memory structures being written out as "internal node pages" where this data could be parsed from. The data written to disk was exactly the vector of vector of ints, where each vector's end was delimited by an `INT_MAX - 1`. Now, the BTree was only constructed on first creation of the SST (i.e. from memtable to SST dump) and everytime the database was opened thereafter, the BTree was loaded from disk. 
+
+By padding our internal node pages with blank data, we were able to ensure that the start of the leaves was always the start of a new page, this is important for the binary search as it ensures that no complicated processing has to be done to differentiate between internal node data and leaf data which would have different structures. 
+
+After fully implementing the BTree with scans and gets, we then revisited the binary search function and upgraded our old append only file implementation of binary search to now work without needing to load the entire SST into memory. 
+
+At this point, our BTree could function as both a large Append Only File or a BTree through the use of the `useBinary` option. 
 
 #### Experiments
 
 TODO: step2 experiments
 
-### Step 3
+### Step 3 <a name="step3"></a>
 
 - **LSM Tree**
 
-TODO
+Since our BTree implementation had already been completed in the last step, this step was simply a case of creating a new style of SSTManager, the LSMSSTManager. This class would have to manage the various levels in memory, reconstruct the levels on load of an existing database, and perform compaction when required. 
+
+Thankfully, our BTree implementation already managed to handle varying multiples of the memtable size quite well so no significant changes were required to be made to the BTree implementation. In order to determine the levels, we could simply look at the number of entries in each SST and use logarithms to figure out which level each SST belongs to. 
+
+Finally, the most significant part of the LSM Tree implementation, compaction. In order to facilitate compaction, we first implemented the LSM Tree with an entirely in-memory compaction process. This allowed us to ensure that all other parts of the LSMSSTManager was working correctly. Once this was completed, the algorithm was planned out and implemented as follows:
+
+1. From each of the 2 SSTs being passed in for compaction, we compute the maximum number of possible internal nodes that could be made as a result of compaction (simply by summing the total internal nodes of both SSTs and adding some padding), this allows us to know how many maximum internal node pages we could have.
+2. An initial file is created to be appended to as the compaction process completes.
+3. A page-by-page priority merge is performed, using 2 buffers 1 for each SST and 2 pointers to track the current position within a page. Once at least one page of data is produced, it is flushed to disk. When a page is about to be written out, we iterate over the page and append to the lowest level of the BTree.
+4. With the lowest level of the BTree in memory, we now compute the upper levels and flush the BTree's internal nodes to disk. 
+5. The metadata of the file is updated.
+6. A new BTreeSST object is loaded and returned by providing the filename of the newly created SST
 
 - **Incorporating Updates and Deletes**
 
