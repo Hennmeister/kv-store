@@ -7,6 +7,7 @@
 #include "math.h"
 #include <set>
 #include <map>
+#include <string>
 #include "../MurmurHash3.h"
 using namespace std;
 
@@ -36,7 +37,7 @@ protected:
 
     virtual void evict() = 0;
     // Calculate the bucket number of a given page
-    int hash_to_bucket_index(uint32_t page_num);
+    int hash_to_bucket_index(std::string file_and_page);
     // Double the size of the directory
     void grow(int new_num_bits);
     // Shrink the directory itself - note that this does not evict entries, only the directory size

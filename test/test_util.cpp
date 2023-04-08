@@ -65,7 +65,7 @@ void assert_buf_equals(uint8_t in_buf[PAGE_SIZE], uint8_t out_buf[PAGE_SIZE], st
     for (int i = 0; i < PAGE_SIZE; i++) {
         if (in_buf[i] != out_buf[i]) {
             throw runtime_error(test_name + ": in_buf != out_buf --> mismatch at index " + to_string(i) +
-            " : " +  to_string(in_buf[i]) + "!= " + to_string(out_buf[i]));
+            " : " +  to_string(in_buf[i]) + " != " + to_string(out_buf[i]));
         }
     }
 }
