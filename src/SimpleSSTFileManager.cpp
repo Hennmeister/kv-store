@@ -41,8 +41,12 @@ int SimpleSSTFileManager::get_page(int page, string file, void *data_buf) {
     // Account for metadata_page
     page++;
 
+    string buf_entry_id = file + "-" + to_string(page);
+
     // Check if page is cached
-    if (this->cache->get(page, (std::uint8_t *) data_buf)) {
+    if (this->cache->get(buf_entry_id, (std::uint8_t *) data_buf)) {
+        // Reinsert page into buffer to acknowledge acess
+        this->cache->put(buf_entry_id, (std::uint8_t *) data_buf);
         return PAGE_SIZE;
     }
 
@@ -52,7 +56,7 @@ int SimpleSSTFileManager::get_page(int page, string file, void *data_buf) {
     close(file_fd);
 
     // Add page to cache
-    this->cache->put(page, (std::uint8_t *) data_buf);
+    this->cache->put(buf_entry_id, (std::uint8_t *) data_buf);
     return successful_read;
 }
 
