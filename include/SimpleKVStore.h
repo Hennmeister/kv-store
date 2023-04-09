@@ -4,12 +4,14 @@
 #include "Base/KVStore.h"
 #include "Base/Memtable.h"
 #include "Base/SSTManager.h"
+#include "SimpleSSTFileManager.h"
 
 class SimpleKVStore:public KVStore {
 private:
     Memtable *memtable;
     SSTManager *sstManager;
     int maxMemtableSize;
+    SimpleSSTFileManager *fileManager;
 public:
     // Opens the database with the given name and prepares it to run
     void open(std::string db_path, DbOptions *options = new DbOptions()) override;

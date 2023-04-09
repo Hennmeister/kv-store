@@ -9,11 +9,11 @@ DbOptions::DbOptions(){
     this->memTableType = "RedBlackTree";
     this->maxMemtableSize = PAGE_SIZE;
     this->sstSearch = "BTree";
-    this->btreeFanout = 5;
+    this->btreeFanout = 100;
     this->bufferPoolType = "Clock";
-    this->bufferPoolMinSize = 1;
-    this->bufferPoolMaxSize = 10;
-    this->useBinarySearch = 0;
+    this->bufferPoolMinSize = 1; // MB
+    this->bufferPoolMaxSize = 10; // MB
+    this->useBinarySearch = 0; // No
 }
 
 void DbOptions::setMaxMemtableSize(int maxMemtableSize){

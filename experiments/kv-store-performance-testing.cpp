@@ -7,6 +7,7 @@
 #include "../include/RedBlackMemtable.h"
 #include "../include/SimpleSSTManager.h"
 #include "../include/constants.h"
+#include "../include/Base/DbOptions.h"
 #include <algorithm>
 #include <unordered_set>
 #include <random>
@@ -47,8 +48,13 @@ int rand_int(int range_from, int range_to) {
 // while the y-axes should report throughput. Three figures should be produced, one for each operation.
 void experiment1(int num_MB, int step_size_MB) {
     cout << "Running Experiment 1" << endl;
+
+    DbOptions options = new DbOptions();
+    options.setSSTSearch("BinarySearch");
+    options.setBufferPoolType("None");
+
     SimpleKVStore db;
-    db.open("experiment_1", PAGE_SIZE);
+    db.open("/experiments_dbs/experiment_1", options);
 
     // Convert bytes to entries
     long long int num_inserts = num_MB * MEGABYTE / ENTRY_SIZE;
@@ -153,6 +159,10 @@ void experiment1(int num_MB, int step_size_MB) {
     }
 
     db.close();
+
+    // Clear experiment db
+    for (const auto &entry : std::filesystem::directory_iterator("/experiments_dbs"))
+        std::filesystem::remove_all(entry.path());
 }
 
 // Experiment 2.1: Compare the efficiency of LRU vs clock by measuring query throughput (on the y-axis) 
@@ -177,14 +187,23 @@ void experiment1(int num_MB, int step_size_MB) {
 // while clock evicted on a third access
 void experiment2p1(int num_MB, int step_size) {
     cout << "Running Experiment 2.1" << endl;
+
+    DbOptions lru_options = new DbOptions();
+    lru_options.setBufferPoolType("LRU");
+    lru_options.setBufferPoolSize(1, num_MB);
+
+    DbOptions clock_options = new DbOptions();
+    clock_options.setBufferPoolType("Clock");
+    clock_options.setBufferPoolSize(1, num_MB);
+
     SimpleKVStore lru_db1;
     SimpleKVStore clock_db1;
     SimpleKVStore lru_db2;
     SimpleKVStore clock_db2;
-    lru_db1.open("lru_db", PAGE_SIZE); // TODO make lru only and no LSM tree
-    clock_db1.open("clock_db", PAGE_SIZE); // TODO make clock only and no LSM tree
-    lru_db2.open("lru_db", PAGE_SIZE); // TODO make lru only and no LSM tree
-    clock_db2.open("clock_db", PAGE_SIZE); // TODO make clock only and no LSM tree
+    lru_db1.open("lru_db", lru_options);
+    clock_db1.open("clock_db", clock_options);
+    lru_db2.open("lru_db", lru_options);
+    clock_db2.open("clock_db", clock_options);
 
     long long int max_buf_size = num_MB * MEGABYTE;
 
@@ -231,7 +250,7 @@ void experiment2p1(int num_MB, int step_size) {
 
         int buffer_size = (i + 1) * step_size;
 
-        // TODO: set buffer size here to buffer_size
+        db.set_buffer_pool_max_size(buffer_size);
         
         // 1. === CLOCK BETTER ===
 
@@ -332,6 +351,10 @@ void experiment2p1(int num_MB, int step_size) {
     }
 
     db.close();
+
+    // Clear experiment db
+    for (const auto &entry : std::filesystem::directory_iterator("/experiments_dbs"))
+        std::filesystem::remove_all(entry.path());
 }
 
 // Experiment 2.2: Design an experiment comparing your binary search to B-tree search in terms of query 
@@ -339,10 +362,17 @@ void experiment2p1(int num_MB, int step_size) {
 // This experiment should be done with uniformly randomly distributed queries and data.
 void experiment2p2(int num_MB, int step_size) {
     cout << "Running Experiment 2.2" << endl;
+
+    DbOptions btree_options = new DbOptions();
+    btree_options.setSSTSearch("BTree");
+
+    DbOptions bs_options = new DbOptions();
+    bs_options.setSSTSearch("BinarySearch");
+
     SimpleKVStore btree_db;
     SimpleKVStore bs_db;
-    btree_db.open("btree_db", PAGE_SIZE); // TODO: specify btree
-    bs_db.open("bs_db", PAGE_SIZE); // TODO: specify binary search
+    btree_db.open("/experiments_dbs/btree_db", btree_options);
+    bs_db.open("/experiments_dbs/bs_db", bs_options);
 
     // Multiply size of int by two since we are inserting both a key and a value
     long long int num_inserts = num_MB * MEGABYTE / ENTRY_SIZE;
@@ -417,6 +447,10 @@ void experiment2p2(int num_MB, int step_size) {
     }
 
     db.close();
+
+    // Clear experiment db
+    for (const auto &entry : std::filesystem::directory_iterator("/experiments_dbs"))
+        std::filesystem::remove_all(entry.path());
 }
 
 // Experiment 3.1: Measure insertion, get, and scan throughput for your implementation over time as the data size 
@@ -425,8 +459,9 @@ void experiment2p2(int num_MB, int step_size) {
 // insert 1 GB of data. Measure get and scan throughput at regular intervals as you insert this data.
 void experiment3p1(int num_MB, int step_size) {
     cout << "Running Experiment 3.1" << endl;
+
     SimpleKVStore db;
-    db.open("experiment_3p1", PAGE_SIZE); // TODO: specs
+    db.open("/experiments_dbs/experiment_3p1", PAGE_SIZE); // TODO: specs
 
     // Load 1 GB of data
     long long int num_inserts = 1024 * MEGABYTE / ENTRY_SIZE;
@@ -530,6 +565,10 @@ void experiment3p1(int num_MB, int step_size) {
     }
 
     db.close();
+
+    // Clear experiment db
+    for (const auto &entry : std::filesystem::directory_iterator("/experiments_dbs"))
+        std::filesystem::remove_all(entry.path());
 }
 
  
@@ -569,7 +608,7 @@ void experiment3p2(int max_M, int step_size) {
         // TODO: set bits per entry here
 
         SimpleKVStore db;
-        db.open("exp3p2_" + to_string(M) + "bits_per_entry", PAGE_SIZE);
+        db.open("/experiments_dbs/exp3p2_" + to_string(M) + "bits_per_entry", PAGE_SIZE);
 
         // Load db with randomly ordered keys
         for (int i = 0; i < rand_keys.size(); i++)
@@ -604,6 +643,10 @@ void experiment3p2(int max_M, int step_size) {
     }
 
     db.close();
+
+    // Clear experiment db
+    for (const auto &entry : std::filesystem::directory_iterator("/experiments_dbs"))
+        std::filesystem::remove_all(entry.path());
 }
 
 int main(int argc, char * argv[])

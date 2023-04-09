@@ -20,7 +20,8 @@ void SimpleKVStore::open(std::string db_path, DbOptions *options)
     else if (options->bufferPoolType == "Clock") {
         bufferPool = new ClockBuffer(options->bufferPoolMinSize, options->bufferPoolMaxSize);
     }
-    this->sstManager = new BTreeSSTManager(new SimpleSSTFileManager(db_path, bufferPool), options->btreeFanout, options->useBinarySearch);
+    this->fileManager = new SimpleSSTFileManager(db_path, bufferPool);
+    this->sstManager = new BTreeSSTManager(this->fileManager, options->btreeFanout, options->useBinarySearch);
     
     this->maxMemtableSize = options->maxMemtableSize;
     
@@ -70,3 +71,6 @@ void SimpleKVStore::close()
     delete this->sstManager;
 }
 
+void SimpleKVStore::set_buffer_pool_max_size(const int &new_max) {
+    this->fileManager->cache->set_max_size(new_max);
+}
