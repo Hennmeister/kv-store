@@ -7,13 +7,14 @@
 #include <stdint.h>
 #include <cstring>
 #include <set>
+#include <string>
 
 // An implementation of an extendable hashing directory employing an LRU eviction policy
 class LRUBuffer: public Directory<LRUBufferEntry> {
 public:
     LRUBuffer(int minSize, int maxSize, double min_load_factor = 0.25, double max_load_factor = 0.8);
-    bool put(int page_num, std::uint8_t page[PAGE_SIZE]) override;
-    bool get(int page_num, std::uint8_t page_out_buf[PAGE_SIZE]) override;
+    bool put(std::string file_and_page, std::uint8_t page[PAGE_SIZE]) override;
+    bool get(std::string file_and_page, std::uint8_t page_out_buf[PAGE_SIZE]) override;
     void evict() override;
 
 private:

@@ -42,9 +42,9 @@ void Directory<T>::set_max_size(int new_size) {
 
 // Hash from a page number to a bucket index, using the number of bits to map to a bucket within the table
 template<typename T>
-int Directory<T>::hash_to_bucket_index(uint32_t page_num) {
+int Directory<T>::hash_to_bucket_index(std::string file_and_page) {
     uint32_t bucket_num;
-    MurmurHash3_x86_32(&page_num, sizeof(page_num), 1, &bucket_num);
+    MurmurHash3_x86_32(file_and_page.c_str(), file_and_page.size(), 1, &bucket_num);
     return bucket_num & ((1<<num_bits)-1);
 };
 
@@ -167,7 +167,7 @@ void Directory<T>::insert(T *entry) {
     entry->prev_entry = nullptr;
     entry->next_entry = nullptr;
 
-    uint32_t new_bucket_num = hash_to_bucket_index(entry->page_num);
+    uint32_t new_bucket_num = hash_to_bucket_index(entry->file_and_page);
     T *curr = entries[new_bucket_num];
     if (curr == nullptr) {
         entries[new_bucket_num] = entry;
