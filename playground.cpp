@@ -5,7 +5,7 @@
 
 using namespace std;
 
-string path = "./playground_db/";
+string path = "/playground_db/";
 
 int main()
 {

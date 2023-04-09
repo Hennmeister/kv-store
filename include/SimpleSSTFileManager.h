@@ -10,8 +10,9 @@ class SimpleSSTFileManager : public SSTFileManager {
 private:
     string dir_name;
     vector<int> files;
-    BufferPool *cache;
 public:
+    BufferPool *cache;
+
     explicit SimpleSSTFileManager(string target_dir, BufferPool *cache);
     ~SimpleSSTFileManager();
     int get_page(int page, string filename, void* data_buf);

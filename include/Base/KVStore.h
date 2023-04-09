@@ -22,4 +22,6 @@ public:
 
     // Closes the database
     virtual void close() =0;
+
+    virtual void set_buffer_pool_max_size(const int &new_max) =0;
 };

@@ -27,5 +27,7 @@ public:
 
     // Closes the database
     void close() override;
+
+    void set_buffer_pool_max_size(const int &new_max);
 };
 #endif //KV_STORE_SIMPLEKVSTORE_H

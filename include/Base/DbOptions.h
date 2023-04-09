@@ -1,3 +1,6 @@
+#ifndef KV_STORE_DBOPTIONS_H
+#define KV_STORE_DBOPTIONS_H
+
 #include <string>
 
 class DbOptions {
@@ -18,3 +21,5 @@ public:
     void setBufferPoolType(std::string bufferPoolType);
     void setBufferPoolSize(int bufferPoolMinSize, int bufferPoolMaxSize);
 };
+
+#endif
