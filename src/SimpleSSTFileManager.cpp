@@ -96,4 +96,20 @@ int SimpleSSTFileManager::get_metadata(void *data, string filename) {
     return this->get_page(-1, filename, data);
 }
 
+bool SimpleSSTFileManager::delete_file(string filename) {
+    if(remove((dir_name + "/" + filename).c_str()) == -1) {
+        perror("Error deleting file");
+        return false;
+    }
+    return true;
+}
+
+int SimpleSSTFileManager::write_page(void *data, int size, int start_page_num, string fname) {
+    char* filename = string_to_char(dir_name + "/" + fname);
+    int file_fd = open(filename, O_RDWR, 0777);
+    int successful_write = safe_write(file_fd, data, size, start_page_num * PAGE_SIZE);
+    close(file_fd);
+    return successful_write;
+}
+
 

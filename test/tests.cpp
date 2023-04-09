@@ -108,7 +108,7 @@ void LRU_shrink(SimpleKVStore db) {
     uint8_t out_buf[PAGE_SIZE];
 
     for (int i = 1; i <= (5 * MB / sizeof(LRUBufferEntry)); i++) {
-        cout << i << endl;
+//        cout << i << endl;
         in_buf[0] = i;
         LRU_cache->put(to_string(i), in_buf);
     }
