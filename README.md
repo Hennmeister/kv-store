@@ -100,6 +100,8 @@ We set a maximum capacity (e.g. a page size of 4KB) to the Memtable, at which po
 
 Our initial implementation was quite raw and assumed that a new SST File was made every time a memtable was dumped. This implies that each operation performed on any SST's loaded from disk could be performed in memory seeing as they do not grow in size. This assumption is later relaxed as we introduce more complications to our implementation. 
 
+In order to ensure efficiency, we use the `O_DIRECT` flag when opening a file and ensure that all reads are multiples of 512. 
+
 #### Experiments
 
 TODO: step1 experiments
@@ -148,6 +150,8 @@ Finally, the most significant part of the LSM Tree implementation, compaction. I
 4. With the lowest level of the BTree in memory, we now compute the upper levels and flush the BTree's internal nodes to disk. 
 5. The metadata of the file is updated.
 6. A new BTreeSST object is loaded and returned by providing the filename of the newly created SST
+
+_Note: When scanning across pages, we do not store data in the buffer pool - this is to prevent sequential flooding_
 
 - **Incorporating Updates and Deletes**
 
