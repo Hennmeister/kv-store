@@ -110,7 +110,7 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, string filename,int size, int us
     this->fanout = meta[0];
     // Remove metadata from file size (this->size is number of entries)
     this->size = (size - PAGE_SIZE)/ENTRY_SIZE;
-    auto res = this->get_pages(0, ceil(size/PAGE_SIZE) - 1);
+    auto res = this->get_pages(0, ceil((double) size/ (double)PAGE_SIZE) - 1);
     // Required in case some data was padded (i.e. for memtable drop)
     this->size = res.size();
     this->constructBtree(res);
