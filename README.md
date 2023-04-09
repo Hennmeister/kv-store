@@ -2,6 +2,22 @@
 
 Refer to [this page](https://docs.google.com/document/d/1dsIuIzXiIBbiZcNYi1cC62PVE4mF-MdksmIQ1hikFGM) for the official project handout.
 
+# Table of Contents
+1. [Introduction](#introduction)
+2. [Execution](#execution)
+3. [Playground](#playground)
+4. [Experiments](#experiments)
+5. [Project Status](#status)
+6. [Database Initialization and Parameters](#init_param)
+    1. [DbOptions](#dboptions)
+7. [Implementation Steps](#steps)
+    1. [Abstractions](#abstractions)
+    2. [Step 1](#step1)
+    3. [Step 2](#step2)
+    4. [Step 3](#step3)
+8. [Testing](#testing)
+
+
 ## Introduction
 
 In this project, we build a key-value store from scratch. A key-value store (KV-store) is a kind of database system that stores key-value pairs and allows retrieval of a value based on its key. KV-stores exhibit the following simple API:
@@ -28,17 +44,61 @@ Parameters of `kv-store-performance-test.cpp`:
 
 ## Implementation Steps
 
+## "I don't care, just tell me how to run it." - Fine... (Execution) <a name="execution"></a>
+
+Run `./make.sh` to compile the program and run the tests in one command. The test executable file will be located under `/build/kv-store-test`. It also compiles the experiments executable at `/build/kv-store-performance-test` and a playground executable at `/build/kv-store-performance-test`.
+
+### Playground
+
+We provide an empty C++ file with a default version of our database (that you are free modify if you wish - see [Database Initialization and Parameters](#database-initialization-and-parameters)) for you to play with and write any calls to `open`, `put`, `get`, `scan`, print results and verify functionality. The aim is to provide you with an easy way to interact with our database without having to compile a new project.
+
+### Experiments
+
+Run `./experiments.sh` to run the excutable that generates all experiments data. You can also generate data individually for each experiment by calling the executable file `/build/kv-store-performance-test` with the parameters indicated on the calls of `experiments.sh`. We also provide a `plot_experiments.sh` script that plots the data generated for each experiment. You can also plot the data of individual experiments by using the same approach.
+
+## Project Status <a name="status"></a>
+
+TODO: at the end
+
+## Database Initialization and Parameters <a name="init_param"></a>
+
+We provide the user with a DbOptions object that is used to set default configurations for any database instantiated, and also giving the freedom to specify some options based on the user's preference.
+
+As such, open("database name") is a valid call to create a database if the user simply wants a functioning databse without thinking about possible parameters/options, but they may also generate a DbOptions object and pass that in as a second parameter to the call for further customization.
+
+### DbOptions
+
+Default values: TODO
+
+Options: TODO
+
+An example is as follows:
+
+````md
+  example
+  example
+  example
+````
+---
+## Implementation Steps <a name="steps"></a>
+
 Here we outline the process of implementation the various parts of our system. For simplicity, our simple KV-Store only handles integer keys and integer values.
 
 The general flow is the following: entries get populated in a memtable (fitting entirely in memory) that holds the most recent key-value insertions in the database. Once the memtable grows beyond its capacity, the contents of the memtable are dumped to an SST sorted
 
-### Abtractions
+### Abstractions
 
 Aware of the possible changes to the algorithms as well as our methodology, either as a consequence of efficiency tradeoffs or improvements to the system, we tried to structure our OOP code in a way that maximizes the use of abstractions/interfaces while minimizing the amount of coupling our classes have between each other.
 
-TODO: @VijayS02 feel free to elaborate if needed
+We have a few base interfaces that can be found under the `/include/Base` directory of the project.
 
-### Step 1
+
+### Utility <a name="utility"></a>
+
+- `priority_merge` - This function is a core utility function used throughout our implementation. It allows the neat compaction of various sources of data in order to produce output data which prioritizes the newest data. The function takes in 2 inputs, 1 set of newer data (key-value pairs) and one set of older data. If there is ever an entry which is present in both sources, the function will use the newer version of the key. An example of usage would be when priority merging data from the memtable with data found in SSTs. 
+
+
+### Step 1 <a name="step1"></a>
 
 - **Memtable**
 
@@ -47,6 +107,8 @@ We implement a memtable as a balanced binary search tree ([red-black tree](https
 - **SSTs (Sorted String Tables)**
 
 We set a maximum capacity (e.g. a page size of 4KB) to the Memtable, at which point we dump the contents key-value pairs in sorted order to an SST file `sstX`. The SSTs are thus stored in decreasing order of longevity where `sst1` is the oldest Memtable dumped. On a get query that is not found on the current Memtable, our database traverses over the SSTs from newest to oldest to find a key. Note that we implement the SST dump so that it writes in binary so an append-only file to maximize efficiency in sequential writes.
+
+Our initial implementation was quite raw and assumed that a new SST File was made every time a memtable was dumped. This implies that each operation performed on any SST's loaded from disk could be performed in memory seeing as they do not grow in size. This assumption is later relaxed as we introduce more complications to our implementation. 
 
 #### Experiments
 
@@ -69,7 +131,7 @@ The graphs are saved under the name `experiment1.png` and shown below:
 - **Get**:
 - **Scan**:
 
-### Step2
+### Step 2 <a name="step2"></a>
 
 - **Buffer Pool**
 
@@ -81,8 +143,113 @@ TODO
 
 - **B-Tree for SST**
 
-TODO
+In order to execute a BTree correctly, we increased the complexity of our program by now introducing the SSTFileManager class that adds a layer of abstraction and allows the BufferPool to not have to interface directly with any SSTManager. The BTree SST was implemented in stages, the first of which being the exact same as the Append Only SST. In this stage, the data on disk was the exact same but every time an SST was loaded/created, an in-memory BTree was built, allowing Get/Scan calls to query the in memory structure before needing to access disk. 
+
+This in-memory structure was simply a vector of vector of ints. Where each level of the BTree is represented by a vector of ints. Through some simple maths and the knowledge of the fannout (which was stored in the metadata page of each SST), the in-memory structure could be easily used to find the position or lower bound of an element for get or scan calls. 
+
+Slowly, we transitioned to having these in memory structures being written out as "internal node pages" where this data could be parsed from. The data written to disk was exactly the vector of vector of ints, where each vector's end was delimited by an `INT_MAX - 1`. Now, the BTree was only constructed on first creation of the SST (i.e. from memtable to SST dump) and everytime the database was opened thereafter, the BTree was loaded from disk. 
+
+By padding our internal node pages with blank data, we were able to ensure that the start of the leaves was always the start of a new page, this is important for the binary search as it ensures that no complicated processing has to be done to differentiate between internal node data and leaf data which would have different structures. 
+
+After fully implementing the BTree with scans and gets, we then revisited the binary search function and upgraded our old append only file implementation of binary search to now work without needing to load the entire SST into memory. 
+
+At this point, our BTree could function as both a large Append Only File or a BTree through the use of the `useBinary` option. 
 
 #### Experiments
 
 TODO: step2 experiments
+
+### Step 3 <a name="step3"></a>
+
+- **LSM Tree**
+
+Since our BTree implementation had already been completed in the last step, this step was simply a case of creating a new style of SSTManager, the LSMSSTManager. This class would have to manage the various levels in memory, reconstruct the levels on load of an existing database, and perform compaction when required. 
+
+Thankfully, our BTree implementation already managed to handle varying multiples of the memtable size quite well so no significant changes were required to be made to the BTree implementation. In order to determine the levels, we could simply look at the number of entries in each SST and use logarithms to figure out which level each SST belongs to. 
+
+Finally, the most significant part of the LSM Tree implementation, compaction. In order to facilitate compaction, we first implemented the LSM Tree with an entirely in-memory compaction process. This allowed us to ensure that all other parts of the LSMSSTManager was working correctly. Once this was completed, the algorithm was planned out and implemented as follows:
+
+1. From each of the 2 SSTs being passed in for compaction, we compute the maximum number of possible internal nodes that could be made as a result of compaction (simply by summing the total internal nodes of both SSTs and adding some padding), this allows us to know how many maximum internal node pages we could have.
+2. An initial file is created to be appended to as the compaction process completes.
+3. A page-by-page priority merge is performed, using 2 buffers 1 for each SST and 2 pointers to track the current position within a page. Once at least one page of data is produced, it is flushed to disk. When a page is about to be written out, we iterate over the page and append to the lowest level of the BTree.
+4. With the lowest level of the BTree in memory, we now compute the upper levels and flush the BTree's internal nodes to disk. 
+5. The metadata of the file is updated.
+6. A new BTreeSST object is loaded and returned by providing the filename of the newly created SST
+
+- **Incorporating Updates and Deletes**
+
+TODO
+
+- **Bloom Filter**
+
+TODO
+
+#### Experiments
+
+TODO: step3 experiments
+
+## Testing
+
+TODO
+
+
+Marking scheme:
+
+Marking scheme (tentative) - Total 100 points + bonus (10 points)
+Experiments - 33 points
+Core Implementation - 52 points
+Software Engineering practices - 15 points
+
+List of report must-haves
+
+-Description of design elements - concisely describe the different elements of your design (i.e., memtable, B-tree creation, extendible hashing, etc), and any interesting design decision you have made. This should correspond to the list of design elements below. Feel free to tell us about extra cool stuff you might have added. Please also tell us where to find the implementation of each design element in the code (i.e., file and function name). 
+-Project status - Give details on what works and what does not. If there are known bugs in your code, list them here. 
+-Experiments - please show experimental figures and explain your findings for each experiment. If you have some extra experiments that you did, put them here under a separate “Extra Experiments” heading.
+-Testing - Testing is a very important part of any implementation, Mention how you tested your implementation, if you have several unit and integration tests, list them here.
+-Compilation & running Instructions - detail out how to run your project (i.e., give makefile targets and describe what they are for). If you have an executable that we can use to run simple commands, give instructions on how to use that.
+
+List of coding practices to check
+
+-Code readability - consistent naming and indentation, meaningful identifiers, comments, no too long lines (3 points)
+-Code modularity - short and specific task functions, good code reuse (3 points)
+-Version control - use of version control to collaborate and making meaningful commits (2 points)
+-Makefile - makefile for experiments and executable build (doesn’t have to be separate as long as instructions are in the report) - (2 points)
+-Tests - correctness and performance tests (5 points)
+
+List of Design Elements 
+
+-KV-store get API (1) - 1 points
+-KV-store put API (1) - 1 point
+-KV-store scan API (1) - 2 point
+-In-memory memtable as balanced binary tree (1) - 4 points
+-SSTs in storage with efficient binary search (1) - 3 points
+-Database open and close API (1) - 2 points
+-Extendible hash buffer pool (2) - 6 points
+-Integration buffer with get (2) - 2 points
+-shrink API (2) - 2 point
+-Clock eviction policy (2) - 4 points
+-LRU eviction policy (2) - 4 points
+-Static B-tree for SSTs (2) - 4 points
+-Bloom filter for SST and integration with get (3) - 5 points
+-Compaction/Merge of two trees (3) - 5 points
+-Support update (3) - 3 points
+-Support delete (3) - 4 points
+
+List of Experiments
+
+-Data volume VS put performance (1) - 3 points
+-Data volume VS get performance (1) - 3 points
+-Data Volume VS scan performance (1) - 3 points
+-LRU vs Clock eviction policy with query throughput with changing buffer pool size (2) - 5 points
+-Binary search vs B-tree index with query throughput with changing data size (2) - 5 points
+-Put throughput with increasing data size (3) - 3 points
+-Get throughput with increasing data size (3) - 3 points
+-Scan throughput with increasing data size (3) - 3 points
+-Get performance for changing bloom filter bits with growing data size (3) - 5 points
+
+A few things about the bonus marks:
+
+-If you get it, the project is still capped at 100 points
+-Extra things do not necessarily get you bonus unless they provide new insights (new experiments) or improve the design (new or changed implementation)
+-You get a bonus if grading becomes easier, for example by mentioning clearly what doesn’t work, or having a lot of suitable tests.
+

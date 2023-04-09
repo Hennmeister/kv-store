@@ -1,6 +1,11 @@
-#include "LRUBuffer.h"
+#include "../../../include/BufferPool/LRUBuffer/LRUBuffer.h"
+#include <stdint.h>
 
-LRUBuffer::LRUBuffer(int minSize, int maxSize) : Directory(minSize, maxSize) {
+
+using namespace std;
+
+// Note that min_load_factor and max_load_factor are optional
+LRUBuffer::LRUBuffer(int minSize, int maxSize, double min_load_factor, double max_load_factor) : Directory(minSize, maxSize, min_load_factor, max_load_factor) {
     head = nullptr;
     tail = nullptr;
 }
@@ -8,9 +13,9 @@ LRUBuffer::LRUBuffer(int minSize, int maxSize) : Directory(minSize, maxSize) {
 // Inserts a new page into the buffer, evicting the LRU page if necessary.
 // If the directory is at capacity, evicts the LRU page.
 // If the directory is more than 75% full, grows the directory to increase capacity
-void LRUBuffer::put(int page_num, std::uint8_t *page) {
+bool LRUBuffer::put(string file_and_page, uint8_t page[4096]) {
     // evict if the buffer pool if near capacity
-    if ((double) (num_pages_in_buffer+1) * sizeof(LRUBufferEntry) >= (max_size * MB) * max_load_factor) {
+    if ((double) (num_pages_in_buffer+1) * sizeof(LRUBufferEntry) > (max_size * MB) * max_load_factor) {
         evict();
     }
 
@@ -21,7 +26,7 @@ void LRUBuffer::put(int page_num, std::uint8_t *page) {
 
     // insert the new page
     LRUBufferEntry *entry = new LRUBufferEntry();
-    entry->page_num = page_num;
+    entry->file_and_page = file_and_page;
     memcpy(entry->page, page, PAGE_SIZE);
     entry->prev_entry = entry->next_entry = nullptr;
 
@@ -35,19 +40,20 @@ void LRUBuffer::put(int page_num, std::uint8_t *page) {
 
     insert(entry);
     num_pages_in_buffer++;
+    return true;
 }
 
 // Retrieve the page with a page number of page_num, filling the page_out_buf, or return -1 otherwise
 // Make retrieved page the most recently used entry
 // TODO: return not found error status
-int LRUBuffer::get(int page_num, std::uint8_t *page_out_buf) {
-    int bucket_num = hash_to_bucket_index(page_num);
+bool LRUBuffer::get(string file_and_page, uint8_t page_out_buf[4096]) {
+    int bucket_num = hash_to_bucket_index(file_and_page);
     LRUBufferEntry *curr_entry = entries[bucket_num];
-    while (curr_entry != nullptr && curr_entry->page_num != page_num) {
+    while (curr_entry != nullptr && curr_entry->file_and_page != file_and_page) {
         curr_entry = curr_entry->next_entry;
     }
     if (curr_entry == nullptr) {
-        return -1;
+        return false;
     }
 
     // move the corresponding LRU node to head of LRU linked list tracking recency
@@ -62,11 +68,30 @@ int LRUBuffer::get(int page_num, std::uint8_t *page_out_buf) {
 
     // TODO: verify that we should be copying here, instead of using pointer pointer and changing address
     memcpy(page_out_buf, curr_entry->page, PAGE_SIZE);
-    return 0;
+    return true;
 }
 
 // Delete the entry least recently used
 void LRUBuffer::evict() {
+    // remove all the references to evicted buckets
+    auto next_page_in_bucket = tail->bufferEntry->next_entry;
+    auto it = bucket_refs.find(hash_to_bucket_index(tail->bufferEntry->file_and_page));
+    // the bucket holding the page to be evicted has at least one other bucket pointing to it
+    if (it != bucket_refs.end()) {
+        for (auto vector_it = it->second.begin(); vector_it != it->second.end(); vector_it++) {
+            entries[*vector_it] = next_page_in_bucket; // could be nullptr
+            // if we are emptying this bucket by deleting the last page in the bucket,
+            // unmark buckets pointing to this bucket as references
+            if (next_page_in_bucket == nullptr) {
+                is_ref.erase(*vector_it);
+            }
+        }
+        // if we are deleting the last entry in this bucket, nothing will be referencing this bucket anymore
+        if (next_page_in_bucket == nullptr) {
+            bucket_refs.erase(it);
+        }
+    }
+
     LRUNode *new_tail = tail->prev;
     delete_entry(tail->bufferEntry);
     num_pages_in_buffer--;

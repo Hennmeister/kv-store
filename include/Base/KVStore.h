@@ -1,16 +1,15 @@
-﻿#pragma once
-
-#include <string>
+﻿#include <string>
 #include <vector>
 #include "Memtable.h"
 #include "SSTManager.h"
+#include "DbOptions.h"
 
 class KVStore {
 public:
     //TODO: Change from int value type to something else (e.g. an abstract Value interface for various types)
 
     // Opens the database with the given name and prepares it to run
-    virtual void open(const std::string& database_name, int maxMemtableSize) =0;
+    virtual void open(std::string db_path, DbOptions *options = new DbOptions()) =0;
 
     // Stores a key associated with a value
     virtual bool put(const int& key, const int& value) =0;

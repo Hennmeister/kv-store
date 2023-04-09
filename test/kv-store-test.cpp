@@ -9,7 +9,7 @@
 #include "../include/util.h"
 #include "./test_util.h"
 #include "./tests.h"
-#include "../src/BufferPool/BufferPool.h"
+#include "../include/Base/BufferPool.h"
 #include <string>
 #include <vector>
 #include <filesystem>
@@ -45,7 +45,8 @@ vector<pair<void (*)(SimpleKVStore db), string>>
 };
 
 vector<pair<void (*)(SimpleKVStore db), string>> shared_db_tests = {
-    F_NAME(close_and_recover)};
+    F_NAME(close_and_recover)
+};
 
 int main()
 {
@@ -68,7 +69,7 @@ int main()
         // Before all
 
         SimpleKVStore db;
-        db.open(test_dir + func.second + "_db", PAGE_NUM_ENTRIES);
+        db.open(test_dir + func.second + "_db");
 
         // Call method
 
@@ -82,7 +83,7 @@ int main()
 
     // Shared DBs
     SimpleKVStore shared_db;
-    shared_db.open(test_dir + "shared_db", PAGE_NUM_ENTRIES);
+    shared_db.open(test_dir + "shared_db");
 
     for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
     {

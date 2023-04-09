@@ -1,11 +1,16 @@
-#include "Directory.h"
-#include "LRUBuffer/LRUBufferEntry.h"
-#include "ClockBuffer/ClockBufferEntry.h"
+#include "../../include/BufferPool/Directory.h"
+#include "../../include/BufferPool/LRUBuffer/LRUBufferEntry.h"
+#include "../../include/BufferPool/ClockBuffer/ClockBufferEntry.h"
 
-template <typename T> Directory<T>::Directory(int min_size, int max_size){
+template <typename T>
+Directory<T>::Directory(int min_size, int max_size, double min_load_factor, double max_load_factor) {
     this->min_size = min_size;
     this->max_size = max_size;
+    this->min_load_factor = min_load_factor;
+    this->max_load_factor = max_load_factor;
+
     this->num_pages_in_buffer = 0;
+
 
     this->num_bits = ceil(log2((min_size * MB) / sizeof(T)));
 
@@ -37,9 +42,9 @@ void Directory<T>::set_max_size(int new_size) {
 
 // Hash from a page number to a bucket index, using the number of bits to map to a bucket within the table
 template<typename T>
-int Directory<T>::hash_to_bucket_index(uint32_t page_num) {
+int Directory<T>::hash_to_bucket_index(std::string file_and_page) {
     uint32_t bucket_num;
-    MurmurHash3_x86_32(&page_num, sizeof(page_num), 1, &bucket_num);
+    MurmurHash3_x86_32(file_and_page.c_str(), file_and_page.size(), 1, &bucket_num);
     return bucket_num & ((1<<num_bits)-1);
 };
 
@@ -57,15 +62,25 @@ void Directory<T>::grow(int new_num_bits) {
 
         // if the old bucket at index i is non-null, then create a reference to it in the new section of the directory
         if (entries[i] == nullptr) continue;
-        is_ref.insert(i + size_diff);
+
+        // find the bucket that this entry is pointing to along the chain
+        int base_bucket;
+        if (is_ref.find(i) != is_ref.end()) {
+            base_bucket = is_ref.find(i)->second;
+        } else {
+            base_bucket = i;
+        }
+        is_ref.insert(pair(i + size_diff, base_bucket));
+
+
 
         // update the bucket references for the old bucket
-        auto it = bucket_refs.find(i);
+        auto it = bucket_refs.find(base_bucket);
         if (it != bucket_refs.end()) {
             it->second.push_back(i + size_diff);
         } else {
             vector<int> v{i + size_diff};
-            bucket_refs.insert(pair<int, vector<int>>(i, v));
+            bucket_refs.insert(pair<int, vector<int>>(base_bucket, v));
         }
     }
     num_bits = new_num_bits;
@@ -80,17 +95,12 @@ void Directory<T>::grow(int new_num_bits) {
             // in this bucket after rehashing
             entries[i] = nullptr;
             is_ref.erase(i);
-            vector<int> queue{i};
 
-            // erase all references to the current bucket and its overflown buckets
-            while (!queue.empty()) {
-                auto it = bucket_refs.find(queue.back());
-                queue.pop_back();
-                if (it == bucket_refs.end()) continue;
-                for (int erase_bucket_num : it->second) {
-                    queue.push_back(erase_bucket_num);
-                    entries[erase_bucket_num] = nullptr;
-                    is_ref.erase(erase_bucket_num);
+            auto it = bucket_refs.find(i);
+            if (it != bucket_refs.end()) {
+                for (int reference: it->second) {
+                    entries[reference] = nullptr;
+                    is_ref.erase(reference);
                 }
                 bucket_refs.erase(it);
             }
@@ -134,7 +144,7 @@ void Directory<T>::shrink() {
     // remove all the references to evicted buckets
     std::map<int, vector<int>>::iterator it;
     int cutoff = entries.size();
-    for (it = bucket_refs.begin(); it != bucket_refs.end(); it++) {
+    for (it = bucket_refs.begin(); it != bucket_refs.end();) {
         if (it->first >= cutoff) {
             it = bucket_refs.erase(it);
         } else {
@@ -157,7 +167,7 @@ void Directory<T>::insert(T *entry) {
     entry->prev_entry = nullptr;
     entry->next_entry = nullptr;
 
-    uint32_t new_bucket_num = hash_to_bucket_index(entry->page_num);
+    uint32_t new_bucket_num = hash_to_bucket_index(entry->file_and_page);
     T *curr = entries[new_bucket_num];
     if (curr == nullptr) {
         entries[new_bucket_num] = entry;

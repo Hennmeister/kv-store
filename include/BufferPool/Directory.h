@@ -2,26 +2,27 @@
 #define KV_STORE_DIRECTORY_H
 
 #include "vector"
-#include "BufferPool.h"
+#include "../Base/BufferPool.h"
 #include <iostream>
 #include "math.h"
 #include <set>
 #include <map>
-#include "../util/MurmurHash3/MurmurHash3.h"
+#include <string>
+#include "../MurmurHash3.h"
 using namespace std;
 
 // An abstract class of a buffer pool using extendable hashing
-template <typename T> class Directory: BufferPool {
+template <typename T> class Directory: public BufferPool {
 public:
-    Directory(int min_size, int max_size);
+    Directory(int min_size, int max_size, double min_load_factor, double max_load_factor);
     // Allow the user to increase or decrease the maximum hash table size
     void set_max_size(int new_size) override;
 
 protected:
     // the load factor at which we double the directory
-    const double max_load_factor = 0.8;
+    double max_load_factor;
     // the minimum load factor we reach by shrinking directory after evicting entries to reach new max size
-    const double min_load_factor = 0.25;
+    double min_load_factor;
     int min_size;
     int max_size;
     // The current size of the directory is 2^(num_bits). Used to find the bucket number of a page.
@@ -32,11 +33,11 @@ protected:
     // Entry number to entry number pointing at this bucket, if one exists
     std::map<int, vector<int>> bucket_refs;
     // Holds a bucket number if it is referring to another bucket
-    set<int> is_ref;
+    std::map<int, int> is_ref;
 
     virtual void evict() = 0;
     // Calculate the bucket number of a given page
-    int hash_to_bucket_index(uint32_t page_num);
+    int hash_to_bucket_index(std::string file_and_page);
     // Double the size of the directory
     void grow(int new_num_bits);
     // Shrink the directory itself - note that this does not evict entries, only the directory size
