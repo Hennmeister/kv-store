@@ -1,6 +1,8 @@
 #include "../include/SimpleKVStore.h"
 #include "../include/Base/BufferPool.h"
 
+// ===================== Bloom filter Tests =========================
+void bloom_filter_simple(SimpleKVStore db);
 
 // ===================== Buffer Pool Tests =========================
 void simple_LRU_buffer(SimpleKVStore db);

@@ -42,6 +42,7 @@ vector<pair<void (*)(SimpleKVStore db), string>>
         F_NAME(LRU_shrink),
         F_NAME(simple_clock_buffer),
         F_NAME(clock_simple_evict),
+        F_NAME(bloom_filter_simple)
 };
 
 vector<pair<void (*)(SimpleKVStore db), string>> shared_db_tests = {

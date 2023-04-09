@@ -24,7 +24,7 @@ add_library(kv-store src/KVStore/SimpeKVStore.cpp include/Base/KVStore.h include
         include/ArraySST/SortedSSTManager.h src/SortedArraySST/SortedSSTManager.cpp include/util.h src/util/util.cpp
         include/Base/SSTFileManager.h include/SimpleSSTFileManager.h src/SimpleSSTFileManager.cpp
         include/BTree/BTreeSSTManager.h include/BTree/BTreeSST.h src/BTree/BTreeSSTManager.cpp
-        src/BTree/BTreeSST.cpp include/LSMTreeManager.h src/LSMTreeManager.cpp)
+        src/BTree/BTreeSST.cpp include/LSMTreeManager.h src/LSMTreeManager.cpp src/BloomFilter/BloomFilter.cpp src/BloomFilter/BloomFilter.h)
 # Add source to this project's executable.
 
 target_link_libraries(kv-store-test PUBLIC kv-store)
