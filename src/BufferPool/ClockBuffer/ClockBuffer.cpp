@@ -27,6 +27,20 @@ bool ClockBuffer::put(std::string file_and_page, uint8_t *data, int size) {
         grow(num_bits + 1);
     }
 
+
+    // do a lookup for this entry and replace its data if it exists
+    int bucket_num = hash_to_bucket_index(file_and_page);
+    ClockBufferEntry *curr_entry = entries[bucket_num];
+    while (curr_entry != nullptr && curr_entry->file_and_page != file_and_page) {
+        curr_entry = curr_entry->next_entry;
+    }
+    if (curr_entry != nullptr) {
+        curr_entry->used_bit = 1;
+        // note that size must be equal to entry data size
+        memcpy(curr_entry->entry_data, data, size);
+        return true;
+    }
+
     // insert the new page
     ClockBufferEntry *entry = new ClockBufferEntry();
     entry->file_and_page = file_and_page;

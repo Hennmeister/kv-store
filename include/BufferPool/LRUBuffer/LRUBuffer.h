@@ -20,6 +20,9 @@ public:
 private:
     LRUNode *head;
     LRUNode *tail;
+
+    // make the entry corresponding to this node the most recent accessed entry
+    void move_to_head(LRUNode *node);
 };
 
 #endif //KV_STORE_LRUBUFFER_H

@@ -24,6 +24,19 @@ bool LRUBuffer::put(std::string file_and_page, uint8_t *data, int size) {
         grow(num_bits + 1);
     }
 
+    // do a lookup for this entry and replace its data if it exists
+    int bucket_num = hash_to_bucket_index(file_and_page);
+    LRUBufferEntry *curr_entry = entries[bucket_num];
+    while (curr_entry != nullptr && curr_entry->file_and_page != file_and_page) {
+        curr_entry = curr_entry->next_entry;
+    }
+    if (curr_entry != nullptr) {
+        move_to_head(curr_entry->node);
+        // note that size must be equal to entry data size
+        memcpy(curr_entry->entry_data, data, size);
+        return true;
+    }
+
     // insert the new entry_data
     LRUBufferEntry *entry = new LRUBufferEntry();
     entry->file_and_page = file_and_page;
@@ -61,15 +74,7 @@ bool LRUBuffer::get(string file_and_page, uint8_t *page_out_buf) {
         return false;
     }
 
-    // move the corresponding LRU node to head of LRU linked list tracking recency
-    LRUNode *node = curr_entry->node;
-    if (tail == node) tail = node->prev;
-    if (node->prev != nullptr) node->prev->next = node->next;
-    if (node->next != nullptr) node->next->prev = node->prev;
-    node->next = head;
-    node->prev = nullptr;
-    head->prev = node;
-    head = node;
+    move_to_head(curr_entry->node);
 
     // TODO: verify that we should be copying here, instead of using pointer pointer and changing address
     memcpy(page_out_buf, curr_entry->entry_data, curr_entry->page_size);
@@ -104,4 +109,14 @@ void LRUBuffer::evict() {
     delete tail;
     tail = new_tail;
     tail->next = nullptr;
+}
+// move the corresponding LRU node to head of LRU linked list tracking recency
+void LRUBuffer::move_to_head(LRUNode *node) {
+    if (tail == node) tail = node->prev;
+    if (node->prev != nullptr) node->prev->next = node->next;
+    if (node->next != nullptr) node->next->prev = node->prev;
+    node->next = head;
+    node->prev = nullptr;
+    head->prev = node;
+    head = node;
 }
