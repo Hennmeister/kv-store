@@ -43,20 +43,20 @@ int main(int argc, char * argv[])
     }
 
     // Parse command line arguments
-    int experiment_num = 0; // defaults to run all
-    if (cmdOptionExists(argv, argv + argc, "-e")) {
-        experiment_num = stoi(getCmdOption(argv, argv + argc, "-e"));
-    }
+    int experiment_num = 1; // defaults to run all
+//    if (cmdOptionExists(argv, argv + argc, "-e")) {
+//        experiment_num = stoi(getCmdOption(argv, argv + argc, "-e"));
+//    }
 
-    int num_MB = 1;
-    if (cmdOptionExists(argv, argv + argc, "-d")) {
-        num_MB = stoi(getCmdOption(argv, argv + argc, "-d"));
-    }
+    int num_MB = 32;
+//    if (cmdOptionExists(argv, argv + argc, "-d")) {
+//        num_MB = stoi(getCmdOption(argv, argv + argc, "-d"));
+//    }
 
-    int step_size = 1000;
-    if (cmdOptionExists(argv, argv + argc, "-s")) {
-        step_size = stoi(getCmdOption(argv, argv + argc, "-s"));
-    }
+    int step_size = 1;
+//    if (cmdOptionExists(argv, argv + argc, "-s")) {
+//        step_size = stoi(getCmdOption(argv, argv + argc, "-s"));
+//    }
 
     switch (experiment_num) {
         case 1: {

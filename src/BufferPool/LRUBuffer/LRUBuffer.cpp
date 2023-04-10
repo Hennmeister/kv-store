@@ -15,6 +15,10 @@ LRUBuffer::LRUBuffer(int minSize, int maxSize, double min_load_factor, double ma
 // If the directory is more than 75% full, grows the directory to increase capacity
 bool LRUBuffer::put(std::string file_and_page, uint8_t *data, int size) {
     // evict if the buffer pool if near capacity
+    if(max_size == 0){
+        return true;
+    }
+
     if (num_data_in_buffer + size > (max_size * MB) * max_load_factor) {
         evict();
     }
@@ -65,6 +69,8 @@ bool LRUBuffer::put(std::string file_and_page, uint8_t *data, int size) {
 // Make retrieved entry_data the most recently used entry
 // TODO: return not found error status
 bool LRUBuffer::get(string file_and_page, uint8_t *page_out_buf) {
+    if(num_data_in_buffer == 0) return false;
+
     int bucket_num = hash_to_bucket_index(file_and_page);
     LRUBufferEntry *curr_entry = entries[bucket_num];
     while (curr_entry != nullptr && curr_entry->file_and_page != file_and_page) {
