@@ -15,13 +15,14 @@ bool BTreeSSTManager::get(const int &key, int &value) {
     return false;
 }
 
-BTreeSSTManager::BTreeSSTManager(SSTFileManager *fileManager, int newFanout, int useBinarySearch) {
+BTreeSSTManager::BTreeSSTManager(SSTFileManager *fileManager, int newFanout, int useBinarySearch, int filter_bits_per_entry) {
     auto files = fileManager->get_files();
     // Reverse SST order by filename so that newer SSTs are first.
     std::sort(files.begin(), files.end(), sortByFname);
     std::reverse(files.begin(), files.end());
 
     this->useBinary = useBinarySearch;
+    this->filter_bits_per_entry = filter_bits_per_entry;
 
     this->fileManager = fileManager;
     this->newFanout = newFanout;
@@ -49,7 +50,7 @@ std::vector<std::pair<int, int>> BTreeSSTManager::scan(const int &key1, const in
 bool BTreeSSTManager::add_sst(std::vector<std::pair<int, int>> data) {
     if (data.size() % PAGE_NUM_ENTRIES != 0)
         return false;
-    auto* new_sst = new BTreeSST(fileManager, ssts.size() - 1, newFanout, data, useBinary);
+    auto* new_sst = new BTreeSST(fileManager, ssts.size() - 1, newFanout, data, useBinary, filter_bits_per_entry);
     ssts.insert(ssts.begin(),new_sst);
     total_entries += new_sst->getSize();
     return true;

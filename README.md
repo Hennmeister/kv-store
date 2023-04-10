@@ -110,6 +110,8 @@ We set a maximum capacity (e.g. a page size of 4KB) to the Memtable, at which po
 
 Our initial implementation was quite raw and assumed that a new SST File was made every time a memtable was dumped. This implies that each operation performed on any SST's loaded from disk could be performed in memory seeing as they do not grow in size. This assumption is later relaxed as we introduce more complications to our implementation. 
 
+In order to ensure efficiency, we use the `O_DIRECT` flag when opening a file and ensure that all reads are multiples of 512. 
+
 #### Experiments
 
 Run `/build/kv-store-performance-test -e 1 -d MB_OF_DATA -s STEP_SIZE` to collect data and `python plot_experiments.py` to plot them.
@@ -155,6 +157,8 @@ After fully implementing the BTree with scans and gets, we then revisited the bi
 
 At this point, our BTree could function as both a large Append Only File or a BTree through the use of the `useBinary` option. 
 
+_Note: The internal nodes are only read from once, on SST load. While we understand that these nodes should be handled as regular pages and read from disk each time, with sufficiently large fanouts, the number of integers in all internal nodes scales very very very well (log base fannout). This allows us to keep all internal ndoes in memory at all times._ 
+
 #### Experiments
 
 TODO: step2 experiments
@@ -176,12 +180,15 @@ Finally, the most significant part of the LSM Tree implementation, compaction. I
 5. The metadata of the file is updated.
 6. A new BTreeSST object is loaded and returned by providing the filename of the newly created SST
 
+_Note: When scanning across pages, we do not store data in the buffer pool - this is to prevent sequential flooding_
+
 - **Incorporating Updates and Deletes**
 
 TODO
 
 - **Bloom Filter**
 
+Bloom filter file names are bloom_filter_{level}, where level is the level of the LSM tree for which this bloom filter tracks set membership.
 TODO
 
 #### Experiments

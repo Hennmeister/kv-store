@@ -26,9 +26,11 @@ void SimpleKVStore::open(std::string db_path, DbOptions *options)
     this->sstManager = new LSMTreeManager(this->fileManager,
                                           options->btreeFanout,
                                           options->useBinarySearch,
-                                          options->maxMemtableSize);
+                                          options->maxMemtableSize,
+                                          options->filterBitsPerEntry);
+
     if (options->sstManager == "BTree") {
-        this->sstManager = new BTreeSSTManager(this->fileManager, options->btreeFanout, options->useBinarySearch);
+        this->sstManager = new BTreeSSTManager(this->fileManager, options->btreeFanout, options->useBinarySearch,options->filterBitsPerEntry);
     }
 
     this->maxMemtableSize = options->maxMemtableSize;

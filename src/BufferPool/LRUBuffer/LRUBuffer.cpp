@@ -10,12 +10,12 @@ LRUBuffer::LRUBuffer(int minSize, int maxSize, double min_load_factor, double ma
     tail = nullptr;
 }
 
-// Inserts a new page into the buffer, evicting the LRU page if necessary.
-// If the directory is at capacity, evicts the LRU page.
+// Inserts a new entry_data into the buffer, evicting the LRU entry_data if necessary.
+// If the directory is at capacity, evicts the LRU entry_data.
 // If the directory is more than 75% full, grows the directory to increase capacity
-bool LRUBuffer::put(string file_and_page, uint8_t page[4096]) {
+bool LRUBuffer::put(std::string file_and_page, uint8_t *data, int size) {
     // evict if the buffer pool if near capacity
-    if ((double) (num_pages_in_buffer+1) * sizeof(LRUBufferEntry) > (max_size * MB) * max_load_factor) {
+    if (num_data_in_buffer + size > (max_size * MB) * max_load_factor) {
         evict();
     }
 
@@ -24,10 +24,27 @@ bool LRUBuffer::put(string file_and_page, uint8_t page[4096]) {
         grow(num_bits + 1);
     }
 
-    // insert the new page
+    // do a lookup for this entry and replace its data if it exists
+    int bucket_num = hash_to_bucket_index(file_and_page);
+    LRUBufferEntry *curr_entry = entries[bucket_num];
+    while (curr_entry != nullptr && curr_entry->file_and_page != file_and_page) {
+        curr_entry = curr_entry->next_entry;
+    }
+    if (curr_entry != nullptr) {
+        move_to_head(curr_entry->node);
+        // note that size must be equal to entry data size
+        memcpy(curr_entry->entry_data, data, size);
+        return true;
+    }
+
+    // insert the new entry_data
     LRUBufferEntry *entry = new LRUBufferEntry();
     entry->file_and_page = file_and_page;
-    memcpy(entry->page, page, PAGE_SIZE);
+
+    uint8_t *entry_data = new uint8_t[size];
+    memcpy(entry_data, data, size);
+    entry->page_size = size;
+    entry->entry_data = entry_data;
     entry->prev_entry = entry->next_entry = nullptr;
 
     LRUNode *node = new LRUNode();
@@ -40,13 +57,14 @@ bool LRUBuffer::put(string file_and_page, uint8_t page[4096]) {
 
     insert(entry);
     num_pages_in_buffer++;
+    num_data_in_buffer += size;
     return true;
 }
 
-// Retrieve the page with a page number of page_num, filling the page_out_buf, or return -1 otherwise
-// Make retrieved page the most recently used entry
+// Retrieve the entry_data with a entry_data number of page_num, filling the page_out_buf, or return -1 otherwise
+// Make retrieved entry_data the most recently used entry
 // TODO: return not found error status
-bool LRUBuffer::get(string file_and_page, uint8_t page_out_buf[4096]) {
+bool LRUBuffer::get(string file_and_page, uint8_t *page_out_buf) {
     int bucket_num = hash_to_bucket_index(file_and_page);
     LRUBufferEntry *curr_entry = entries[bucket_num];
     while (curr_entry != nullptr && curr_entry->file_and_page != file_and_page) {
@@ -56,18 +74,10 @@ bool LRUBuffer::get(string file_and_page, uint8_t page_out_buf[4096]) {
         return false;
     }
 
-    // move the corresponding LRU node to head of LRU linked list tracking recency
-    LRUNode *node = curr_entry->node;
-    if (tail == node) tail = node->prev;
-    if (node->prev != nullptr) node->prev->next = node->next;
-    if (node->next != nullptr) node->next->prev = node->prev;
-    node->next = head;
-    node->prev = nullptr;
-    head->prev = node;
-    head = node;
+    move_to_head(curr_entry->node);
 
     // TODO: verify that we should be copying here, instead of using pointer pointer and changing address
-    memcpy(page_out_buf, curr_entry->page, PAGE_SIZE);
+    memcpy(page_out_buf, curr_entry->entry_data, curr_entry->page_size);
     return true;
 }
 
@@ -76,11 +86,11 @@ void LRUBuffer::evict() {
     // remove all the references to evicted buckets
     auto next_page_in_bucket = tail->bufferEntry->next_entry;
     auto it = bucket_refs.find(hash_to_bucket_index(tail->bufferEntry->file_and_page));
-    // the bucket holding the page to be evicted has at least one other bucket pointing to it
+    // the bucket holding the entry_data to be evicted has at least one other bucket pointing to it
     if (it != bucket_refs.end()) {
         for (auto vector_it = it->second.begin(); vector_it != it->second.end(); vector_it++) {
             entries[*vector_it] = next_page_in_bucket; // could be nullptr
-            // if we are emptying this bucket by deleting the last page in the bucket,
+            // if we are emptying this bucket by deleting the last entry_data in the bucket,
             // unmark buckets pointing to this bucket as references
             if (next_page_in_bucket == nullptr) {
                 is_ref.erase(*vector_it);
@@ -93,9 +103,20 @@ void LRUBuffer::evict() {
     }
 
     LRUNode *new_tail = tail->prev;
+    num_data_in_buffer -= tail->bufferEntry->page_size;
     delete_entry(tail->bufferEntry);
     num_pages_in_buffer--;
     delete tail;
     tail = new_tail;
     tail->next = nullptr;
+}
+// move the corresponding LRU node to head of LRU linked list tracking recency
+void LRUBuffer::move_to_head(LRUNode *node) {
+    if (tail == node) tail = node->prev;
+    if (node->prev != nullptr) node->prev->next = node->next;
+    if (node->next != nullptr) node->next->prev = node->prev;
+    node->next = head;
+    node->prev = nullptr;
+    head->prev = node;
+    head = node;
 }

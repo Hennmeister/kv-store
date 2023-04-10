@@ -17,8 +17,13 @@ DbOptions::DbOptions(){
 
     // Buffer Pool
     this->bufferPoolType = "Clock";
-    this->bufferPoolMinSize = 1; // MB
-    this->bufferPoolMaxSize = 10; // MB
+    // this->bufferPoolType = "LRU";
+    this->bufferPoolMinSize = 1;
+    this->bufferPoolMaxSize = 10;
+    this->useBinarySearch = 0;
+
+    // Bloom filter
+    this->filterBitsPerEntry = 10;
 }
 
 void DbOptions::setMaxMemtableSize(int maxMemtableSize){
@@ -49,4 +54,8 @@ void DbOptions::setBufferPoolType(std::string bufferPoolType){
 void DbOptions::setBufferPoolSize(int bufferPoolMinSize, int bufferPoolMaxSize){
     this->bufferPoolMinSize = bufferPoolMinSize;
     this->bufferPoolMaxSize = bufferPoolMaxSize;
+}
+
+void DbOptions::setFilterBitsPerEntry(int filterBitsPerEntry) {
+    this->filterBitsPerEntry = filterBitsPerEntry;
 }

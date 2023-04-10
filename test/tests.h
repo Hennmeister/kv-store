@@ -1,6 +1,8 @@
 #include "../include/SimpleKVStore.h"
 #include "../include/Base/BufferPool.h"
 
+// ===================== Bloom filter Tests =========================
+void bloom_filter_simple(SimpleKVStore db);
 
 // ===================== Buffer Pool Tests =========================
 void simple_LRU_buffer(SimpleKVStore db);
@@ -14,7 +16,8 @@ void clock_simple_evict(SimpleKVStore db);
 void clock_ref_evict(SimpleKVStore db);
 void clock_shrink(SimpleKVStore db);
 void clock_grow(SimpleKVStore db);
-
+void hash_test(SimpleKVStore db);
+void random_puts_and_gets(SimpleKVStore db);
 
 // ===================== Inner-workings Tests =========================
 

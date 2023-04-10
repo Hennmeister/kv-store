@@ -14,6 +14,7 @@ public:
     int bufferPoolMinSize; // in MB
     int bufferPoolMaxSize; // in MB
     int useBinarySearch;
+    int filterBitsPerEntry;
 
     DbOptions();
     void setMaxMemtableSize(int maxMemtableSize);
@@ -22,7 +23,7 @@ public:
     void setBtreeFanout(int btreeFanout);
     void setBufferPoolType(std::string bufferPoolType);
     void setBufferPoolSize(int bufferPoolMinSize, int bufferPoolMaxSize);
-    void setBloomBits(int bloomBits);
+    void setFilterBitsPerEntry(int filterBitsPerEntry);
 };
 
 #endif
