@@ -9,6 +9,9 @@
 #include "../include/BufferPool/ClockBuffer/ClockBuffer.h"
 #include "../src/BloomFilter/BloomFilter.h"
 
+#include <algorithm>
+#include <random>
+
 #include <string>
 #include <vector>
 #include <cassert>
@@ -232,6 +235,38 @@ void memtable_puts_and_scans(SimpleKVStore db)
 // TODO: specific SST testing?
 
 // ===================== User-facing Tests =========================
+void random_puts_and_gets(SimpleKVStore db)
+{
+    vector<int> data = vector<int>();
+    vector<int> insertion_order = vector<int>();
+
+    auto rng = std::default_random_engine {};
+
+    int test_size = 10 * PAGE_NUM_ENTRIES + 300;
+    for (int i = 0; i < test_size; i++)
+    {
+        insertion_order.push_back(i);
+        data.push_back(rand() % 10000000);
+    }
+    std::shuffle(std::begin(insertion_order), std::end(insertion_order), rng);
+
+    int key;
+    for (int i = 0; i < test_size; i++)
+    {
+        key = insertion_order[i];
+        db.put(key, data[key]);
+    }
+
+    int val;
+    for (int i = 0; i < test_size; i++)
+    {
+        key = rand() % test_size;
+        db.get(key, val);
+        assert_val_equals(val, data[key], "random_puts_and_gets");
+    }
+}
+
+
 
 void sequential_puts_and_gets(SimpleKVStore db)
 {
@@ -247,6 +282,17 @@ void sequential_puts_and_gets(SimpleKVStore db)
         db.get(i, val);
         assert_val_equals(val, -i, "sequential_puts_and_gets");
     }
+}
+
+void hash_test(SimpleKVStore db){
+//    db.close();
+//    __int128 hasha = hashb;
+//    seed = 1230981234;
+//
+//    MurmurHash3_x64_128((void *) 1230, sizeof(int), seed, (void *) &hasha);
+//    MurmurHash3_x64_128((void *) 1230, sizeof(int), seed, (void *) &hashb);
+//
+//    assert(hasha == hashb);
 }
 
 void sequential_puts_and_scans(SimpleKVStore db)

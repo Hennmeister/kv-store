@@ -16,7 +16,8 @@ void clock_simple_evict(SimpleKVStore db);
 void clock_ref_evict(SimpleKVStore db);
 void clock_shrink(SimpleKVStore db);
 void clock_grow(SimpleKVStore db);
-
+void hash_test(SimpleKVStore db);
+void random_puts_and_gets(SimpleKVStore db);
 
 // ===================== Inner-workings Tests =========================
 

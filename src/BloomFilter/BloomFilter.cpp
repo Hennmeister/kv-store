@@ -4,6 +4,12 @@
 #include <iostream>
 using namespace std;
 
+
+int run_hash(int key, int seed, int& res){
+    res =  key * pow(seed, 10);
+}
+
+
 BloomFilter::BloomFilter(int num_entries, int bits_per_entry) {
     // generate set of random seeds
     int num_hash_functions = log(2) * bits_per_entry;
@@ -68,25 +74,23 @@ std::pair<int *, int> BloomFilter::serialize() {
 void BloomFilter::insert(int key) {
     for (auto seed : seeds) {
         int hash;
-        MurmurHash3_x86_32((void *) &key, sizeof(int), seed, (void *) &hash);
-        if (key == 1024) {
-            cout << "hash, bit, seed:" << hash << ", " << hash % bits.size() << endl;
-        }
+        run_hash(key, seed, hash);
+      //  MurmurHash3_x86_32((void *) &key, sizeof(int), seed, (void *) &hash);
         bits[hash % bits.size()] = 1;
     }
 }
+
 
 bool BloomFilter::testMembership(int key) {
 
     for (auto seed : seeds) {
         int hash;
-        MurmurHash3_x86_32((void *) &key, sizeof(int), seed, (void *) &hash);
-        if (key == 1024) {
-            cout << "TESTMEMBERSHIP hash, bit:" << hash << ", " << hash % bits.size() << endl;
-        }
+    //    MurmurHash3_x86_32((void *) &key, sizeof(int), seed, (void *) &hash);
+        run_hash(key, seed, hash);
         if (bits[hash % bits.size()] == 0) {
             return false;
         }
     }
     return true;
 }
+
