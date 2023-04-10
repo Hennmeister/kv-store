@@ -2,6 +2,7 @@
 #include "../../include/MurmurHash3.h"
 #include "../../include/constants.h"
 #include <iostream>
+using namespace std;
 
 BloomFilter::BloomFilter(int num_entries, int bits_per_entry) {
     // generate set of random seeds
@@ -23,13 +24,15 @@ BloomFilter::BloomFilter(int *buffer_data) {
     buffer_data += num_seeds;
     int bitmap_size = buffer_data[0];
     buffer_data = buffer_data + 1; // skip 1
-    bits = std::vector<int>(*buffer_data, bitmap_size);
+    for (int i = 0; i < bitmap_size; i++) {
+        this->bits.push_back(buffer_data[i]);
+    }
 }
 
 
 std::pair<int *, int> BloomFilter::serialize() {
     // num_seeds + data_size + seeds + bitmap
-    int size = 2 + seeds.size() + bits.size();
+    int size = ceil(double (2 + seeds.size() + bits.size() * sizeof(int)) / (double) PAGE_SIZE) * (PAGE_SIZE/sizeof(int));
     int *buf = new int[size];
 
     int index = 0;
@@ -58,14 +61,17 @@ std::pair<int *, int> BloomFilter::serialize() {
         buf[index] = INT_MAX;
     }
 
-    return std::pair(buf, ceil((double) index / PAGE_SIZE));
+    return std::pair(buf, size * sizeof(int) / PAGE_SIZE);
 }
 
 
 void BloomFilter::insert(int key) {
     for (auto seed : seeds) {
-        long hash;
+        int hash;
         MurmurHash3_x86_32((void *) &key, sizeof(int), seed, (void *) &hash);
+        if (key == 1024) {
+            cout << "hash, bit, seed:" << hash << ", " << hash % bits.size() << endl;
+        }
         bits[hash % bits.size()] = 1;
     }
 }
@@ -73,8 +79,11 @@ void BloomFilter::insert(int key) {
 bool BloomFilter::testMembership(int key) {
 
     for (auto seed : seeds) {
-        long hash;
+        int hash;
         MurmurHash3_x86_32((void *) &key, sizeof(int), seed, (void *) &hash);
+        if (key == 1024) {
+            cout << "TESTMEMBERSHIP hash, bit:" << hash << ", " << hash % bits.size() << endl;
+        }
         if (bits[hash % bits.size()] == 0) {
             return false;
         }

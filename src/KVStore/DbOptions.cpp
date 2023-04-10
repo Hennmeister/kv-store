@@ -10,7 +10,7 @@ DbOptions::DbOptions(){
     this->maxMemtableSize = PAGE_SIZE;
     this->sstSearch = "BTree";
     this->btreeFanout = 5;
-    this->bufferPoolType = "Clock";
+    this->bufferPoolType = "None";
     this->bufferPoolMinSize = 1;
     this->bufferPoolMaxSize = 10;
     this->useBinarySearch = 0;

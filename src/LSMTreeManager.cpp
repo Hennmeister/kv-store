@@ -15,9 +15,8 @@ bool LSMTreeManager::get(const int &key, int &value) {
                 }
             }
         }
-        return false;
     }
-    return true;
+    return false;
 }
 
 bool sortByFname(const pair<string,int> &a,
@@ -324,10 +323,8 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
     // write out bloom filter
     pair<int *, int> serialized_filter_pair = filter->serialize();
     int *serialized_filter = serialized_filter_pair.first;
-    // Note that filter size does not include padded data
     int num_filter_pages = serialized_filter_pair.second;
-    fileManager->write_page(serialized_filter, num_filter_pages, write_pg_ctr, fname);
-    delete serialized_filter;
+    fileManager->write_page(serialized_filter, PAGE_SIZE * num_filter_pages, write_pg_ctr, fname);
 
     // Update metadata with new size
     meta[2] = total_size;
@@ -336,7 +333,8 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
     // bloom filter size
     meta[4] = num_filter_pages;
     fileManager->write_page(meta, PAGE_SIZE, 0, fname);
-    delete filter;
+//    delete filter;
+    delete[] serialized_filter;
     return new BTreeSST(fileManager, fname, total_size, useBinary);
 }
 

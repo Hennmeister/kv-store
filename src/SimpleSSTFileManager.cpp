@@ -44,11 +44,11 @@ int SimpleSSTFileManager::get_page(int page, string file, void *data_buf) {
     string buf_entry_id = file + "-" + to_string(page);
 
     // Check if entry_data is cached
-    if (this->cache->get(buf_entry_id, (std::uint8_t *) data_buf)) {
-        // Reinsert page into buffer to acknowledge acess
-        this->cache->put(buf_entry_id, (std::uint8_t *) data_buf, PAGE_SIZE);
-        return PAGE_SIZE;
-    }
+//    if (this->cache->get(buf_entry_id, (std::uint8_t *) data_buf)) {
+//        // Reinsert page into buffer to acknowledge acess
+//        this->cache->put(buf_entry_id, (std::uint8_t *) data_buf, PAGE_SIZE);
+//        return PAGE_SIZE;
+//    }
 
     char* filename = string_to_char(dir_name + "/" + file);
     int file_fd = open(filename, O_RDWR, 0777);
@@ -56,7 +56,7 @@ int SimpleSSTFileManager::get_page(int page, string file, void *data_buf) {
     close(file_fd);
 
     // Add page to cache
-    this->cache->put(buf_entry_id, (std::uint8_t *) data_buf, PAGE_SIZE);
+//    this->cache->put(buf_entry_id, (std::uint8_t *) data_buf, PAGE_SIZE);
     return successful_read;
 }
 
