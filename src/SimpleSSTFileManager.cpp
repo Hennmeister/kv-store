@@ -46,7 +46,7 @@ int SimpleSSTFileManager::get_page(int page, string file, void *data_buf) {
     // Check if page is cached
     if (this->cache->get(buf_entry_id, (std::uint8_t *) data_buf)) {
         // Reinsert page into buffer to acknowledge acess
-        this->cache->put(buf_entry_id, (std::uint8_t *) data_buf);
+        this->cache->put(buf_entry_id, (std::uint8_t *) data_buf, PAGE_SIZE);
         return PAGE_SIZE;
     }
 
@@ -56,7 +56,7 @@ int SimpleSSTFileManager::get_page(int page, string file, void *data_buf) {
     close(file_fd);
 
     // Add page to cache
-    this->cache->put(buf_entry_id, (std::uint8_t *) data_buf);
+    this->cache->put(buf_entry_id, (std::uint8_t *) data_buf, PAGE_SIZE);
     return successful_read;
 }
 

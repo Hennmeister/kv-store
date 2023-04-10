@@ -15,18 +15,16 @@ BloomFilter::BloomFilter(int num_entries, int bits_per_entry) {
 
 void BloomFilter::insert(std::string key) {
     for (auto seed : seeds) {
-        long hash;
-        MurmurHash3_x86_32((void *) &key, key.size(), seed, (void *) &hash);
-        std::cout << "setting bit: " << hash % bits.size() << std::endl;
+        uint32_t hash;
+        MurmurHash3_x86_32(key.c_str(), key.size(), seed, &hash);
         bits[hash % bits.size()] = true;
     }
 }
 
 bool BloomFilter::testMembership(std::string key) {
     for (auto seed : seeds) {
-        long hash;
-        MurmurHash3_x86_32((void *) &key, key.size(), seed, (void *) &hash);
-        std::cout << "checking bit: " << hash % bits.size() << std::endl;
+        uint32_t hash;
+        MurmurHash3_x86_32(key.c_str(), key.size(), seed, &hash);
         if (bits[hash % bits.size()] == false) {
             return false;
         }
