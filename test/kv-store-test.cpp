@@ -62,6 +62,9 @@ int main()
             std::filesystem::remove_all(entry.path());
     }
 
+    DbOptions *options = new DbOptions();
+    options->setMaxMemtableSize(PAGE_SIZE);
+
     // Individual DBs
     for (pair<void (*)(SimpleKVStore db), string> func : individual_db_tests)
     {
@@ -69,7 +72,7 @@ int main()
         // Before all
 
         SimpleKVStore db;
-        db.open(test_dir + func.second + "_db");
+        db.open(test_dir + func.second + "_db", options);
 
         // Call method
 
@@ -83,7 +86,7 @@ int main()
 
     // Shared DBs
     SimpleKVStore shared_db;
-    shared_db.open(test_dir + "shared_db");
+    shared_db.open(test_dir + "shared_db", options);
 
     for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
     {

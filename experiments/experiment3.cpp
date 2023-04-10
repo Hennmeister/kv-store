@@ -19,7 +19,7 @@ using namespace std;
 // grows. Describe your experimental setup and make sure all relevant variables are controlled. Please fix the buffer
 // pool size to 10 MB, the Bloom filters to use 5 bits per entry, and the memtable to 1 MB. Run this experiment as you
 // insert 1 GB of data. Measure get and scan throughput at regular intervals as you insert this data.
-void experiment3p1(int num_MB, int step_size) {
+void experiment3p1(int num_MB, int step_size_MB) {
     cout << "Running Experiment 3.1" << endl;
 
     DbOptions *options = new DbOptions();
@@ -31,31 +31,39 @@ void experiment3p1(int num_MB, int step_size) {
     SimpleKVStore db;
     db.open("./experiments_dbs/experiment_3p1"); // TODO: specs
 
-    // Load 1 GB of data
-    long long int num_inserts = 1024 * MEGABYTE / ENTRY_SIZE;
+    assert(num_MB == 1024);
 
-    std::vector<long long int> x;
-    std::vector<long long int> puts_throughput;
-    std::vector<long long int> gets_throughput;
-    std::vector<long long int> scans_throughput;
+    // Load 1 GB of data
+    int num_inserts = num_MB * MEGABYTE / ENTRY_SIZE;
+    int num_queries = 0.00001 * num_inserts; // query 0.001% of data inserted
+    int step_size = step_size_MB * MEGABYTE / ENTRY_SIZE;
+
+    std::cout << "Averaging from " + to_string(num_queries) + " queries" << std::endl;
+
+    std::vector<int> x;
+    std::vector<double> puts_throughput;
+    std::vector<double> gets_throughput;
+    std::vector<double> scans_throughput;
 
     int num_samples = 1.2 * num_inserts; // take a few extra samples to cover repeated puts
-    long long int key_max = 50 * num_inserts; // add some randomness
+    int key_max = 50 * num_inserts; // add some randomness
 
     assert(key_max < INT_MAX);
     assert(step_size < num_inserts);
 
-    long long int rand_keys[num_samples];
+    std::cout << "Generating " + to_string(num_samples) + " random keys..." << std::endl;
+
+    int rand_keys[num_samples];
     for (int j = 0; j < num_samples; j++) {
         rand_keys[j] = ::rand() % key_max; // not necessarily uniformly distributed to simulate real workload (skewed towards lower keys)
     }
 
-    std::unordered_set<long long int> unique_keys;
+    std::unordered_set<int> unique_keys;
 
     std::cout << "Generating " + to_string(num_inserts / step_size) + " datapoints..." << std::endl;
     std::cout << "Iteration: ";
 
-    long long int offset = 0;
+    int offset = 0;
     for (int i = 0; i < num_inserts / step_size; i++) {
 
         std::cout << to_string(i + 1) << " ";
@@ -67,7 +75,7 @@ void experiment3p1(int num_MB, int step_size) {
         // timed measurements
         int puts_count = 0;
         while (unique_keys.size() < (i + 1) * step_size) {
-            long long int key = rand_keys[offset + puts_count];
+            int key = rand_keys[offset + puts_count];
             if (unique_keys.find(key) == unique_keys.end()) {
                 unique_keys.insert(key);
             }
@@ -86,33 +94,33 @@ void experiment3p1(int num_MB, int step_size) {
 
         offset += puts_count;
 
-        // generate step_size random keys from the unique inserted keys
-        long long int rand_gets[step_size];
-        for (int j = 0; j < step_size; j++) {
-            long long int key;
+        // generate num_queries random keys from the unique inserted keys
+        int rand_gets[num_queries];
+        for (int j = 0; j < num_queries; j++) {
+            int key;
             std::mt19937 gen(std::random_device{}());
             std::sample(unique_keys.begin(), unique_keys.end(), &key, 1, gen);
             rand_gets[j] = key;
         }
 
-        // step_size number of random gets
+        // num_queries number of random gets
         int val;
         start = chrono::high_resolution_clock::now();
-        for (int j = 0; j < step_size; j++)
+        for (int j = 0; j < num_queries; j++)
             db.get(rand_gets[j], (int &) val);
 
         stop = chrono::high_resolution_clock::now();
         microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
-        gets_throughput.push_back((1000 * (double)step_size) / microsecs);
+        gets_throughput.push_back((1000 * (double)num_queries) / microsecs);
 
-        // step_size number of random scans
+        // num_queries number of random scans
         start = chrono::high_resolution_clock::now();
-        for (int j = 1; j < step_size; j++)
+        for (int j = 1; j < num_queries; j++)
             db.scan(min(rand_gets[j-1], rand_gets[j]), max(rand_gets[j-1], rand_gets[j]));
 
         stop = chrono::high_resolution_clock::now();
         microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
-        scans_throughput.push_back((1000 * (double)step_size) / microsecs);
+        scans_throughput.push_back((1000 * (double)num_queries) / microsecs);
 
         x.push_back(unique_keys.size() * ENTRY_SIZE);
     }
@@ -126,7 +134,7 @@ void experiment3p1(int num_MB, int step_size) {
 
     std::ofstream exp3_data ("./experiments/data/exp3p1_data.csv");
 
-    exp3_data << "Inserted data (Bytes),Puts Throughput (operations/msec),Gets Throughput (operations/msec),Scans Throughput (operations/msec)" << std::endl;
+    exp3_data << "Inserted data (Bytes),Puts Throughput,Gets Throughput,Scans Throughput" << std::endl;
 
     for (int i = 0; i < x.size(); i++) {
         exp3_data << x[i] << "," << to_string(puts_throughput[i]) << "," << to_string(gets_throughput[i]) << "," << to_string(scans_throughput[i]) << std::endl;
@@ -146,15 +154,19 @@ void experiment3p2(int max_M, int step_size) {
     cout << "Running Experiment 3.2" << endl;
 
     // Load 1 GB of data on each run
-    long long int num_inserts = 1024 * MEGABYTE / ENTRY_SIZE;
-    long long int num_queries = 0.01 * num_inserts; // query 1% of db size
+    int num_inserts = 1024 * MEGABYTE / ENTRY_SIZE;
+    int num_queries = 0.00001 * num_inserts; // query 0.001% of data inserted
 
-    std::vector<long long int> x;
-    std::vector<long long int> get_throughput;
+    std::cout << "Averaging from " + to_string(num_queries) + " queries" << std::endl;
+
+    std::vector<int> x;
+    std::vector<double> get_throughput;
 
     assert(step_size < num_inserts);
 
-    std::vector<long long int> rand_keys(num_inserts);
+    std::vector<int> rand_keys(num_inserts);
+
+    std::cout << "Inserting " + to_string(num_inserts) + " keys..." << std::endl;
 
     // fills vector with increasing keys starting from 1
     std::iota(rand_keys.begin(), rand_keys.end(), 1);
@@ -206,7 +218,7 @@ void experiment3p2(int max_M, int step_size) {
 
     std::ofstream exp3_data ("./experiments/data/exp3p2_data.csv");
 
-    exp3_data << "Bloom filter bits per entry (M),Get Throughput (operations/msec)" << std::endl;
+    exp3_data << "Bloom filter bits per entry (M),Gets Throughput (operations/msec)" << std::endl;
 
     for (int i = 0; i < x.size(); i++) {
         exp3_data << x[i] << "," << to_string(get_throughput[i]) << std::endl;

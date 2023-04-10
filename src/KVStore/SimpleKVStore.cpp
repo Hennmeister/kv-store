@@ -22,13 +22,12 @@ void SimpleKVStore::open(std::string db_path, DbOptions *options)
         bufferPool = new ClockBuffer(options->bufferPoolMinSize, options->bufferPoolMaxSize);
     }
     this->fileManager = new SimpleSSTFileManager(db_path, bufferPool);
-    
+
     this->sstManager = new LSMTreeManager(this->fileManager,
                                           options->btreeFanout,
                                           options->useBinarySearch,
                                           options->maxMemtableSize);
-
-    if (options->sstSearch == "BTree") {
+    if (options->sstManager == "BTree") {
         this->sstManager = new BTreeSSTManager(this->fileManager, options->btreeFanout, options->useBinarySearch);
     }
 

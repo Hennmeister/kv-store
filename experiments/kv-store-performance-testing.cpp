@@ -72,8 +72,7 @@ int main(int argc, char * argv[])
             break;
         }
         case 31: {
-            // num_MB useless in this experiment
-            experiment3p1(0, step_size);
+            experiment3p1(num_MB, step_size);
             break;
         }
         case 32: {

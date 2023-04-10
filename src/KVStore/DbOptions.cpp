@@ -1,19 +1,24 @@
 #include "../../include/Base/DbOptions.h"
 #include "../../include/constants.h"
+#include "../../include/util.h"
 
 
 DbOptions::DbOptions(){
-    // Could make into enum of options to guarantee consistency
-
     // Load default params
+
+    // Memtable
     this->memTableType = "RedBlackTree";
-    this->maxMemtableSize = PAGE_SIZE;
+    this->maxMemtableSize = 10 * MEGABYTE;
+
+    // SST
     this->sstSearch = "BTree";
     this->btreeFanout = 100;
+    this->useBinarySearch = 0; // No
+
+    // Buffer Pool
     this->bufferPoolType = "Clock";
     this->bufferPoolMinSize = 1; // MB
     this->bufferPoolMaxSize = 10; // MB
-    this->useBinarySearch = 0; // No
 }
 
 void DbOptions::setMaxMemtableSize(int maxMemtableSize){
@@ -23,8 +28,14 @@ void DbOptions::setMaxMemtableSize(int maxMemtableSize){
 void DbOptions::setSSTSearch(std::string sstSearch){
     if (sstSearch == "BinarySearch"){
         this->useBinarySearch = 1;
+    } else {
+        this->useBinarySearch = 0;
     }
     this->sstSearch = sstSearch;
+}
+
+void DbOptions::setSSTManager(std::string sstManager){
+    this->sstManager = sstManager;
 }
 
 void DbOptions::setBtreeFanout(int btreeFanout){
