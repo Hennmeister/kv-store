@@ -1,6 +1,7 @@
 ﻿#include "../../include/SimpleKVStore.h"
 #include "../../include/RedBlack/RedBlackMemtable.h"
 #include "../../include/LSMTreeManager.h"
+#include "../../include/BTree/BTreeSSTManager.h"
 #include "../../include/util.h"
 #include "../../include/SimpleSSTFileManager.h"
 #include "../../include/Base/BufferPool.h"
