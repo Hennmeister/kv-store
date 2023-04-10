@@ -20,21 +20,21 @@ using namespace std;
 // ===================== Bloom Filter ========================= //
 void bloom_filter_simple(SimpleKVStore db) {
     BloomFilter *filter = new BloomFilter(10, 10);
-    filter->insert("test string");
-    assert_val_equals(filter->testMembership("test string"), true, "bloom_filter_simple");
-    assert_val_equals(filter->testMembership("not test string"), false, "bloom_filter_simple");
-    filter->insert("test string one");
-    filter->insert("test string two");
-    assert_val_equals(filter->testMembership("test string"), true, "bloom_filter_simple");
-    assert_val_equals(filter->testMembership("test string one"), true, "bloom_filter_simple");
-    assert_val_equals(filter->testMembership("test string two"), true, "bloom_filter_simple");
-    assert_val_equals(filter->testMembership("not test string"), false, "bloom_filter_simple");
-    filter->insert("test string");
-    filter->insert("test string one");
-    assert_val_equals(filter->testMembership("test string"), true, "bloom_filter_simple");
-    assert_val_equals(filter->testMembership("test string one"), true, "bloom_filter_simple");
-    assert_val_equals(filter->testMembership("test string two"), true, "bloom_filter_simple");
-    assert_val_equals(filter->testMembership("not test string"), false, "bloom_filter_simple");
+    filter->insert(1);
+    assert_val_equals(filter->testMembership(1), true, "bloom_filter_simple");
+    assert_val_equals(filter->testMembership(-1), false, "bloom_filter_simple");
+    filter->insert(2);
+    filter->insert(3);
+    assert_val_equals(filter->testMembership(1), true, "bloom_filter_simple");
+    assert_val_equals(filter->testMembership(2), true, "bloom_filter_simple");
+    assert_val_equals(filter->testMembership(3), true, "bloom_filter_simple");
+    assert_val_equals(filter->testMembership(-1), false, "bloom_filter_simple");
+    filter->insert(1);
+    filter->insert(2);
+    assert_val_equals(filter->testMembership(1), true, "bloom_filter_simple");
+    assert_val_equals(filter->testMembership(2), true, "bloom_filter_simple");
+    assert_val_equals(filter->testMembership(3), true, "bloom_filter_simple");
+    assert_val_equals(filter->testMembership(-1), false, "bloom_filter_simple");
 }
 
 // TODO: test updating pages
