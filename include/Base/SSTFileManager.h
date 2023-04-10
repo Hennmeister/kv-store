@@ -2,7 +2,6 @@
 #define KV_STORE_SSTFILEMANAGER_H
 #include <vector>
 #include <string>
-
 using namespace std;
 
 class SSTFileManager {
@@ -16,11 +15,17 @@ public:
     // Write out a buffer of data to a file - Metadata must be assigned, if unused pass in empty PAGE_SIZE bytes.
     virtual int write_file(void* data, int size, string filename, void* metadata)=0;
 
+    // Write out buffer of data to a specific page
+    virtual int write_page(void *data, int size, int start_page_num, string fname)=0;
+
     // Get a list of files and their sizes (in bytes) in the directory
     virtual vector<pair<string, int>> get_files()=0;
 
     // Get 1st page (metadata)
     virtual int get_metadata(void* data, string filename)=0;
+
+    // Delete file
+    virtual bool delete_file(string filename)=0;
 };
 
 #endif //KV_STORE_SSTFILEMANAGER_H

@@ -5,12 +5,10 @@
 
 using namespace std;
 
-string path = "/playground_db/";
-
 int main()
 {
     SimpleKVStore db;
-    db.open(path + "db1");
+    db.open("playground");
 
     int key = 1; 
     int val = 1000;
@@ -28,9 +26,7 @@ int main()
 
     db.close();
 
-    // Clear playground data
-    for (const auto &entry : std::filesystem::directory_iterator(path))
-        std::filesystem::remove_all(entry.path());
+    std::filesystem::remove_all("/playground");
 
     return 0;
 }

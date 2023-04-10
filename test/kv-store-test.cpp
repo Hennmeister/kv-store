@@ -1,7 +1,6 @@
 #ifndef SRC_KV_STORE_KV_STORE_TEST_H
 #define SRC_KV_STORE_KV_STORE_TEST_H
 
-#include <iostream>
 #include "../include/SimpleKVStore.h"
 #include "../include/RedBlack/RedBlackMemtable.h"
 #include "../include/ArraySST/SimpleSSTManager.h"
@@ -14,6 +13,7 @@
 #include <vector>
 #include <filesystem>
 #include <sys/stat.h>
+#include <iostream>
 
 using namespace std;
 

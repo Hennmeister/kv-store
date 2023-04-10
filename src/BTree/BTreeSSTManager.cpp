@@ -1,8 +1,10 @@
 #include "../../include/BTree/BTreeSSTManager.h"
 #include "../../include/BTree/BTreeSST.h"
-#include "string"
 #include "../../include/util.h"
 #include "../../include/constants.h"
+#include <string>
+
+using namespace std;
 
 bool BTreeSSTManager::get(const int &key, int &value) {
     for(BTreeSST* sst  : ssts){
@@ -27,8 +29,7 @@ BTreeSSTManager::BTreeSSTManager(SSTFileManager *fileManager, int newFanout, int
     std::sort(files.begin(), files.end(), sortByFname);
     std::reverse(files.begin(), files.end());
 
-    // TODO: Unused
-    useBinary = useBinarySearch;
+    this->useBinary = useBinarySearch;
 
     this->fileManager = fileManager;
     this->newFanout = newFanout;
@@ -38,6 +39,7 @@ BTreeSSTManager::BTreeSSTManager(SSTFileManager *fileManager, int newFanout, int
     for(const pair<string, int>& fileDat : files){
         ssts.push_back(new BTreeSST(fileManager, fileDat.first, fileDat.second, useBinary));
         total_entries += ssts[i]->getSize();
+        i++;
     }
 
 }
@@ -53,7 +55,7 @@ std::vector<std::pair<int, int>> BTreeSSTManager::scan(const int &key1, const in
 }
 
 bool BTreeSSTManager::add_sst(std::vector<std::pair<int, int>> data) {
-    if (data.size() % PAGE_NUM_ENTRIES == 0)
+    if (data.size() % PAGE_NUM_ENTRIES != 0)
         return false;
     auto* new_sst = new BTreeSST(fileManager, ssts.size() - 1, newFanout, data, useBinary);
     ssts.insert(ssts.begin(),new_sst);

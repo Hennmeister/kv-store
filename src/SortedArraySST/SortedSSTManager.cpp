@@ -5,33 +5,6 @@
 
 using namespace std;
 
-int binary_search(vector<pair<int, int>> data, int target, int &value)
-{
-    int left = 0;
-    int right = data.size();
-    while (left <= right)
-    {
-        int mid = left + (right - left) / 2;
-
-        int key = data[mid].first;
-
-        if (key == target)
-        {
-            value = data[mid].second;
-            return mid;
-        }
-        else if (key < target)
-        {
-            left = mid + 1;
-        }
-        else
-        {
-            right = mid - 1;
-        }
-    }
-    return -1;
-}
-
 std::vector<std::pair<int, int>> single_sst_scan(std::vector<std::pair<int, int>> sst_dat, int start, int end)
 {
     auto res = vector<pair<int, int>>();

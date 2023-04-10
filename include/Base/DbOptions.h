@@ -7,7 +7,7 @@ class DbOptions {
 public:
     std::string memTableType; // "RedBlackTree"
     int maxMemtableSize; // in Bytes
-    std::string sstSearch; // options: "BTree", "BinarySearh"
+    std::string sstSearch; // options: "BTree", "BinarySearh", "LSMTree"
     int btreeFanout;
     std::string bufferPoolType; // options: "Clock", "LRU", "None"
     int bufferPoolMinSize; // in MB
@@ -20,6 +20,7 @@ public:
     void setBtreeFanout(int btreeFanout);
     void setBufferPoolType(std::string bufferPoolType);
     void setBufferPoolSize(int bufferPoolMinSize, int bufferPoolMaxSize);
+    void setBloomBits(int bloomBits);
 };
 
 #endif

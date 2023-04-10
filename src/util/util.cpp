@@ -45,7 +45,6 @@ void print_data(const vector<pair<int, int>> &data)
 std::vector<std::pair<int, int>> priority_merge(std::vector<std::pair<int, int>> master,
                                                 std::vector<std::pair<int, int>> older)
 {
-    // TODO: This function needs checking and testing.
     int ind0 = 0;
     int ind1 = 0;
     auto res = vector<pair<int, int>>();
@@ -64,7 +63,9 @@ std::vector<std::pair<int, int>> priority_merge(std::vector<std::pair<int, int>>
         }
         else
         {
-            res.emplace_back(master[ind0]);
+            if(master[ind0].second != INT_MIN) {
+                res.emplace_back(master[ind0]);
+            }
             ind0++;
             ind1++;
         }
@@ -124,7 +125,7 @@ int safe_read(int fd, void *buf, long nbyte, long offset)
 {
     int res = pread(fd, buf, nbyte, offset);
     int read_completion = res;
-    while (read_completion != nbyte)
+    while (read_completion < nbyte)
     {
         if (res < 0)
         {
@@ -135,4 +136,31 @@ int safe_read(int fd, void *buf, long nbyte, long offset)
         res = pread(fd, (char *)buf + read_completion, nbyte - read_completion, offset + read_completion);
     }
     return read_completion;
+}
+
+
+int binary_search(std::vector<std::pair<int, int>> data, int target, int &value){
+    int left = 0;
+    int right = data.size();
+    while (left <= right)
+    {
+        int mid = left + (right - left) / 2;
+
+        int key = data[mid].first;
+
+        if (key == target)
+        {
+            value = data[mid].second;
+            return mid;
+        }
+        else if (key < target)
+        {
+            left = mid + 1;
+        }
+        else
+        {
+            right = mid - 1;
+        }
+    }
+    return -1;
 }
