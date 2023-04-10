@@ -41,18 +41,10 @@ void experiment1(int num_MB, int step_size_MB) {
     std::vector<double> gets_throughput;
     std::vector<double> scans_throughput;
 
-    int num_samples = 1.2 * num_inserts; // take a few extra samples to cover repeated puts
-    int key_max = 50 * num_inserts; // add some randomness
+    int key_max = 50 * num_inserts; // add some randomness in the keys
 
     assert(key_max < INT_MAX);
     assert(step_size < num_inserts);
-
-    std::cout << "Generating " + to_string(num_samples) + " random keys..." << std::endl;
-
-    int rand_keys[num_samples];
-    for (int j = 0; j < num_samples; j++) {
-        rand_keys[j] = ::rand() % key_max; // not necessarily uniformly distributed to simulate real workload (skewed towards lower keys)
-    }
 
     std::unordered_set<int> unique_keys;
 
@@ -65,32 +57,27 @@ void experiment1(int num_MB, int step_size_MB) {
         std::cout << to_string(i + 1) << " ";
         fflush(stdout);
 
-        // Check how many puts are needed to reach (i + 1) * step_size
-        // unique keys in the db (might do some duplicate puts)
-        // Do this computation here to prevent set operations from affecting
-        // timed measurements
+        auto start = chrono::high_resolution_clock::now();
+
+        // We ensure that the duplicated keys are not counted as data inserted
+        // We also assume that the time to generate random keys and manage the hash set is negligible
         int puts_count = 0;
         while (unique_keys.size() < (i + 1) * step_size) {
-            int key = rand_keys[offset + puts_count];
+            int key = ::rand() % key_max; // not necessarily uniformly distributed to simulate real workload (skewed towards lower keys);
             if (unique_keys.find(key) == unique_keys.end()) {
                 unique_keys.insert(key);
+                db.put(key, 0); // paylod is irrelevant
             }
             puts_count++;
         }
 
-        auto start = chrono::high_resolution_clock::now();
-
-        // actually run and time correct number of puts
-        for (int j = 0; j < puts_count; j++) {
-            db.put(rand_keys[offset + j], 0); // paylod is irrelevant
-        }
         auto stop = chrono::high_resolution_clock::now();
         double microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
         puts_throughput.push_back((1000 * (double)puts_count) / microsecs);
 
         offset += puts_count;
 
-        // generate num_queries random keys from the unique inserted keys
+        // generate num_queries random keys from the unique inserted keys before to not affect measurements
         int rand_gets[num_queries];
         for (int j = 0; j < num_queries; j++) {
             int key;

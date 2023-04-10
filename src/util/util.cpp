@@ -32,8 +32,8 @@ int dir_exists(std::string dir)
 int rand_int(int range_from, int range_to) {
     std::random_device rand_dev;
     std::mt19937 generator(rand_dev());
-    std::uniform_int_distribution<int> distr(range_from, range_to);
-    return distr(generator);
+    std::uniform_int_distribution<int> unif_sample(range_from, range_to);
+    return unif_sample(generator);
 }
 
 void pad_data(std::vector<std::pair<int, int>> &src, int size)

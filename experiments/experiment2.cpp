@@ -11,6 +11,7 @@
 #include <fstream>
 #include <filesystem>
 #include <sys/stat.h>
+#include <unordered_set>
 
 using namespace std;
 
@@ -70,23 +71,24 @@ void experiment2p1(int num_MB, int step_size) {
 
     assert(step_size < num_inserts);
 
-    std::vector<int> rand_keys(num_inserts);
+    std::random_device rand_dev;
+    std::mt19937 generator(rand_dev());
+    std::uniform_int_distribution<int> unif_sample(0, num_inserts);
 
-    std::cout << "Inserting " + to_string(num_inserts) + " keys..." << std::endl;
+    std::unordered_set<int> unique_keys;
+    // Load db with uniformly random keys until num_inserts
+    while (unique_keys.size() < num_inserts) {
+        int key = unif_sample(generator);
+        if (unique_keys.find(key) == unique_keys.end()) {
+            unique_keys.insert(key);
+            // Load db1s with randomly ordered keys
+            clock_db1.put(key, 0);
+            lru_db1.put(key, 0);
+        }
+    }
 
-    // fills vector with increasing keys starting from 1
-    std::iota(rand_keys.begin(), rand_keys.end(), 1);
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::shuffle(rand_keys.begin(), rand_keys.end(), gen);
-
-    for (int i = 0; i < rand_keys.size(); i++) {
-        // Load dbs with randomly ordered keys
-        clock_db1.put(rand_keys[i], 0);
-        lru_db1.put(rand_keys[i], 0);
-
-        // Load dbs with sequential keys
+    for (int i = 0; i < num_inserts; i++) {
+        // Load db2s with sequential keys
         clock_db2.put(i, 0);
         lru_db2.put(i, 0);
     }
@@ -244,21 +246,19 @@ void experiment2p2(int num_MB, int step_size_MB) {
 
     assert(step_size < num_inserts);
 
-    std::vector<int> rand_keys(num_inserts);
+    std::random_device rand_dev;
+    std::mt19937 generator(rand_dev());
+    std::uniform_int_distribution<int> unif_sample(0, num_inserts);
 
-    std::cout << "Inserting " + to_string(num_inserts) + " keys..." << std::endl;
-
-    // fills vector with increasing keys starting from 1
-    std::iota(rand_keys.begin(), rand_keys.end(), 1);
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::shuffle(rand_keys.begin(), rand_keys.end(), gen);
-
-    // Load dbs with randomly ordered keys
-    for (int i = 0; i < rand_keys.size(); i++) {
-        btree_db.put(rand_keys[i], 0);
-        bs_db.put(rand_keys[i], 0);
+    std::unordered_set<int> unique_keys;
+    // Load db with uniformly random keys until num_inserts
+    while (unique_keys.size() < num_inserts) {
+        int key = unif_sample(generator);
+        if (unique_keys.find(key) == unique_keys.end()) {
+            unique_keys.insert(key);
+            btree_db.put(key, 0);
+            bs_db.put(key, 0);
+        }
     }
 
     std::cout << "Generating " + to_string(num_inserts / step_size) + " datapoints..." << std::endl;
