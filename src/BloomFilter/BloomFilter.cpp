@@ -18,7 +18,7 @@ BloomFilter::BloomFilter(int num_entries, int bits_per_entry) {
                 std::chrono::time_point_cast<std::chrono::milliseconds>(
                         std::chrono::high_resolution_clock::now()).time_since_epoch()).count());
     }
-    bits = std::vector<int>(num_entries * bits_per_entry / (sizeof(int) * 8), 0);
+    bits = std::vector<int>(ceil((double) num_entries * bits_per_entry / (sizeof(int) * 8)), 0);
 }
 
 BloomFilter::BloomFilter(int *buffer_data) {
