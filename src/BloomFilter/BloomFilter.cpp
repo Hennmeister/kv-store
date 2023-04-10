@@ -6,7 +6,7 @@ using namespace std;
 
 
 int run_hash(int key, int seed, int& res){
-    res =  key * pow(seed, 10);
+    res =  (key + seed) * pow(seed, 10);
 }
 
 
@@ -18,7 +18,7 @@ BloomFilter::BloomFilter(int num_entries, int bits_per_entry) {
                 std::chrono::time_point_cast<std::chrono::milliseconds>(
                         std::chrono::high_resolution_clock::now()).time_since_epoch()).count());
     }
-    bits = std::vector<int>(num_entries * bits_per_entry, 0);
+    bits = std::vector<int>(num_entries * bits_per_entry / (sizeof(int) * 8), 0);
 }
 
 BloomFilter::BloomFilter(int *buffer_data) {
@@ -38,7 +38,7 @@ BloomFilter::BloomFilter(int *buffer_data) {
 
 std::pair<int *, int> BloomFilter::serialize() {
     // num_seeds + data_size + seeds + bitmap
-    int size = ceil(double (2 + seeds.size() + bits.size() * sizeof(int)) / (double) PAGE_SIZE) * (PAGE_SIZE/sizeof(int));
+    int size = ceil(double ((2 + seeds.size() + bits.size()) *  sizeof(int))/ (double) PAGE_SIZE) * (PAGE_SIZE/sizeof(int));
     int *buf = new int[size];
 
     int index = 0;
@@ -74,9 +74,10 @@ std::pair<int *, int> BloomFilter::serialize() {
 void BloomFilter::insert(int key) {
     for (auto seed : seeds) {
         int hash;
-        run_hash(key, seed, hash);
-      //  MurmurHash3_x86_32((void *) &key, sizeof(int), seed, (void *) &hash);
-        bits[hash % bits.size()] = 1;
+//        run_hash(key, seed, hash);
+        MurmurHash3_x86_32((void *) &key, sizeof(int), seed, (void *) &hash);
+        hash = hash % (bits.size() * sizeof(int) * 8);
+        bits[hash / (sizeof(int) * 8)] |= 1 << (hash % (sizeof(int) * 8));
     }
 }
 
@@ -85,12 +86,12 @@ bool BloomFilter::testMembership(int key) {
 
     for (auto seed : seeds) {
         int hash;
-    //    MurmurHash3_x86_32((void *) &key, sizeof(int), seed, (void *) &hash);
-        run_hash(key, seed, hash);
-        if (bits[hash % bits.size()] == 0) {
+        MurmurHash3_x86_32((void *) &key, sizeof(int), seed, (void *) &hash);
+//        run_hash(key, seed, hash);
+        hash = hash % (bits.size() * sizeof(int) * 8);
+        if ((bits[hash / (sizeof(int) * 8)] & (1 << (hash % (sizeof(int) * 8)))) == 0) {
             return false;
         }
     }
     return true;
 }
-

@@ -242,7 +242,7 @@ void random_puts_and_gets(SimpleKVStore db)
 
     auto rng = std::default_random_engine {};
 
-    int test_size = 10 * PAGE_NUM_ENTRIES + 300;
+    int test_size = 100 * PAGE_NUM_ENTRIES + 300;
     for (int i = 0; i < test_size; i++)
     {
         insertion_order.push_back(i);
@@ -285,14 +285,14 @@ void sequential_puts_and_gets(SimpleKVStore db)
 }
 
 void hash_test(SimpleKVStore db){
-//    db.close();
-//    __int128 hasha = hashb;
-//    seed = 1230981234;
-//
-//    MurmurHash3_x64_128((void *) 1230, sizeof(int), seed, (void *) &hasha);
-//    MurmurHash3_x64_128((void *) 1230, sizeof(int), seed, (void *) &hashb);
-//
-//    assert(hasha == hashb);
+    int hasha, hashb;
+    int seed = 1230981234;
+    int val = 1230;
+
+    MurmurHash3_x86_32((void *) &val, sizeof(int), seed, (void *) &hasha);
+    MurmurHash3_x86_32((void *) &val, sizeof(int), seed, (void *) &hashb);
+
+    assert(hasha == hashb);
 }
 
 void sequential_puts_and_scans(SimpleKVStore db)

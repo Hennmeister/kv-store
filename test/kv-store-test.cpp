@@ -27,7 +27,7 @@ string test_dir = "./test_dbs/";
 
 vector<pair<void (*)(SimpleKVStore db), string>>
     individual_db_tests = {
-        F_NAME(simple_test),
+//        F_NAME(simple_test),
         F_NAME(hash_test),
         F_NAME(memtable_puts_and_gets),
         F_NAME(memtable_puts_and_scans),

@@ -7,10 +7,10 @@ DbOptions::DbOptions(){
 
     // Load default params
     this->memTableType = "RedBlackTree";
-    this->maxMemtableSize = PAGE_SIZE;
+    this->maxMemtableSize = PAGE_SIZE * 2;
     this->sstSearch = "BTree";
     this->btreeFanout = 5;
-    this->bufferPoolType = "None";
+    this->bufferPoolType = "LRU";
     this->bufferPoolMinSize = 1;
     this->bufferPoolMaxSize = 10;
     this->useBinarySearch = 0;

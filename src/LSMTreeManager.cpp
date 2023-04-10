@@ -93,11 +93,13 @@ bool LSMTreeManager::add_sst(std::vector<std::pair<int, int>> data) {
 }
 
 LSMTreeManager::~LSMTreeManager() {
-    // Free memory
-//    for (BTreeSST* sst: ssts)
-//    {
-//        delete sst;
-//    }
+//     Free memory
+    for (auto level: levels)
+    {
+        for(auto sst: level) {
+            delete sst;
+        }
+    }
 }
 
 
@@ -329,7 +331,7 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
     // Update metadata with new size
     meta[2] = total_size;
     // bloom filter start
-    meta[3] = write_pg_ctr;
+    meta[3] = write_pg_ctr - 1;
     // bloom filter size
     meta[4] = num_filter_pages;
     fileManager->write_page(meta, PAGE_SIZE, 0, fname);
