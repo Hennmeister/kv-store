@@ -4,9 +4,17 @@
 #include "math.h"
 #include "../../include/util.h"
 #include <climits>
+#include <iostream>
+
+int negatives = 0;
+int total = 0;
+int false_positive =0;
+
+using namespace std;
 
 BTreeSST::~BTreeSST(){
     fileManager->delete_file(this->filename);
+//    cout << "total: "<< total<< " negatives: " << negatives << " false positives: " << false_positive << endl;
 };
 
 int BTreeSST::getSize() const {
@@ -126,7 +134,7 @@ vector<pair<int, int>> BTreeSST::get_pages(int start_ind, int end_ind){
     return res;
 }
 
-// Get a single page from the file manager and parse it into a vector of key-value pairs.
+// Get a single entry_data from the file manager and parse it into a vector of key-value pairs.
 // NOTE: This DOES store data in the buffer by virtue of calling filemanager->get_page
 vector<pair<int, int>> BTreeSST::get_page(int page_ind){
     auto res = vector<pair<int,int>>();
@@ -179,7 +187,7 @@ void BTreeSST::constructBtree(const vector<pair<int, int>>& data){
 }
 
 // New SST creation - construct btree and write data to file. (Should only be called with small SSTs)
-BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair<int, int>> data, int useBinarySearch) {
+BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair<int, int>> data, int useBinarySearch, int filter_bits_per_entry) {
     this->fanout = fanout;
     this->constructBtree(data);
     this->fileManager = fileManager;
@@ -192,7 +200,14 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
 
     int internal_node_ints = internal_node_pages * (PAGE_SIZE / sizeof(int));
 
-    int *write_buf = new int[internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) * 2];
+    // construct bloom filter and init with initial data
+    BloomFilter *filter = new BloomFilter(size, filter_bits_per_entry);
+    auto serial_info = filter->serialize();
+    delete[] serial_info.first;
+    int bloom_filter_num_pages = serial_info.second;
+
+    // num_seeds + seeds + num bits + bits
+    int *write_buf = new int[internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) + bloom_filter_num_pages * PAGE_SIZE];
     write_buf[0] += this->internal_btree.size();
     int counter = 1;
     for( auto level: this->internal_btree){
@@ -210,7 +225,6 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
         counter ++;
     }
 
-
     for (int i = 0; i < data_pages * PAGE_NUM_ENTRIES; i++)
     {
         if(i >= data.size()){
@@ -219,22 +233,38 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
         }else {
             write_buf[counter + i * 2] = data[i].first;
             write_buf[counter + i * 2 + 1] = data[i].second;
+            filter->insert(data[i].first);
         }
     }
+
+    // write out bloom filter
+    pair<int *, int> serialized_filter_pair = filter->serialize();
+    int *serialized_filter = serialized_filter_pair.first;
+    int num_filter_pages = serialized_filter_pair.second;
+    this->num_filter_pages = num_filter_pages;
+    this->filter_start_page =  ((internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) * 2) * sizeof(int)) / PAGE_SIZE;
+    memcpy(&write_buf[filter_start_page * PAGE_SIZE / sizeof(int)], serialized_filter, num_filter_pages * PAGE_SIZE);
 
     string fname = to_string(ind + 1) + ".sst";
     int *meta = new int[PAGE_SIZE/sizeof(int)];
     meta[0] = fanout;
     meta[1] = this->internal_node_pages;
     meta[2] = data.size();
+    // bloom filter start page
+    meta[3] = filter_start_page;
+    // size of bloom filter data in pages
+    meta[4] = num_filter_pages;
+
+    // note that we multiply by 2 since each entry has two ints
     fileManager->write_file(write_buf,
-                            (internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) * 2) * sizeof(int),
+                            (internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) * 2) * sizeof(int) + num_filter_pages * PAGE_SIZE,
                             fname, meta);
     this->useBinary = useBinarySearch;
     this->filename = fname;
     delete[] write_buf;
     delete[] meta;
-
+    delete[] serialized_filter;
+//    delete filter;
 }
 int BTreeSST::get_internal_node_count(){
     int total_internal_nodes = 0;
@@ -254,7 +284,8 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, string filename,int size, int us
     this->fileManager->get_metadata(meta, filename);
     this->fanout = meta[0];
     this->internal_node_pages = meta[1];
-
+    this->filter_start_page = meta[3];
+    this->num_filter_pages = meta[4];
 
     int *data = new int[this->internal_node_pages * (PAGE_SIZE / sizeof(int))];
 
@@ -278,11 +309,6 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, string filename,int size, int us
 
     // Remove metadata from file size (this->size is number of entries)
     this->size = meta[2];
-    auto res = this->get_pages(0,
-                               ceil((double) this->size/ (double) PAGE_NUM_ENTRIES) - 1);
-    // Required in case some data was padded (i.e. for memtable drop)
-    this->size = res.size();
-    delete[] meta;
 }
 
 
@@ -290,9 +316,17 @@ bool BTreeSST::get(const int &key, int &value) {
     if(size == 0){
         return false;
     }
+    BloomFilter filter = get_bloom_filter();
+    total++;
+    if (!filter.testMembership(key)) {
+        negatives++;
+        return false;
+    }
+
     if(useBinary){
         int cur = this->binary_scan(key);
         if(cur == -1){
+            false_positive++;
             return false;
         }
         int page = cur / PAGE_NUM_ENTRIES;
@@ -301,6 +335,7 @@ bool BTreeSST::get(const int &key, int &value) {
             value = page_data[cur % PAGE_NUM_ENTRIES].second;
             return true;
         }
+        false_positive++;
         return false;
     }else {
         int pos = btree_find(internal_btree, key, fanout);
@@ -314,6 +349,7 @@ bool BTreeSST::get(const int &key, int &value) {
             offset = cur % PAGE_NUM_ENTRIES;
             if (offset == 0 && i != 0) {
                 if (cur >= this->getSize()) {
+                    false_positive++;
                     return false;
                 }
                 page++;
@@ -327,6 +363,7 @@ bool BTreeSST::get(const int &key, int &value) {
 
         }
     }
+    false_positive++;
     return false;
 }
 
@@ -377,4 +414,12 @@ std::vector<std::pair<int, int>> BTreeSST::scan(const int &key1, const int &key2
         }
     }
     return res;
+}
+
+BloomFilter BTreeSST::get_bloom_filter() {
+    int *data_buf = new int[num_filter_pages * PAGE_SIZE];
+    fileManager->scan(filter_start_page, (filter_start_page + num_filter_pages) - 1,
+                      filename, data_buf, true);
+    return BloomFilter(data_buf);
+    delete[] data_buf;
 }

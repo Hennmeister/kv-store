@@ -10,6 +10,7 @@ Directory<T>::Directory(int min_size, int max_size, double min_load_factor, doub
     this->max_load_factor = max_load_factor;
 
     this->num_pages_in_buffer = 0;
+    this->num_data_in_buffer = 0;
 
 
     this->num_bits = ceil(log2((min_size * MB) / sizeof(T)));
@@ -26,7 +27,7 @@ void Directory<T>::set_max_size(int new_size) {
         return; // TODO: add error here
     }
     max_size = new_size;
-    while (num_pages_in_buffer * sizeof(T) > (max_size * MB) * max_load_factor) {
+    while (num_data_in_buffer > (max_size * MB) * max_load_factor) {
         evict();
     }
 
@@ -40,7 +41,7 @@ void Directory<T>::set_max_size(int new_size) {
     shrink();
 };
 
-// Hash from a page number to a bucket index, using the number of bits to map to a bucket within the table
+// Hash from a entry_data number to a bucket index, using the number of bits to map to a bucket within the table
 template<typename T>
 int Directory<T>::hash_to_bucket_index(std::string file_and_page) {
     uint32_t bucket_num;
@@ -197,6 +198,7 @@ void Directory<T>::delete_entry(T *entry) {
         entry->next_entry->prev_entry = entry->prev_entry;
     }
 
+    delete entry->entry_data;
     delete entry;
 }
 

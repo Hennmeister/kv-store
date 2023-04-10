@@ -4,7 +4,7 @@
 #include "vector"
 #include "../Base/BufferPool.h"
 #include <iostream>
-#include "math.h"
+#include <cmath>
 #include <set>
 #include <map>
 #include <string>
@@ -25,9 +25,10 @@ protected:
     double min_load_factor;
     int min_size;
     int max_size;
-    // The current size of the directory is 2^(num_bits). Used to find the bucket number of a page.
+    // The current size of the directory is 2^(num_bits). Used to find the bucket number of a entry_data.
     int num_bits;
     int num_pages_in_buffer;
+    int num_data_in_buffer;
     //
     std::vector<T *> entries;
     // Entry number to entry number pointing at this bucket, if one exists
@@ -36,13 +37,13 @@ protected:
     std::map<int, int> is_ref;
 
     virtual void evict() = 0;
-    // Calculate the bucket number of a given page
+    // Calculate the bucket number of a given entry_data
     int hash_to_bucket_index(std::string file_and_page);
     // Double the size of the directory
     void grow(int new_num_bits);
     // Shrink the directory itself - note that this does not evict entries, only the directory size
     void shrink();
-    /// Internal helpers for page management ///
+    /// Internal helpers for entry_data management ///
     // Insert an entry into its correct bucket
     void insert(T *entry);
     // Delete a reference of an entry relative to its adjacent entries

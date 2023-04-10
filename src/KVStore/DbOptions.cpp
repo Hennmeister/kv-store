@@ -7,13 +7,14 @@ DbOptions::DbOptions(){
 
     // Load default params
     this->memTableType = "RedBlackTree";
-    this->maxMemtableSize = PAGE_SIZE;
+    this->maxMemtableSize = PAGE_SIZE * 2;
     this->sstSearch = "BTree";
     this->btreeFanout = 5;
-    this->bufferPoolType = "Clock";
+    this->bufferPoolType = "LRU";
     this->bufferPoolMinSize = 1;
     this->bufferPoolMaxSize = 10;
     this->useBinarySearch = 0;
+    this->filterBitsPerEntry = 10;
 }
 
 void DbOptions::setMaxMemtableSize(int maxMemtableSize){
@@ -38,4 +39,8 @@ void DbOptions::setBufferPoolType(std::string bufferPoolType){
 void DbOptions::setBufferPoolSize(int bufferPoolMinSize, int bufferPoolMaxSize){
     this->bufferPoolMinSize = bufferPoolMinSize;
     this->bufferPoolMaxSize = bufferPoolMaxSize;
+}
+
+void DbOptions::setFilterBitsPerEntry(int filterBitsPerEntry) {
+    this->filterBitsPerEntry = filterBitsPerEntry;
 }

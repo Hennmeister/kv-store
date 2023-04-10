@@ -12,9 +12,10 @@ private:
     int total_entries;
     int useBinary;
     int newFanout;
+    int filter_bits_per_entry;
 public:
     ~BTreeSSTManager();
-    explicit BTreeSSTManager(SSTFileManager *fileManager, int newFanout, int useBinarySearch);
+    explicit BTreeSSTManager(SSTFileManager *fileManager, int newFanout, int useBinarySearch, int filter_bits_per_entry);
     bool get(const int& key, int &value) override;
     std::vector<std::pair<int, int>> scan(const int& key1, const int& key2) override;
     bool add_sst(std::vector<std::pair<int, int>> data) override;
