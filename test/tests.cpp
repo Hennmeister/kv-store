@@ -20,8 +20,9 @@ using namespace std;
 // ===================== Bloom Filter ========================= //
 void bloom_filter_simple(SimpleKVStore db) {
     BloomFilter *filter = new BloomFilter(10, 10);
-    filter->insert("test string");
-//    assert_val_equals(filter->testMembership("test string"), true, "bloom_filter_simple");
+    filter->insert(1);
+    assert_val_equals(filter->testMembership(2), false, "bloom_filter_simple_neg");
+    assert_val_equals(filter->testMembership(1), true, "bloom_filter_simple_pos");
 }
 
 // TODO: test updating pages

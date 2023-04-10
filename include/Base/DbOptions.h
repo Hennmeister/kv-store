@@ -10,6 +10,7 @@ public:
     int bufferPoolMinSize; // in MB
     int bufferPoolMaxSize; // in MB
     int useBinarySearch;
+    int filter_bits_per_entry;
 
     DbOptions();
     void setMaxMemtableSize(int maxMemtableSize);

@@ -43,10 +43,8 @@ int SimpleSSTFileManager::get_page(int page, string file, void *data_buf) {
 
     string buf_entry_id = file + "-" + to_string(page);
 
-    // Check if page is cached
+    // Check if entry_data is cached
     if (this->cache->get(buf_entry_id, (std::uint8_t *) data_buf)) {
-        // Reinsert page into buffer to acknowledge acess
-        this->cache->put(buf_entry_id, (std::uint8_t *) data_buf);
         return PAGE_SIZE;
     }
 
@@ -55,24 +53,36 @@ int SimpleSSTFileManager::get_page(int page, string file, void *data_buf) {
     int successful_read = safe_read(file_fd, data_buf, PAGE_SIZE, PAGE_SIZE * page);
     close(file_fd);
 
-    // Add page to cache
-    this->cache->put(buf_entry_id, (std::uint8_t *) data_buf);
+    // Add entry_data to cache
+    this->cache->put(buf_entry_id, (std::uint8_t *) data_buf, PAGE_SIZE);
     return successful_read;
 }
 
-// Reads in end page as well (inclusive) e.g. start = 0 end = 0 implies only 0 is read, start = 0 end = 1 implies 0,1 read
-int SimpleSSTFileManager::scan(int start_page, int end_page, string file, void *data_buf) {
-    // Account for metadata page.
+// Reads in end entry_data as well (inclusive) e.g. start = 0 end = 0 implies only 0 is read, start = 0 end = 1 implies 0,1 read
+int SimpleSSTFileManager::scan(int start_page, int end_page, string file, void *data_buf, bool should_cache) {
+    // Account for metadata entry_data.
     start_page++;
     end_page++;
+
+    int diff = (end_page + 1) - start_page;
+
+    // check if there is a variable sized entry
+    // this is used for bloom filter entries
+    string buf_entry_id = file + "-" + to_string(start_page) + "-" + to_string(end_page);
+    if (should_cache &&  this->cache->get(buf_entry_id, (std::uint8_t *) data_buf)) {
+       return diff * PAGE_SIZE;
+    }
 
     // Don't cache scanned pages to avoid sequential flooding
 
     char* filename = string_to_char(dir_name + "/" + file);
     int file_fd = open(filename, O_RDWR, 0777);
-    int diff = (end_page + 1) - start_page;
     int successful_read = safe_read(file_fd, data_buf, PAGE_SIZE * diff, PAGE_SIZE * start_page);
     close(file_fd);
+
+    if (should_cache) {
+        this->cache->put(buf_entry_id, (std::uint8_t *) data_buf, diff * PAGE_SIZE);
+    }
     return successful_read;
 }
 

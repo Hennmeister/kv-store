@@ -6,15 +6,17 @@
 #include <climits>
 
 bool LSMTreeManager::get(const int &key, int &value) {
-    for (auto level: levels)
-    {
-        for(auto sst: level) {
-            if (sst->get(key, value)) {
-                return true;
+    for (int i = 0; i < levels.size(); i ++) {
+        auto level = levels[i];
+        {
+            for (auto sst: level) {
+                if (sst->get(key, value)) {
+                    return true;
+                }
             }
         }
+        return false;
     }
-    return false;
 }
 
 bool sortByFname(const pair<string,int> &a,
@@ -25,7 +27,7 @@ bool sortByFname(const pair<string,int> &a,
     return (pos_a < pos_b);
 }
 
-LSMTreeManager::LSMTreeManager(SSTFileManager *fileManager, int newFanout, int useBinarySearch, int memtable_size) {
+LSMTreeManager::LSMTreeManager(SSTFileManager *fileManager, int newFanout, int useBinarySearch, int memtable_size, int filter_bits_per_entry) {
     auto files = fileManager->get_files();
     // Reverse SST order by filename so that newer SSTs are first.
     std::sort(files.begin(), files.end(), sortByFname);
@@ -36,6 +38,8 @@ LSMTreeManager::LSMTreeManager(SSTFileManager *fileManager, int newFanout, int u
     this->fileManager = fileManager;
     this->sst_counter = 0;
     this->newFanout = newFanout;
+    this->filter_bits_per_entry = filter_bits_per_entry;
+    this->memtable_size = memtable_size;
     this->levels = vector<vector<BTreeSST*>>();
     this->levels.push_back(vector<BTreeSST*>());
 
@@ -77,13 +81,14 @@ std::vector<std::pair<int, int>> LSMTreeManager::scan(const int &key1, const int
 bool LSMTreeManager::add_sst(std::vector<std::pair<int, int>> data) {
 //    if (data.size() % PAGE_NUM_ENTRIES != 0)
 //        return false;
-    auto* new_sst = new BTreeSST(fileManager, sst_counter, newFanout, data, useBinary);
+    auto* new_sst = new BTreeSST(fileManager, sst_counter, newFanout, data, useBinary, filter_bits_per_entry);
     sst_counter++;
     levels[0].push_back(new_sst);
     total_entries += new_sst->getSize();
     if(levels[0].size() == 2){
         return this->compact_tree(0);
     }
+    // write bloom filter
     return true;
 }
 
@@ -101,6 +106,9 @@ LSMTreeManager::~LSMTreeManager() {
 BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
     int newer_size = newer->getSize();
     int older_size = older->getSize();
+
+    // create new bloom filter, slightly overestimating size due to key collisions
+    BloomFilter *filter = new BloomFilter(newer_size + older_size ,filter_bits_per_entry);
 
     // Calculate constants
     int internal_node_ints_newer = newer->get_internal_node_count() + newer->internal_btree.size();
@@ -141,7 +149,6 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
     int ind0 = 0;
     int ind1 = 0;
 
-
     // Construct resulting pages with 2 page buffers ----------------------------------
     while(newer_pg_ctr < newer_pages && older_pg_ctr < older_pages){
         // Exactly the same as priority merge
@@ -150,17 +157,20 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
             if (master[ind0].first > older_page[ind1].first)
             {
                 res.emplace_back(older_page[ind1]);
+                filter->insert(older_page[ind1].first);
                 ind1++;
             }
             else if (master[ind0].first < older_page[ind1].first)
             {
                 res.emplace_back(master[ind0]);
+                filter->insert(master[ind0].first);
                 ind0++;
             }
             else
             {
                 if(master[ind0].second != INT_MIN) {
                     res.emplace_back(master[ind0]);
+                    filter->insert(master[ind0].first);
                 }
                 ind0++;
                 ind1++;
@@ -201,13 +211,14 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
     while(newer_pg_ctr != newer_pages){
         for(int i = ind0; i < master.size(); i ++){
             res.emplace_back(master[i]);
+            filter->insert(master[i].first);
         }
         ind0 = 0;
         newer_pg_ctr++;
         if(newer_pg_ctr <= newer_pages){
             master = newer->get_pages(newer_pg_ctr, newer_pg_ctr);
         }
-        // Flush page
+        // Flush entry_data
         while(res.size() >= PAGE_NUM_ENTRIES){
             for(int i = 0; i < PAGE_NUM_ENTRIES; i++){
                 if((btree_ctr + 1) % newFanout == 0){
@@ -226,6 +237,7 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
     while(older_pg_ctr != older_pages){
         for(int i = ind1; i < older_page.size(); i ++){
             res.emplace_back(older_page[i]);
+            filter->insert(older_page[i].first);
         }
         ind1 = 0;
         older_pg_ctr++;
@@ -308,9 +320,22 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
 
     fileManager->write_page(internal_nodes_buf, PAGE_SIZE * internal_node_pages, 1, fname);
 
+    // write out bloom filter
+    pair<int *, int> serialized_filter_pair = filter->serialize();
+    int *serialized_filter = serialized_filter_pair.first;
+    // Note that filter size does not include padded data
+    int num_filter_pages = serialized_filter_pair.second;
+    fileManager->write_page(serialized_filter, num_filter_pages, write_pg_ctr, fname);
+    delete serialized_filter;
+
     // Update metadata with new size
     meta[2] = total_size;
+    // bloom filter start
+    meta[3] = write_pg_ctr;
+    // bloom filter size
+    meta[4] = num_filter_pages;
     fileManager->write_page(meta, PAGE_SIZE, 0, fname);
+    delete filter;
     return new BTreeSST(fileManager, fname, total_size, useBinary);
 }
 
@@ -326,8 +351,6 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
 bool LSMTreeManager::compact_tree(int level) {
     auto res = combine_SST(levels[level][1], levels[level][0]);
     sst_counter++;
-    delete levels[level][0];
-    delete levels[level][1];
     levels[level].clear();
     if(levels.size() == level + 1){
         auto new_level = vector<BTreeSST*>();
