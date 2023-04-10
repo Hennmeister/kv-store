@@ -207,7 +207,7 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
     int bloom_filter_num_pages = serial_info.second;
 
     // num_seeds + seeds + num bits + bits
-    int *write_buf = new int[internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) + bloom_filter_num_pages * PAGE_SIZE];
+    int *write_buf = new int[internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) * 2 + bloom_filter_num_pages * (PAGE_SIZE/sizeof(int))];
     write_buf[0] += this->internal_btree.size();
     int counter = 1;
     for( auto level: this->internal_btree){
