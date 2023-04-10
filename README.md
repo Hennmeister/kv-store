@@ -130,6 +130,8 @@ After fully implementing the BTree with scans and gets, we then revisited the bi
 
 At this point, our BTree could function as both a large Append Only File or a BTree through the use of the `useBinary` option. 
 
+_Note: The internal nodes are only read from once, on SST load. While we understand that these nodes should be handled as regular pages and read from disk each time, with sufficiently large fanouts, the number of integers in all internal nodes scales very very very well (log base fannout). This allows us to keep all internal ndoes in memory at all times._ 
+
 #### Experiments
 
 TODO: step2 experiments
