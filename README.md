@@ -4,18 +4,19 @@ Refer to [this page](https://docs.google.com/document/d/1dsIuIzXiIBbiZcNYi1cC62P
 
 # Table of Contents
 1. [Introduction](#introduction)
-2. [Execution](#execution)
-3. [Playground](#playground)
-4. [Experiments](#experiments)
-5. [Project Status](#status)
-6. [Database Initialization and Parameters](#init_param)
+2. [Compilation](#compilation)
+    1. [Tests](#tests)
+    2. [Playground](#playground)
+    3. [Experiments](#experiments)
+3. [Project Status](#status)
+4. [Database Initialization and Parameters](#init_param)
     1. [DbOptions](#dboptions)
-7. [Implementation Steps](#steps)
+5. [Implementation Steps](#steps)
     1. [Abstractions](#abstractions)
     2. [Step 1](#step1)
     3. [Step 2](#step2)
     4. [Step 3](#step3)
-8. [Testing](#testing)
+6. [Testing](#testing)
 
 
 ## Introduction
@@ -34,17 +35,21 @@ We implement this key-value store using various data structures covered in class
 
 KV-stores are widely used in industry. Note that they have a far simpler API than traditional relational database systems, which expose SQL as an API to the user. There are many applications for which a simple KV API is sufficient. Note, however, that KV-stores can also be used as the backbone for relational database management systems. For example, MyRocks by Meta is an example of a relational database utilizing as its backbone a key-value store very similar to the one we built, namely RocksDB.
 
-## "I don't care, just tell me how to run it." - Fine... (Execution) <a name="execution"></a>
+## "I don't care, just tell me how to run it." - Fine... <a name="compilation"></a>
 
-Run `./make.sh` to compile the program and run the tests in one command. The test executable file will be located under `/build/kv-store-test`. It also compiles the experiments executable at `/build/kv-store-performance-test` and a playground executable at `/build/kv-store-performance-test`.
+Run `./make.sh` to compile all executables and run the tests in one command. 
+
+### Tests
+
+The test executable file will be located under `/build/kv-store-test` and this file runs all unit tests.
 
 ### Playground
 
-We provide an empty C++ file with a default version of our database (that you are free modify if you wish - see [Database Initialization and Parameters](#database-initialization-and-parameters)) for you to play with and write any calls to `open`, `put`, `get`, `scan`, print results and verify functionality. The aim is to provide you with an easy way to interact with our database without having to compile a new project.
+We provide an "empty" C++ file with a default version of our database (that you are free modify if you wish - see [Database Initialization and Parameters](#database-initialization-and-parameters)) for you to play with and write any calls to `open`, `put`, `get`, `scan`, print results and verify functionality. The aim is to provide you with an easy way to interact with our database without having to compile a new project. The executable can be found at `/build/kv-store-test` and the file can be changed at `/playground.cpp`.
 
 ### Experiments
 
-Run `./experiments.sh` to run the excutable that generates all experiments data. You can also generate data individually for each experiment by calling the executable file `/build/kv-store-performance-test` with the parameters indicated on the calls of `experiments.sh`. We also provide a `plot_experiments.sh` script that plots the data generated for each experiment. You can also plot the data of individual experiments by using the same approach.
+Run `./experiments.sh` to run the executable that generates all experiments data. You can also generate data individually for each experiment by calling the executable file `/build/kv-store-performance-test` with the parameters indicated on the calls of `experiments.sh`. We also provide a `plot_experiments.sh` script that plots the data generated for each experiment. You can also plot the data of individual experiments by using the same approach.
 
 ## Project Status <a name="status"></a>
 
