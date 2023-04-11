@@ -70,23 +70,6 @@ int main()
     DbOptions *options = new DbOptions();
     options->setMaxMemtableSize(PAGE_SIZE);
 
-    SimpleKVStore largedb;
-    largedb.open(test_dir + "largeputs_db");
-    int num_inserts = 32 * MEGABYTE / ENTRY_SIZE;
-    std::random_device rand_dev;
-    std::mt19937 generator(rand_dev());
-    std::uniform_int_distribution<int> unif_sample(0, num_inserts);
-
-    std::unordered_set<int> unique_keys;
-    // Load db with uniformly random keys until num_inserts
-    while (unique_keys.size() < num_inserts) {
-        int key = unif_sample(generator);
-        if (unique_keys.find(key) == unique_keys.end()) {
-            unique_keys.insert(key);
-            largedb.put(key, 0);
-        }
-    }
-
     // Individual DBs
     for (pair<void (*)(SimpleKVStore db), string> func : individual_db_tests)
     {

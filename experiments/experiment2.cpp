@@ -250,6 +250,8 @@ void experiment2p2(int num_MB, int step_size_MB) {
     std::mt19937 generator(rand_dev());
     std::uniform_int_distribution<int> unif_sample(0, num_inserts);
 
+    std::cout << "Inserting " + to_string(num_inserts) + " keys (percent included): ";
+
     std::unordered_set<int> unique_keys;
     // Load db with uniformly random keys until num_inserts
     while (unique_keys.size() < num_inserts) {

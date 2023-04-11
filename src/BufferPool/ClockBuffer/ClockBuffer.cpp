@@ -17,6 +17,8 @@ ClockBuffer::ClockBuffer(int minSize, int maxSize, double min_load_factor, doubl
 // If the directory is at capacity, evicts the LRU entry_data.
 // If the directory is more than 75% full, grows the directory to increase capacity
 bool ClockBuffer::put(std::string file_and_page, uint8_t *data, int size) {
+    if (max_size == 0) return true;
+
     // evict if the buffer pool is at capacity
     if (num_data_in_buffer + size > (max_size * MB) * max_load_factor) {
        evict();
@@ -64,6 +66,8 @@ bool ClockBuffer::put(std::string file_and_page, uint8_t *data, int size) {
 // Update used used_bit of requested entry
 // TODO: return not found error status
 bool ClockBuffer::get(string file_and_page, uint8_t *page_out_buf) {
+    if (num_data_in_buffer == 0) return false;
+
     int bucket_num = hash_to_bucket_index(file_and_page);
     ClockBufferEntry *curr_entry = entries[bucket_num];
     while (curr_entry != nullptr && curr_entry->file_and_page != file_and_page) {
