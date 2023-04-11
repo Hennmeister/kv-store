@@ -35,7 +35,7 @@ using namespace std;
 // not reach said page and changed to 0, while still trying to
 // wait as long as possible so that LRU can still keep the page
 // while clock evicted on a third access
-void experiment2p1(int num_MB, int step_size) {
+void experiment2p1(int num_MB, int step_size_MB) {
     cout << "Running Experiment 2.1" << endl;
 
     DbOptions *lru_options = new DbOptions();
@@ -55,10 +55,10 @@ void experiment2p1(int num_MB, int step_size) {
     lru_db2.open("./experiments_dbs/lru_db", lru_options);
     clock_db2.open("./experiments_dbs/clock_db", clock_options);
 
-    int max_buf_size = num_MB * MEGABYTE;
+    int max_buf_size_MB = num_MB;
 
     // Load 8 * max_buf_size bytes of entries in the database
-    int num_inserts = 8 * max_buf_size / ENTRY_SIZE;
+    int num_inserts = 8 * max_buf_size_MB * MEGABYTE/ ENTRY_SIZE;
     int num_queries = 0.00001 * num_inserts; // query 0.001% of data inserted
 
     std::cout << "Averaging from " + to_string(num_queries) + " queries" << std::endl;
@@ -69,7 +69,7 @@ void experiment2p1(int num_MB, int step_size) {
     std::vector<double> lru_throughput2;
     std::vector<double> clock_throughput2;
 
-    assert(step_size < num_inserts);
+    assert(step_size_MB * MEGABYTE < num_inserts);
 
     std::random_device rand_dev;
     std::mt19937 generator(rand_dev());
@@ -93,15 +93,15 @@ void experiment2p1(int num_MB, int step_size) {
         lru_db2.put(i, 0);
     }
 
-    std::cout << "Generating " + to_string(max_buf_size / step_size) + " datapoints..." << std::endl;
+    std::cout << "Generating " + to_string(max_buf_size_MB / step_size_MB) + " datapoints..." << std::endl;
     std::cout << "Iteration: ";
 
-    for (int i = 0; i < max_buf_size / step_size; i++) {
+    for (int i = 0; i < max_buf_size_MB / step_size_MB; i++) {
 
         std::cout << to_string(i + 1) << " ";
         fflush(stdout);
 
-        int buffer_size = (i + 1) * step_size;
+        int buffer_size = (i + 1) * step_size_MB;
 
         clock_db1.set_buffer_pool_max_size(buffer_size);;
         lru_db1.set_buffer_pool_max_size(buffer_size);;
@@ -116,7 +116,7 @@ void experiment2p1(int num_MB, int step_size) {
         auto start = chrono::high_resolution_clock::now();
 
         for (int i = 0; i < num_queries; i++)
-            lru_db1.get(rand_int(1, num_inserts), (int &) val);
+            lru_db1.get(unif_sample(generator), (int &) val);
 
         auto stop = chrono::high_resolution_clock::now();
         double microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
@@ -127,7 +127,7 @@ void experiment2p1(int num_MB, int step_size) {
         start = chrono::high_resolution_clock::now();
 
         for (int i = 0; i < num_queries; i++)
-            clock_db1.get(rand_int(1, num_inserts), (int &) val);
+            clock_db1.get(unif_sample(generator), (int &) val);
 
         stop = chrono::high_resolution_clock::now();
         microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
@@ -156,11 +156,11 @@ void experiment2p1(int num_MB, int step_size) {
 
         for (int i = 0; i < num_queries; i++) {
             // To avoid synchronizing with the clock handle, query from
-            // random key after 10% of buffer size queries happened
-            if (i % (int)(0.1 * num_pages_in_buf) == 0) {
-                lru_db2.get(rand_int(1, num_inserts), (int &) val);
+            // random key after 10% queries
+            if (i % (int)(0.1 * num_queries) == 0) {
+                lru_db2.get(unif_sample(generator), (int &) val);
             } else {
-                lru_db2.get(keys_iterated[i % reaccess_after + 1], (int &) val);
+                lru_db2.get(keys_iterated[i % (reaccess_after + 1)], (int &) val);
             }
         }
 
@@ -174,11 +174,11 @@ void experiment2p1(int num_MB, int step_size) {
 
         for (int i = 0; i < num_queries; i++) {
             // To avoid synchronizing with the clock handle, query from
-            // random key after 10% of buffer size queries happened
-            if (i % (int)(0.1 * num_pages_in_buf) == 0) {
-                clock_db2.get(rand_int(1, num_inserts), (int &) val);
+            // random key after 10% queries
+            if (i % (int)(0.1 * num_queries) == 0) {
+                clock_db2.get(unif_sample(generator), (int &) val);
             } else {
-                clock_db2.get(keys_iterated[i % reaccess_after + 1], (int &) val);
+                clock_db2.get(keys_iterated[i % (reaccess_after + 1)], (int &) val);
             }
         }
 
@@ -187,7 +187,7 @@ void experiment2p1(int num_MB, int step_size) {
 
         clock_throughput2.push_back((1000 * (double) num_queries) / microsecs);
 
-        x.push_back((i + 1) * step_size * ENTRY_SIZE);
+        x.push_back((i + 1) * step_size_MB);
     }
 
     std::cout << std::endl;
@@ -200,7 +200,7 @@ void experiment2p1(int num_MB, int step_size) {
 
     std::ofstream exp2_data ("./experiments/data/exp2p1_data.csv");
 
-    exp2_data << "Max Cache Size (Bytes),LRU Throughput,Clock Throughput,LRU Throughput,Clock Throughput" << std::endl;
+    exp2_data << "Max Cache Size (MB),LRU Throughput,Clock Throughput,LRU Throughput,Clock Throughput" << std::endl;
 
     for (int i = 0; i < x.size(); i++) {
         exp2_data << x[i] << "," << to_string(lru_throughput1[i]) << "," << to_string(clock_throughput1[i]) << "," << to_string(lru_throughput2[i]) << "," << to_string(clock_throughput2[i]) << std::endl;
@@ -276,7 +276,7 @@ void experiment2p2(int num_MB, int step_size_MB) {
         auto start = chrono::high_resolution_clock::now();
 
         for (int i = 0; i < num_queries; i++)
-            btree_db.get(rand_int(1, num_inserts), (int &) val);
+            btree_db.get(unif_sample(generator), (int &) val);
 
         auto stop = chrono::high_resolution_clock::now();
         double microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
@@ -287,7 +287,7 @@ void experiment2p2(int num_MB, int step_size_MB) {
         start = chrono::high_resolution_clock::now();
 
         for (int i = 0; i < num_queries; i++)
-            bs_db.get(rand_int(1, num_inserts), (int &) val);
+            bs_db.get(unif_sample(generator), (int &) val);
 
         stop = chrono::high_resolution_clock::now();
         microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();

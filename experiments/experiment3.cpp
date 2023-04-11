@@ -25,11 +25,11 @@ void experiment3p1(int num_MB, int step_size_MB) {
     DbOptions *options = new DbOptions();
     options->setSSTSearch("LSMTree");
     options->setBufferPoolSize(0, 10);
- //   options->setBloomBits(5);
+    options->setFilterBitsPerEntry(5);
     options->setMaxMemtableSize(1 * MEGABYTE);
 
     SimpleKVStore db;
-    db.open("./experiments_dbs/experiment_3p1"); // TODO: specs
+    db.open("./experiments_dbs/experiment_3p1", options);
 
     assert(num_MB == 1024);
 
@@ -141,7 +141,7 @@ void experiment3p2(int max_M, int step_size) {
     cout << "Running Experiment 3.2" << endl;
 
     // Load 1 GB of data on each run
-    int num_inserts = 1024 * MEGABYTE / ENTRY_SIZE;
+    int num_inserts = 16 * MEGABYTE / ENTRY_SIZE;
     int num_queries = 0.00001 * num_inserts; // query 0.001% of data inserted
 
     std::cout << "Averaging from " + to_string(num_queries) + " queries" << std::endl;
@@ -163,10 +163,11 @@ void experiment3p2(int max_M, int step_size) {
         std::cout << to_string(i + 1) << " ";
         fflush(stdout);
 
-        // TODO: set bits per entry here
+        DbOptions *options = new DbOptions();
+        options->setFilterBitsPerEntry(M);
 
         SimpleKVStore db;
-        db.open("./experiments_dbs/exp3p2_" + to_string(M) + "bits_per_entry");
+        db.open("./experiments_dbs/exp3p2_" + to_string(M) + "bits_per_entry", options);
 
         std::unordered_set<int> unique_keys;
         // Load db with uniformly random keys until num_inserts
