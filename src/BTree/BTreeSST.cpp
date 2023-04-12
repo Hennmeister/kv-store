@@ -320,7 +320,7 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, string filename, int size, int u
 
     // Remove metadata from file size (this->size is number of entries)
     this->size = meta[2];
-    delete data;
+    delete[] data;
     delete[] meta;
 }
 

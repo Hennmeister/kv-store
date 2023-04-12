@@ -110,6 +110,7 @@ void flush_data(vector<pair<int,int>> &res, int& btree_ctr, int newFanout, SSTFi
     res.erase(res.begin(), res.begin() + PAGE_NUM_ENTRIES);
     fileManager->write_page(write_data_buf, PAGE_SIZE, write_pg_ctr, fname);
     write_pg_ctr++;
+    delete[] write_data_buf;
 }
 
 
@@ -264,6 +265,7 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
         fileManager->write_page(write_data_buf, PAGE_SIZE, write_pg_ctr, fname);
         write_pg_ctr++;
     }
+    delete[] write_data_buf;
 
     // Construct BTREE ----------------------------------
     vector<vector<int>> btree = vector<vector<int>>();
@@ -317,6 +319,8 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
     fileManager->write_page(meta, PAGE_SIZE, 0, fname);
 //    delete filter;
     delete[] serialized_filter;
+    delete[] internal_nodes_buf;
+    delete[] meta;
     return new BTreeSST(fileManager, fname, total_size, useBinary);
 }
 
