@@ -5,6 +5,7 @@
 #include "math.h"
 #include "../../include/util.h"
 #include <climits>
+#include <stdio.h>
 
 int negatives = 0;
 int total = 0;
@@ -189,6 +190,7 @@ void BTreeSST::constructBtree(const vector<pair<int, int>>& data){
 // New SST creation - construct btree and write data to file. (Should only be called with small SSTs)
 BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair<int, int>> data,
                    int useBinarySearch, int filter_bits_per_entry) {
+    int write_counter = 0;
     this->fanout = fanout;
     this->constructBtree(data);
     this->fileManager = fileManager;
@@ -208,15 +210,22 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
     int bloom_filter_num_pages = serial_info.second;
 
     // num_seeds + seeds + num bits + bits
-    int *write_buf = new int[internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) * 2 + bloom_filter_num_pages * (PAGE_SIZE/sizeof(int))];
+    int *write_buf = new int[internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) * 2 +
+                             bloom_filter_num_pages * (PAGE_SIZE/sizeof(int))];
+    memset(write_buf, 0, (internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) * 2 +
+                         bloom_filter_num_pages * (PAGE_SIZE/sizeof(int))) * sizeof(int));
+
     write_buf[0] += this->internal_btree.size();
+    write_counter++;
     int counter = 1;
     for( auto level: this->internal_btree){
         for(int val : level){
             write_buf[counter] = val;
+            write_counter++;
             counter ++;
         }
         write_buf[counter] = INT_MAX - 1;
+        write_counter++;
         counter ++;
     }
 
@@ -224,6 +233,7 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
     while(counter % (PAGE_SIZE/sizeof(int)) != 0){
         write_buf[counter] = INT_MAX - 1;
         counter ++;
+        write_counter++;
     }
 
     for (int i = 0; i < data_pages * PAGE_NUM_ENTRIES; i++)
@@ -236,6 +246,8 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
             write_buf[counter + i * 2 + 1] = data[i].second;
             filter->insert(data[i].first);
         }
+        write_counter++;
+        write_counter++;
     }
 
     // write out bloom filter
@@ -246,6 +258,7 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
     this->filter_start_page =  ((internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) * 2) * sizeof(int)) / PAGE_SIZE;
     memcpy(&write_buf[filter_start_page * PAGE_SIZE / sizeof(int)], serialized_filter,
            num_filter_pages * PAGE_SIZE);
+    write_counter += (num_filter_pages * PAGE_SIZE)/sizeof(int);
 
     string fname = to_string(ind + 1) + ".sst";
     int *meta = new int[PAGE_SIZE/sizeof(int)];
@@ -258,6 +271,10 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
     meta[4] = num_filter_pages;
 
     // note that we multiply by 2 since each entry has two ints
+    if(write_counter != ((internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) * 2) * sizeof(int) +
+                         num_filter_pages * PAGE_SIZE)/sizeof(int)){
+        printf("ERROR\n");
+    }
     fileManager->write_file(write_buf,
                             (internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) * 2) * sizeof(int) +
                             num_filter_pages * PAGE_SIZE,
