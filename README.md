@@ -59,20 +59,59 @@ TODO: at the end
 
 We provide the user with a DbOptions object that is used to set default configurations for any database instantiated, and also giving the freedom to specify some options based on the user's preference.
 
-As such, open("database name") is a valid call to create a database if the user simply wants a functioning databse without thinking about possible parameters/options, but they may also generate a DbOptions object and pass that in as a second parameter to the call for further customization.
+As such, open("database name") is a valid call to create a database if the user simply wants a functioning KV-store without thinking about possible parameters/options, but they may also generate a DbOptions object and pass that in as a second parameter to the call for further customization.
 
 ### DbOptions
 
-Default values: TODO
+**Default values**
 
-Options: TODO
+    1. Memtable
+        a. memTableType: "RedBlackTree"
+        b. maxMemtableSize: 10 * MEGABYTE
 
-An example is as follows:
+    2. SST
+        a. sstManager: "LSMTreeManager"
+        b. sstSearch: "BTree"
+        c. btreeFanout: 100
+
+    3. Buffer Pool
+        a. bufferPoolType: "LRU"
+        b. bufferPoolMinSize: 1
+        c. bufferPoolMaxSize: 10
+
+    4. Bloom filter
+        a. filterBitsPerEntry: 10
+
+**Avalable Options**
+
+    1. Memtable
+        a. memTableType: "RedBlackTree"
+        b. maxMemtableSize: any positive integer multiple of ENTRY_SIZE (representing the maximum number of bytes stored in the memtable)
+
+    2. SST
+        a. sstManager: "BTreeManager", "LSMTreeManager"
+        b. sstSearch: "BTree", "BinarySearh"
+        c. btreeFanout: any positive integer value (representing the fanout of the btree)
+
+    3. Buffer Pool
+        a. bufferPoolType: "Clock", "LRU", "None"
+        b. bufferPoolMinSize: any non-negative integer value (representing the minimum size of buffer pool in MB)
+        c. bufferPoolMaxSize: any positive integer value (representing the maximum size of buffer pool in MB)
+
+    4. Bloom filter
+        a. filterBitsPerEntry: any non-negative integer value (representing the number of bits per entry in the Bloom filterff)
+
+**Example**
 
 ````md
-  example
-  example
-  example
+    DbOptions *options = new DbOptions();
+    options->setSSTSearch("LSMTree");
+    options->setBufferPoolSize(0, 10); // min size, max size
+    options->setFilterBitsPerEntry(10);
+    options->setMaxMemtableSize(1 * MEGABYTE);
+    
+    SimpleKVStore db;
+    db.open("<db_path>/<db_name>", options);
 ````
 ---
 ## Implementation Steps <a name="steps"></a>
