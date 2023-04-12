@@ -147,7 +147,7 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
     meta[0] = newFanout;
     meta[1] = internal_node_pages;
     string fname = to_string(sst_counter + 1) + ".sst";
-
+    memset(internal_nodes_buf, 0, internal_node_ints_padded * sizeof(int));
     // Write out initial file
     fileManager->write_file(internal_nodes_buf,
                             (internal_node_pages) * PAGE_NUM_ENTRIES,
@@ -317,7 +317,7 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
     // bloom filter size
     meta[4] = num_filter_pages;
     fileManager->write_page(meta, PAGE_SIZE, 0, fname);
-//    delete filter;
+    delete filter;
     delete[] serialized_filter;
     delete[] internal_nodes_buf;
     delete[] meta;
