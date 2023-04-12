@@ -41,10 +41,12 @@ void experiment2p1(int num_MB, int step_size_MB) {
     DbOptions *lru_options = new DbOptions();
     lru_options->setBufferPoolType("LRU");
     lru_options->setBufferPoolSize(1, num_MB);
+    lru_options->setFilterBitsPerEntry(0);
 
     DbOptions *clock_options = new DbOptions();
     clock_options->setBufferPoolType("Clock");
     clock_options->setBufferPoolSize(1, num_MB);
+    clock_options->setFilterBitsPerEntry(0);
 
     SimpleKVStore lru_db1;
     SimpleKVStore clock_db1;
@@ -138,7 +140,8 @@ void experiment2p1(int num_MB, int step_size_MB) {
 
         // Set key range we are iterating over
 
-        int num_pages_in_buf = buffer_size / PAGE_SIZE;
+        // Maximum num pages in buf
+        int num_pages_in_buf = buffer_size * MEGABYTE / PAGE_SIZE;
 
         // Reaccess the same page after querying 30% of the buffer size new pages
         // This tries to be long enough so that clock handle did not tick
@@ -210,10 +213,6 @@ void experiment2p1(int num_MB, int step_size_MB) {
     clock_db1.close();
     lru_db2.close();
     clock_db2.close();
-
-    // Clear experiment db
-    for (const auto &entry : std::filesystem::directory_iterator("./experiments_dbs"))
-        std::filesystem::remove_all(entry.path());
 }
 
 // Experiment 2.2: Design an experiment comparing your binary search to B-tree search in terms of query
@@ -313,8 +312,4 @@ void experiment2p2(int num_MB, int step_size_MB) {
 
     btree_db.close();
     bs_db.close();
-
-    // Clear experiment db
-    for (const auto &entry : std::filesystem::directory_iterator("./experiments_dbs"))
-        std::filesystem::remove_all(entry.path());
 }

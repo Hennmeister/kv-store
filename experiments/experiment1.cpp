@@ -25,6 +25,7 @@ void experiment1(int num_MB, int step_size_MB) {
     options->setSSTManager("BTree");
     options->setSSTSearch("BinarySearch");
     options->setBufferPoolType("None");
+    options->setFilterBitsPerEntry(0);
 
     SimpleKVStore db;
     db.open("./experiments_dbs/experiment_1", options);
@@ -124,8 +125,4 @@ void experiment1(int num_MB, int step_size_MB) {
     }
 
     db.close();
-
-    // Clear experiment db
-    for (const auto &entry : std::filesystem::directory_iterator("./experiments_dbs"))
-        std::filesystem::remove_all(entry.path());
 }

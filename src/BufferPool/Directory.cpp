@@ -27,13 +27,17 @@ void Directory<T>::set_max_size(int new_size) {
         return; // TODO: add error here
     }
     max_size = new_size;
+
+    if (num_pages_in_buffer <= 0)
+        return;
+
     while (num_data_in_buffer > (max_size * MB) * max_load_factor) {
         evict();
     }
 
     //  shrink the directory until we reach a load factor of a least 25%
     int new_num_bits = num_bits;
-    while (((double) num_pages_in_buffer / (double) (1 << new_num_bits)) < min_load_factor) {
+    while (((double) num_pages_in_buffer / (double) (1 << new_num_bits)) < min_load_factor && new_num_bits > 0) {
         new_num_bits--;
     }
 

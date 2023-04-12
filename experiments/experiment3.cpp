@@ -128,10 +128,6 @@ void experiment3p1(int num_MB, int step_size_MB) {
     }
 
     db.close();
-
-    // Clear experiment db
-    for (const auto &entry : std::filesystem::directory_iterator("./experiments_dbs"))
-        std::filesystem::remove_all(entry.path());
 }
 
 
@@ -209,7 +205,4 @@ void experiment3p2(int max_M, int step_size) {
         exp3_data << x[i] << "," << to_string(get_throughput[i]) << std::endl;
     }
 
-    // Clear experiment db
-    for (const auto &entry : std::filesystem::directory_iterator("./experiments_dbs"))
-        std::filesystem::remove_all(entry.path());
 }

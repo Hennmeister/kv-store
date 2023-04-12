@@ -5,7 +5,7 @@
 
 # Experiment 2.1 (cache size up to 128MB of data and plot with step size of 1 MB)
 ./build/kv-store-performance-test -e 21 -d 128 -s 1
-# Experiment 2.2 (inserting 1GB of data and plot with step size of 8 MB)
+# Experiment 2.2 (inserting up to 1GB of data and plot with step size of 8 MB)
 ./build/kv-store-performance-test -e 22 -d 1024 -s 8
 
 # Experiment 3.1 (inserting up to 1GB of data and plot with step size of 8 MB)

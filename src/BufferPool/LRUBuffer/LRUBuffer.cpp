@@ -112,7 +112,9 @@ void LRUBuffer::evict() {
     num_pages_in_buffer--;
     delete tail;
     tail = new_tail;
-    tail->next = nullptr;
+
+    if (tail != nullptr)
+        tail->next = nullptr;
 }
 // move the corresponding LRU node to head of LRU linked list tracking recency
 void LRUBuffer::move_to_head(LRUNode *node) {
