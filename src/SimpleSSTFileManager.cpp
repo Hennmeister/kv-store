@@ -50,8 +50,8 @@ int SimpleSSTFileManager::get_page(int page, string file, void *data_buf) {
         return PAGE_SIZE;
     }
 
-    char* filename = string_to_char(dir_name + "/" + file);
-    int file_fd = open(filename, O_RDWR, 0777);
+    string filename = dir_name + "/" + file;
+    int file_fd = open(filename.c_str(), O_RDWR, 0777);
     int successful_read = safe_read(file_fd, data_buf, PAGE_SIZE, PAGE_SIZE * page);
     close(file_fd);
 
@@ -76,9 +76,7 @@ int SimpleSSTFileManager::scan(int start_page, int end_page, string file, void *
     }
 
     // Don't cache scanned pages to avoid sequential flooding
-
-    char* filename = string_to_char(dir_name + "/" + file);
-    int file_fd = open(filename, O_RDWR, 0777);
+    int file_fd = open((dir_name + "/" + file).c_str(), O_RDWR, 0777);
     int successful_read = safe_read(file_fd, data_buf, PAGE_SIZE * diff, PAGE_SIZE * start_page);
     close(file_fd);
 
@@ -89,8 +87,8 @@ int SimpleSSTFileManager::scan(int start_page, int end_page, string file, void *
 }
 
 int SimpleSSTFileManager::write_file(void *data, int size, string new_filename, void* metadata) {
-    char* filename = string_to_char(dir_name + "/" + new_filename);
-    int file_fd = open(filename, O_RDWR | O_CREAT, 0777);
+    string filename = dir_name + "/" + new_filename;
+    int file_fd = open(filename.c_str(), O_RDWR | O_CREAT, 0777);
     int meta_write = safe_write(file_fd, metadata, PAGE_SIZE, 0);
     int successful_write = safe_write(file_fd, data, size, PAGE_SIZE);
     close(file_fd);
@@ -117,8 +115,8 @@ bool SimpleSSTFileManager::delete_file(string filename) {
 }
 
 int SimpleSSTFileManager::write_page(void *data, int size, int start_page_num, string fname) {
-    char* filename = string_to_char(dir_name + "/" + fname);
-    int file_fd = open(filename, O_RDWR, 0777);
+    string filename = dir_name + "/" + fname;
+    int file_fd = open(filename.c_str(), O_RDWR, 0777);
     int successful_write = safe_write(file_fd, data, size, start_page_num * PAGE_SIZE);
     close(file_fd);
     return successful_write;
