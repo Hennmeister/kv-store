@@ -11,7 +11,7 @@ DbOptions::DbOptions(){
     this->maxMemtableSize = 10 * MEGABYTE;
 
     // SST
-    this->sstManager = "LSMTree";
+    this->sstManager = "LSMTreeManager";
     this->sstSearch = "BTree";
     this->btreeFanout = 100;
     this->useBinarySearch = 0; // No
