@@ -65,41 +65,41 @@ As such, open("database name") is a valid call to create a database if the user 
 
 **Default values**
 
-    1. Memtable
-        a. memTableType: "RedBlackTree"
-        b. maxMemtableSize: 10 * MEGABYTE
+    - Memtable
+        - memTableType: "RedBlackTree"
+        - maxMemtableSize: 10 * MEGABYTE
 
-    2. SST
-        a. sstManager: "LSMTreeManager"
-        b. sstSearch: "BTree"
-        c. btreeFanout: 100
+    - SST
+        - sstManager: "LSMTreeManager"
+        - sstSearch: "BTree"
+        - btreeFanout: 100
 
-    3. Buffer Pool
-        a. bufferPoolType: "LRU"
-        b. bufferPoolMinSize: 1
-        c. bufferPoolMaxSize: 10
+    - Buffer Pool
+        - bufferPoolType: "LRU"
+        - bufferPoolMinSize: 1
+        - bufferPoolMaxSize: 10
 
-    4. Bloom filter
-        a. filterBitsPerEntry: 10
+    - Bloom filter
+        - filterBitsPerEntry: 10
 
 **Avalable Options**
 
-    1. Memtable
-        a. memTableType: "RedBlackTree"
-        b. maxMemtableSize: any positive integer multiple of ENTRY_SIZE (representing the maximum number of bytes stored in the memtable)
+    - Memtable
+        - memTableType: "RedBlackTree"
+        - maxMemtableSize: any positive integer multiple of ENTRY_SIZE (representing the maximum number of bytes stored in the memtable)
 
-    2. SST
-        a. sstManager: "BTreeManager", "LSMTreeManager"
-        b. sstSearch: "BTree", "BinarySearh"
-        c. btreeFanout: any positive integer value (representing the fanout of the btree)
+    - SST
+        - sstManager: "BTreeManager", "LSMTreeManager"
+        - sstSearch: "BTree", "BinarySearh"
+        - btreeFanout: any positive integer value (representing the fanout of the btree)
 
-    3. Buffer Pool
-        a. bufferPoolType: "Clock", "LRU", "None"
-        b. bufferPoolMinSize: any non-negative integer value (representing the minimum size of buffer pool in MB)
-        c. bufferPoolMaxSize: any positive integer value (representing the maximum size of buffer pool in MB)
+    - Buffer Pool
+        - bufferPoolType: "Clock", "LRU", "None"
+        - bufferPoolMinSize: any non-negative integer value (representing the minimum size of buffer pool in MB)
+        - bufferPoolMaxSize: any positive integer value (representing the maximum size of buffer pool in MB)
 
-    4. Bloom filter
-        a. filterBitsPerEntry: any non-negative integer value (representing the number of bits per entry in the Bloom filterff)
+    - Bloom filter
+        - filterBitsPerEntry: any non-negative integer value (representing the number of bits per entry in the Bloom filterff)
 
 **Example**
 
@@ -118,7 +118,7 @@ As such, open("database name") is a valid call to create a database if the user 
 
 Here we outline the process of implementation the various parts of our system. For simplicity, our simple KV-Store only handles integer keys and integer values.
 
-The general flow is the following: entries get populated in a memtable (fitting entirely in memory) that holds the most recent key-value insertions in the database. Once the memtable grows beyond its capacity, the contents of the memtable are dumped to an SST sorted
+The general flow is the following: entries get populated in a memtable (fitting entirely in memory) that holds the most recent key-value insertions in the database. Once the memtable grows beyond its capacity, the contents of the memtable are dumped to an SST sorted by the keys.
 
 ### Abstractions
 
@@ -131,6 +131,12 @@ We have a few base interfaces that can be found under the `/include/Base` direct
 
 - `priority_merge` - This function is a core utility function used throughout our implementation. It allows the neat compaction of various sources of data in order to produce output data which prioritizes the newest data. The function takes in 2 inputs, 1 set of newer data (key-value pairs) and one set of older data. If there is ever an entry which is present in both sources, the function will use the newer version of the key. An example of usage would be when priority merging data from the memtable with data found in SSTs. 
 
+### High-Level OOP Diagram
+
+For better understanding of the codebase and our design decisions, we include here a diagram of our main classes and how they interact with each other:
+
+TODO: image
+
 
 ### Step 1 <a name="step1"></a>
 
@@ -140,9 +146,9 @@ We implement a memtable as a balanced binary search tree ([red-black tree](https
 
 - **SSTs (Sorted String Tables)**
 
-We set a maximum capacity (e.g. a page size of 4KB) to the Memtable, at which point we dump the contents key-value pairs in sorted order to an SST file `sstX`. The SSTs are thus stored in decreasing order of longevity where `sst1` is the oldest Memtable dumped. On a get query that is not found on the current Memtable, our database traverses over the SSTs from newest to oldest to find a key. Note that we implement the SST dump so that it writes in binary so an append-only file to maximize efficiency in sequential writes.
+We set a maximum capacity (e.g. a page size of 4KB) to the Memtable, at which point we dump the key-value pairs in sorted order to an SST file `x.sst`. The SSTs are thus stored in decreasing order of longevity where `1.sst` is the oldest Memtable dumped. On a get query that is not found on the current Memtable, our database traverses over the SSTs from newest to oldest to find a key. Note that we implement the SST dump so that it writes in binary to an append-only file to maximize efficiency in sequential writes.
 
-Our initial implementation was quite raw and assumed that a new SST File was made every time a memtable was dumped. This implies that each operation performed on any SST's loaded from disk could be performed in memory seeing as they do not grow in size. This assumption is later relaxed as we introduce more complications to our implementation. 
+Our initial implementation was quite raw and assumed that a new SST File was made every time a memtable was dumped. This implies that each operation performed on any SST loaded from disk could be performed in memory seeing as they do not grow in size. This assumption is later relaxed as we introduce more complications to our implementation. 
 
 In order to ensure efficiency, we use the `O_DIRECT` flag when opening a file and ensure that all reads are multiples of 512. 
 
@@ -214,8 +220,33 @@ TODO: step3 experiments
 
 ## Testing
 
-TODO
+In our efforts to assure the quality of our code, we relied on unit tests to check individual isolated components, integrated tests to verify that all our components are correctly combined in the flow of the application, as well as a lot of manual testing on playground and on the larger experiments. Some of the unit/integration tests are included in the `src/kv-store-test.cpp` file and we include them here for reference:
 
+- simple_test: a basic interaction with a database of putting, getting and updating a few values 
+- hash_test: a simple test that a the hashing function used is consistent with the same value
+- memtable_puts_and_gets: checks that memtables correctly stores and retrieves key-value pairs
+- sequential_puts_and_gets: checks that the db correctly stores sequential keys and retrieves them on get calls
+- sequential_puts_and_scans: checks that the db correctly stores sequential keys and retrieves them on scan calls
+- random_puts_and_gets: checks that the db correctly stores random keys and retrieves them on get calls
+- update_keys: checks that the db correctly updates keys corretly
+- edge_case_values: checks for edge cases
+- multiple_dbs: manages multiple dbs opened at once and ensure they are each correctly managed
+- simple_LRU_buffer: 
+- LRU_simple_evict:
+- LRU_ref_evict:
+- LRU_grow:
+- LRU_shrink:
+- simple_clock_buffer:
+- clock_simple_evict:
+- bloom_filter_simple:
+
+We also run the same tests with multiple database configurations (different search techniques, different buffer options, different sizes of various components) to ensure that the options behave consistenly across the board.
+
+
+
+
+
+TODO: DELETE THE FOLLOWING
 
 Marking scheme:
 
