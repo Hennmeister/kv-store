@@ -12,6 +12,7 @@ DbOptions::DbOptions(){
 
     // SST
     this->sstSearch = "BTree";
+    this->sstManager = "LSMTree";
     this->btreeFanout = 100;
     this->useBinarySearch = 0; // No
 
