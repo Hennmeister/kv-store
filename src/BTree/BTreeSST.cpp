@@ -273,11 +273,10 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
     // note that we multiply by 2 since each entry has two ints
     if(write_counter != ((internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) * 2) * sizeof(int) +
                          num_filter_pages * PAGE_SIZE)/sizeof(int)){
-        printf("ERROR\n");
+        fprintf(stderr, "ERROR\n");
     }
     fileManager->write_file(write_buf,
-                            write_total_ints * sizeof(int) +
-                            num_filter_pages * PAGE_SIZE,
+                            write_total_ints * sizeof(int),
                             fname, meta);
     this->useBinary = useBinarySearch;
     this->filename = fname;
