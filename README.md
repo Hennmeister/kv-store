@@ -152,9 +152,23 @@ Our initial implementation was quite raw and assumed that a new SST File was mad
 
 In order to ensure efficiency, we use the `O_DIRECT` flag when opening a file and ensure that all reads are multiples of 512. 
 
-#### Experiments
+#### Step 1 Experiments
 
-TODO: step1 experiments
+This experiment aims to measure the throughput of the put, get, and scan operations. The methodology is as follows:
+
+For each iteration, we:
+
+1. Randomly sample STEP_SIZE keys and `put` those keys in the db. Time and average throughput for that iteration.
+2. Randomly sample NUM_QUERIES keys and `get` those keys from the db. Time and average throughput for that iteration.
+3. Randomly sample NUM_QUERIES keys and `get` those keys from the db. Time and average throughput for that iteration.
+
+Note that "randomly" in this case is not uniform. Instead our sample has an intentional skew towards lower valued keys to more closely simulate a real database workload.
+
+At each iteration, since we increase the total database size at every step, NUM_QUERIES is calcaulated from a percentage of all the keys inserted into the database at that point.
+ 
+The graphs are saved under the name experiment1.png and shown below:
+
+TODO: image
 
 ### Step 2 <a name="step2"></a>
 
@@ -222,23 +236,23 @@ TODO: step3 experiments
 
 In our efforts to assure the quality of our code, we relied on unit tests to check individual isolated components, integrated tests to verify that all our components are correctly combined in the flow of the application, as well as a lot of manual testing on playground and on the larger experiments. Some of the unit/integration tests are included in the `src/kv-store-test.cpp` file and we include them here for reference:
 
-- simple_test: a basic interaction with a database of putting, getting and updating a few values 
-- hash_test: a simple test that a the hashing function used is consistent with the same value
-- memtable_puts_and_gets: checks that memtables correctly stores and retrieves key-value pairs
-- sequential_puts_and_gets: checks that the db correctly stores sequential keys and retrieves them on get calls
-- sequential_puts_and_scans: checks that the db correctly stores sequential keys and retrieves them on scan calls
-- random_puts_and_gets: checks that the db correctly stores random keys and retrieves them on get calls
-- update_keys: checks that the db correctly updates keys corretly
-- edge_case_values: checks for edge cases
-- multiple_dbs: manages multiple dbs opened at once and ensure they are each correctly managed
-- simple_LRU_buffer: 
-- LRU_simple_evict:
-- LRU_ref_evict:
-- LRU_grow:
-- LRU_shrink:
-- simple_clock_buffer:
-- clock_simple_evict:
-- bloom_filter_simple:
+- **simple_test:** a basic interaction with a database of putting, getting and updating a few values 
+- **hash_test:** a simple test that a the hashing function used is consistent with the same value
+- **memtable_puts_and_gets:** checks that memtables correctly stores and retrieves key-value pairs
+- **sequential_puts_and_gets:** checks that the db correctly stores sequential keys and retrieves them on get calls
+- **sequential_puts_and_scans:** checks that the db correctly stores sequential keys and retrieves them on scan calls
+- **random_puts_and_gets:** checks that the db correctly stores random keys and retrieves them on get calls
+- **update_keys:** checks that the db correctly updates keys corretly
+- **edge_case_values:** checks for edge cases
+- **multiple_dbs:** manages multiple dbs opened at once and ensure they are each correctly managed
+- **simple_LRU_buffer:**
+- **LRU_simple_evict:**
+- **LRU_ref_evict:**
+- **LRU_grow:**
+- **LRU_shrink:**
+- **simple_clock_buffer:**
+- **clock_simple_evict:**
+- **bloom_filter_simple:**
 
 We also run the same tests with multiple database configurations (different search techniques, different buffer options, different sizes of various components) to ensure that the options behave consistenly across the board.
 
