@@ -136,8 +136,8 @@ void experiment3p1(int num_MB, int step_size_MB) {
 void experiment3p2(int max_M, int step_size) {
     cout << "Running Experiment 3.2" << endl;
 
-    // Load 1 GB of data on each run
-    int num_inserts = 1024 * MEGABYTE / ENTRY_SIZE;
+    // Load 128 MB of data on each run
+    int num_inserts = 128 * MEGABYTE / ENTRY_SIZE;
     int num_queries = 0.00001 * num_inserts; // query 0.001% of data inserted
 
     std::cout << "Averaging from " + to_string(num_queries) + " queries" << std::endl;

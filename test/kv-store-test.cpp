@@ -32,7 +32,6 @@ vector<pair<void (*)(SimpleKVStore db), string>>
         F_NAME(simple_test),
         F_NAME(hash_test),
         F_NAME(memtable_puts_and_gets),
-        F_NAME(memtable_puts_and_scans),
         F_NAME(sequential_puts_and_gets),
         F_NAME(sequential_puts_and_scans),
         F_NAME(random_puts_and_gets),

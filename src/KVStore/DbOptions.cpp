@@ -20,7 +20,6 @@ DbOptions::DbOptions(){
     this->bufferPoolType = "LRU";
     this->bufferPoolMinSize = 1;
     this->bufferPoolMaxSize = 10;
-    this->useBinarySearch = 0;
 
     // Bloom filter
     this->filterBitsPerEntry = 10;
