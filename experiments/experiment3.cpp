@@ -35,66 +35,43 @@ void experiment3p1(int num_MB, int step_size_MB) {
 
     // Load 1 GB of data
     int num_inserts = num_MB * MEGABYTE / ENTRY_SIZE;
-    int num_queries = 0.00001 * num_inserts; // query 0.001% of data inserted
     int step_size = step_size_MB * MEGABYTE / ENTRY_SIZE;
-
-    std::cout << "Averaging from " + to_string(num_queries) + " queries" << std::endl;
 
     std::vector<int> x;
     std::vector<double> puts_throughput;
     std::vector<double> gets_throughput;
     std::vector<double> scans_throughput;
 
-    int key_max = 50 * num_inserts; // add some randomness
-
-    assert(key_max < INT_MAX);
     assert(step_size < num_inserts);
-
-    std::unordered_set<int> unique_keys;
 
     std::cout << "Generating " + to_string(num_inserts / step_size) + " datapoints..." << std::endl;
     std::cout << "Iteration: ";
 
-    int offset = 0;
     for (int i = 0; i < num_inserts / step_size; i++) {
+        int db_num_keys = (i + 1) * step_size;
 
         std::cout << to_string(i + 1) << " ";
         fflush(stdout);
 
         auto start = chrono::high_resolution_clock::now();
 
-        // We ensure that the duplicated keys are not counted as data inserted
-        // We also assume that the time to generate random keys and manage the hash set is negligible
-        int puts_count = 0;
-        while (unique_keys.size() < (i + 1) * step_size) {
-            int key = ::rand() % key_max; // not necessarily uniformly distributed to simulate real workload (skewed towards lower keys);
-            if (unique_keys.find(key) == unique_keys.end()) {
-                unique_keys.insert(key);
-                db.put(key, 0); // paylod is irrelevant
-            }
-            puts_count++;
+        // We assume that the time to generate random keys and manage the hash set is negligible
+        for (int i = 0; i < step_size; i++) {
+            int key = ::rand() % num_inserts; // not necessarily uniformly distributed to simulate real workload (skewed towards lower keys)
+            db.put(key, 0); // paylod is irrelevant
         }
 
         auto stop = chrono::high_resolution_clock::now();
         double microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
-        puts_throughput.push_back((1000 * (double)puts_count) / microsecs);
+        puts_throughput.push_back((1000 * (double)step_size) / microsecs);
 
-        offset += puts_count;
-
-        // generate num_queries random keys from the unique inserted keys
-        int rand_gets[num_queries];
-        for (int j = 0; j < num_queries; j++) {
-            int key;
-            std::mt19937 gen(std::random_device{}());
-            std::sample(unique_keys.begin(), unique_keys.end(), &key, 1, gen);
-            rand_gets[j] = key;
-        }
+        int num_queries = 0.00001 * db_num_keys; // query 0.001% of data inserted
 
         // num_queries number of random gets
         int val;
         start = chrono::high_resolution_clock::now();
         for (int j = 0; j < num_queries; j++)
-            db.get(rand_gets[j], (int &) val);
+            db.get(::rand() % num_inserts, (int &) val);
 
         stop = chrono::high_resolution_clock::now();
         microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
@@ -102,14 +79,17 @@ void experiment3p1(int num_MB, int step_size_MB) {
 
         // num_queries number of random scans
         start = chrono::high_resolution_clock::now();
-        for (int j = 1; j < num_queries; j++)
-            db.scan(min(rand_gets[j-1], rand_gets[j]), max(rand_gets[j-1], rand_gets[j]));
+        for (int j = 1; j < num_queries; j++) {
+            int k1 = ::rand() % num_inserts;
+            int k2 = ::rand() % num_inserts;
+            db.scan(min(k1, k2), max(k1, k2));
+        }
 
         stop = chrono::high_resolution_clock::now();
         microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
         scans_throughput.push_back((1000 * (double)num_queries) / microsecs);
 
-        x.push_back(unique_keys.size() * ENTRY_SIZE);
+        x.push_back(db_num_keys * ENTRY_SIZE);
     }
 
     std::cout << std::endl;
@@ -165,15 +145,9 @@ void experiment3p2(int max_M, int step_size) {
         SimpleKVStore db;
         db.open("./experiments_dbs/exp3p2_" + to_string(M) + "bits_per_entry", options);
 
-        std::unordered_set<int> unique_keys;
         // Load db with uniformly random keys until num_inserts
-        while (unique_keys.size() < num_inserts) {
-            int key = unif_sample(generator);
-            if (unique_keys.find(key) == unique_keys.end()) {
-                unique_keys.insert(key);
-                db.put(key, 0); // paylod is irrelevant
-            }
-        }
+        for (int i = 0; i < num_inserts; i++)
+            db.put(unif_sample(generator), 0); // paylod is irrelevant
 
         // Time queries
         int val;

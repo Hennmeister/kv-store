@@ -11,7 +11,6 @@
 #include <fstream>
 #include <filesystem>
 #include <sys/stat.h>
-#include <unordered_set>
 
 using namespace std;
 
@@ -77,19 +76,12 @@ void experiment2p1(int num_MB, int step_size_MB) {
     std::mt19937 generator(rand_dev());
     std::uniform_int_distribution<int> unif_sample(0, num_inserts);
 
-    std::unordered_set<int> unique_keys;
-    // Load db with uniformly random keys until num_inserts
-    while (unique_keys.size() < num_inserts) {
-        int key = unif_sample(generator);
-        if (unique_keys.find(key) == unique_keys.end()) {
-            unique_keys.insert(key);
-            // Load db1s with randomly ordered keys
-            clock_db1.put(key, 0);
-            lru_db1.put(key, 0);
-        }
-    }
-
     for (int i = 0; i < num_inserts; i++) {
+        // Load db1s with randomly ordered keys
+        int key = unif_sample(generator);
+        clock_db1.put(key, 0);
+        lru_db1.put(key, 0);
+
         // Load db2s with sequential keys
         clock_db2.put(i, 0);
         lru_db2.put(i, 0);
@@ -249,15 +241,11 @@ void experiment2p2(int num_MB, int step_size_MB) {
     std::mt19937 generator(rand_dev());
     std::uniform_int_distribution<int> unif_sample(0, num_inserts);
 
-    std::unordered_set<int> unique_keys;
-    // Load db with uniformly random keys until num_inserts
-    while (unique_keys.size() < num_inserts) {
+    for (int i = 0; i < num_inserts; i++) {
+        // Load dbs with randomly ordered keys
         int key = unif_sample(generator);
-        if (unique_keys.find(key) == unique_keys.end()) {
-            unique_keys.insert(key);
-            btree_db.put(key, 0);
-            bs_db.put(key, 0);
-        }
+        btree_db.put(key, 0);
+        bs_db.put(key, 0);
     }
 
     std::cout << "Generating " + to_string(num_inserts / step_size) + " datapoints..." << std::endl;

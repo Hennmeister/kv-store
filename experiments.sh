@@ -19,5 +19,4 @@
 #./build/kv-store-performance-test -e 1 -d 64 -s 4
 #./build/kv-store-performance-test -e 21 -d 16 -s 1
 #./build/kv-store-performance-test -e 22 -d 64 -s 4
-#./build/kv-store-performance-test -e 31 -d 64 -s 4
 #./build/kv-store-performance-test -e 32 -d 16 -s 1
