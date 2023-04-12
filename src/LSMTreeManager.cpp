@@ -145,10 +145,12 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
     int *write_data_buf = new int[PAGE_SIZE/sizeof(int)];
     int *internal_nodes_buf = new int[internal_node_ints_padded];
     int *meta = new int[PAGE_SIZE/sizeof(int)];
+    memset(meta, 0, PAGE_SIZE);
     meta[0] = newFanout;
     meta[1] = internal_node_pages;
     string fname = to_string(sst_counter + 1) + ".sst";
-    memset(internal_nodes_buf, 0, internal_node_ints_padded * sizeof(int));
+    memset(internal_nodes_buf, 0, internal_node_pages * PAGE_NUM_ENTRIES);
+    
     // Write out initial file
     fileManager->write_file(internal_nodes_buf,
                             (internal_node_pages) * PAGE_NUM_ENTRIES,

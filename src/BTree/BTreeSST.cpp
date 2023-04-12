@@ -261,6 +261,7 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
 
     string fname = to_string(ind + 1) + ".sst";
     int *meta = new int[PAGE_SIZE/sizeof(int)];
+    memset(meta, 0, PAGE_SIZE);
     meta[0] = fanout;
     meta[1] = this->internal_node_pages;
     meta[2] = data.size();
