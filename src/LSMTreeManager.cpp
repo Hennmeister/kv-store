@@ -3,6 +3,7 @@
 #include "../include/util.h"
 #include "../include/constants.h"
 #include <math.h>
+#include <cstring>
 #include <climits>
 
 bool LSMTreeManager::get(const int &key, int &value) {

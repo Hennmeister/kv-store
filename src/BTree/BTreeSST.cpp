@@ -208,12 +208,11 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
     auto serial_info = filter->serialize();
     delete[] serial_info.first;
     int bloom_filter_num_pages = serial_info.second;
-
+    int write_total_ints = internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) * 2 +
+                           bloom_filter_num_pages * (PAGE_SIZE/sizeof(int));
     // num_seeds + seeds + num bits + bits
-    int *write_buf = new int[internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) * 2 +
-                             bloom_filter_num_pages * (PAGE_SIZE/sizeof(int))];
-    memset(write_buf, 0, (internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) * 2 +
-                         bloom_filter_num_pages * (PAGE_SIZE/sizeof(int))) * sizeof(int));
+    int *write_buf = new int[write_total_ints];
+    memset(write_buf, 0, write_total_ints * sizeof(int));
 
     write_buf[0] += this->internal_btree.size();
     write_counter++;
@@ -276,7 +275,7 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
         printf("ERROR\n");
     }
     fileManager->write_file(write_buf,
-                            (internal_node_ints + (data_pages * PAGE_NUM_ENTRIES) * 2) * sizeof(int) +
+                            write_total_ints * sizeof(int) +
                             num_filter_pages * PAGE_SIZE,
                             fname, meta);
     this->useBinary = useBinarySearch;
