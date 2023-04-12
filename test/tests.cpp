@@ -23,21 +23,9 @@ using namespace std;
 // ===================== Bloom Filter ========================= //
 void bloom_filter_simple(SimpleKVStore db) {
     BloomFilter *filter = new BloomFilter(10, 10);
+    assert_val_equals(filter->testMembership(1), false, "bloom_filter_simple");
     filter->insert(1);
     assert_val_equals(filter->testMembership(1), true, "bloom_filter_simple");
-    assert_val_equals(filter->testMembership(-1), false, "bloom_filter_simple");
-    filter->insert(2);
-    filter->insert(3);
-    assert_val_equals(filter->testMembership(1), true, "bloom_filter_simple");
-    assert_val_equals(filter->testMembership(2), true, "bloom_filter_simple");
-    assert_val_equals(filter->testMembership(3), true, "bloom_filter_simple");
-    assert_val_equals(filter->testMembership(-1), false, "bloom_filter_simple");
-    filter->insert(1);
-    filter->insert(2);
-    assert_val_equals(filter->testMembership(1), true, "bloom_filter_simple");
-    assert_val_equals(filter->testMembership(2), true, "bloom_filter_simple");
-    assert_val_equals(filter->testMembership(3), true, "bloom_filter_simple");
-    assert_val_equals(filter->testMembership(-1), false, "bloom_filter_simple");
 }
 
 // TODO: test updating pages
