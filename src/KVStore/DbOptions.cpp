@@ -11,14 +11,13 @@ DbOptions::DbOptions(){
     this->maxMemtableSize = 10 * MEGABYTE;
 
     // SST
-    this->sstSearch = "BTree";
     this->sstManager = "LSMTree";
+    this->sstSearch = "BTree";
     this->btreeFanout = 100;
     this->useBinarySearch = 0; // No
 
     // Buffer Pool
-    this->bufferPoolType = "Clock";
-    // this->bufferPoolType = "LRU";
+    this->bufferPoolType = "LRU";
     this->bufferPoolMinSize = 1;
     this->bufferPoolMaxSize = 10;
     this->useBinarySearch = 0;
