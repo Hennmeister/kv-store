@@ -20,7 +20,8 @@ bool LSMTreeManager::get(const int &key, int &value) {
 }
 
 
-LSMTreeManager::LSMTreeManager(SSTFileManager *fileManager, int newFanout, int useBinarySearch, int memtable_size, int filter_bits_per_entry) {
+LSMTreeManager::LSMTreeManager(SSTFileManager *fileManager, int newFanout, int useBinarySearch, int memtable_size,
+                               int filter_bits_per_entry) {
     auto files = fileManager->get_files();
     // Reverse SST order by filename so that newer SSTs are first.
     std::sort(files.begin(), files.end(), sortByFname);
@@ -39,7 +40,8 @@ LSMTreeManager::LSMTreeManager(SSTFileManager *fileManager, int newFanout, int u
     auto tmp_ssts = vector<BTreeSST *>();
     int i = 0;
     for(const pair<string, int>& fileDat : files){
-        tmp_ssts.push_back(new BTreeSST(fileManager, fileDat.first, fileDat.second, useBinary));
+        tmp_ssts.push_back(new BTreeSST(fileManager, fileDat.first, fileDat.second,
+                                        useBinary));
         total_entries += tmp_ssts[i]->getSize();
         int file_num = stoi(fileDat.first.substr(0, fileDat.first.find('.')));
         if(file_num -1 > sst_counter){
@@ -48,10 +50,10 @@ LSMTreeManager::LSMTreeManager(SSTFileManager *fileManager, int newFanout, int u
         i++;
     }
 
-
+    // Construct levels based on file sizes
     int start_log = log2(memtable_size/ENTRY_SIZE);
     for(BTreeSST* sst: tmp_ssts){
-        int level = max((int) (ceil(log2((double) sst->getSize())) - start_log), 0);
+        int level = max( (int) (ceil(log2((double) sst->getSize())) - start_log), 0);
         while(this->levels.size() <= level){
             this->levels.push_back(vector<BTreeSST*>());
         }
@@ -72,8 +74,6 @@ std::vector<std::pair<int, int>> LSMTreeManager::scan(const int &key1, const int
 }
 
 bool LSMTreeManager::add_sst(std::vector<std::pair<int, int>> data) {
-//    if (data.size() % PAGE_NUM_ENTRIES != 0)
-//        return false;
     auto* new_sst = new BTreeSST(fileManager, sst_counter, newFanout, data, useBinary, filter_bits_per_entry);
     sst_counter++;
     levels[0].push_back(new_sst);
@@ -81,7 +81,6 @@ bool LSMTreeManager::add_sst(std::vector<std::pair<int, int>> data) {
     if(levels[0].size() == 2){
         return this->compact_tree(0);
     }
-    // write bloom filter
     return true;
 }
 
@@ -95,9 +94,27 @@ LSMTreeManager::~LSMTreeManager() {
     }
 }
 
+// Helper function for combine SST
+void flush_data(vector<pair<int,int>> &res, int& btree_ctr, int newFanout, SSTFileManager *fileManager,
+                vector<int> &lowest_level, int& total_size, int& write_pg_ctr, string fname){
+    int *write_data_buf = new int[PAGE_SIZE/sizeof(int)];
+    for(int i = 0; i < PAGE_NUM_ENTRIES; i++){
+        if((btree_ctr + 1) % newFanout == 0){
+            lowest_level.push_back(res[i].first);
+        }
+        btree_ctr++;
+        write_data_buf[i * 2] = res[i].first;
+        write_data_buf[i * 2 + 1] = res[i].second;
+    }
+    total_size += PAGE_NUM_ENTRIES;
+    res.erase(res.begin(), res.begin() + PAGE_NUM_ENTRIES);
+    fileManager->write_page(write_data_buf, PAGE_SIZE, write_pg_ctr, fname);
+    write_pg_ctr++;
+}
+
 
 // Apologies for the long function - it requires many buffers to be persisted and the tradeoff of readability was made
-// In order to enable performance.
+// In order to enable performance. Need 2 maintain 2 buffers throughout the function
 BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
     int newer_size = newer->getSize();
     int older_size = older->getSize();
@@ -184,21 +201,10 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
             master = newer->get_pages(newer_pg_ctr, newer_pg_ctr);
         }
 
-
         // Flush data
         while(res.size() >= PAGE_NUM_ENTRIES){
-            for(int i = 0; i < PAGE_NUM_ENTRIES; i++){
-                if((btree_ctr + 1) % newFanout == 0){
-                    lowest_level.push_back(res[i].first);
-                }
-                btree_ctr++;
-                write_data_buf[i * 2] = res[i].first;
-                write_data_buf[i * 2 + 1] = res[i].second;
-            }
-            total_size += PAGE_NUM_ENTRIES;
-            res.erase(res.begin(), res.begin() + PAGE_NUM_ENTRIES);
-            fileManager->write_page(write_data_buf, PAGE_SIZE, write_pg_ctr, fname);
-            write_pg_ctr++;
+            flush_data(res, btree_ctr, newFanout, fileManager, lowest_level,
+                       total_size, write_pg_ctr, fname);
         }
     }
 
@@ -215,18 +221,8 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
         }
         // Flush entry_data
         while(res.size() >= PAGE_NUM_ENTRIES){
-            for(int i = 0; i < PAGE_NUM_ENTRIES; i++){
-                if((btree_ctr + 1) % newFanout == 0){
-                    lowest_level.push_back(res[i].first);
-                }
-                btree_ctr++;
-                write_data_buf[i * 2] = res[i].first;
-                write_data_buf[i * 2 + 1] = res[i].second;
-            }
-            total_size += PAGE_NUM_ENTRIES;
-            res.erase(res.begin(), res.begin() + PAGE_NUM_ENTRIES);
-            fileManager->write_page(write_data_buf, PAGE_SIZE, write_pg_ctr, fname);
-            write_pg_ctr++;
+            flush_data(res, btree_ctr, newFanout, fileManager, lowest_level,
+                       total_size, write_pg_ctr, fname);
         }
     }
     while(older_pg_ctr != older_pages){
@@ -241,18 +237,8 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
         }
         // Flush page
         while(res.size() >= PAGE_NUM_ENTRIES){
-            for(int i = 0; i < PAGE_NUM_ENTRIES; i++){
-                if((btree_ctr + 1) % newFanout == 0){
-                    lowest_level.push_back(res[i].first);
-                }
-                btree_ctr++;
-                write_data_buf[i * 2] = res[i].first;
-                write_data_buf[i * 2 + 1] = res[i].second;
-            }
-            total_size += PAGE_NUM_ENTRIES;
-            res.erase(res.begin(), res.begin() + PAGE_NUM_ENTRIES);
-            fileManager->write_page(write_data_buf, PAGE_SIZE, write_pg_ctr, fname);
-            write_pg_ctr++;
+            flush_data(res, btree_ctr, newFanout, fileManager, lowest_level,
+                       total_size, write_pg_ctr, fname);
         }
     }
 
@@ -319,7 +305,8 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
     pair<int *, int> serialized_filter_pair = filter->serialize();
     int *serialized_filter = serialized_filter_pair.first;
     int num_filter_pages = serialized_filter_pair.second;
-    fileManager->write_page(serialized_filter, PAGE_SIZE * num_filter_pages, write_pg_ctr, fname);
+    fileManager->write_page(serialized_filter, PAGE_SIZE * num_filter_pages,
+                            write_pg_ctr, fname);
 
     // Update metadata with new size
     meta[2] = total_size;
@@ -346,6 +333,7 @@ bool LSMTreeManager::compact_tree(int level) {
     auto res = combine_SST(levels[level][1], levels[level][0]);
     sst_counter++;
     levels[level].clear();
+    // Create a new level if it exists
     if(levels.size() == level + 1){
         auto new_level = vector<BTreeSST*>();
         new_level.push_back(res);
