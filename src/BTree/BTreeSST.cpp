@@ -1,5 +1,6 @@
 #include "../../include/BTree/BTreeSST.h"
 #include "string"
+#include <cstring>
 #include "../../include/constants.h"
 #include "math.h"
 #include "../../include/util.h"
