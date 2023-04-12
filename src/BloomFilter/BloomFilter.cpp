@@ -1,7 +1,7 @@
 #include "BloomFilter.h"
 #include "../../include/MurmurHash3.h"
 #include "../../include/constants.h"
-#include <iostream>
+#include <climits>
 using namespace std;
 
 

@@ -74,9 +74,7 @@ std::vector<std::pair<int, int>> SimpleKVStore::scan(const int &key1, const int 
 
 void SimpleKVStore::close()
 {
-    //TODO: Memtable contents should not dump to SST but rather get stored separately and reloaded into memtable
     auto dat = memtable->inorderTraversal();
-//    pad_data(dat, maxMemtableSize);
     sstManager->add_sst(dat);
     delete this->memtable;
     delete this->sstManager;
