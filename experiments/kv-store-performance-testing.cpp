@@ -58,10 +58,6 @@ int main(int argc, char * argv[])
         step_size = stoi(getCmdOption(argv, argv + argc, "-s"));
     }
 
-    experiment_num = 21;
-    num_MB = 8;
-    step_size = 1;
-
     switch (experiment_num) {
         case 1: {
             experiment1(num_MB, step_size);
