@@ -60,7 +60,7 @@ int main(int argc, char * argv[])
 
     //experiment_num = 31;
     //num_MB = 1024;
-    //step_size = 8;
+    //step_size = 16;
 
     switch (experiment_num) {
         case 1: {

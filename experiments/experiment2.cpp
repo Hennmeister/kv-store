@@ -19,7 +19,7 @@ using namespace std;
 // Try to identify one workload where LRU performs better and another workload where clock performs better.
 //
 // 1. Clock better than LRU:
-// Uniformly and randomly load and acess keys in the database.
+// Randomly load and access keys in the database.
 // The extra overhead associated with LRU should be enough to
 // yield worst performance and this overhead is not payed off
 // as keys are sampled uniformly random across entire DB
@@ -51,18 +51,16 @@ void experiment2p1(int num_MB, int step_size_MB) {
     SimpleKVStore clock_db1;
     SimpleKVStore lru_db2;
     SimpleKVStore clock_db2;
-    lru_db1.open("./experiments_dbs/lru_db", lru_options);
-    clock_db1.open("./experiments_dbs/clock_db", clock_options);
-    lru_db2.open("./experiments_dbs/lru_db", lru_options);
-    clock_db2.open("./experiments_dbs/clock_db", clock_options);
+    lru_db1.open("./experiments_dbs/lru_db1", lru_options);
+    clock_db1.open("./experiments_dbs/clock_db1", clock_options);
+    lru_db2.open("./experiments_dbs/lru_db2", lru_options);
+    clock_db2.open("./experiments_dbs/clock_db2", clock_options);
 
     int max_buf_size_MB = num_MB;
 
     // Load 8 * max_buf_size bytes of entries in the database
     int num_inserts = 8 * max_buf_size_MB * MEGABYTE/ ENTRY_SIZE;
     int num_queries = 0.00001 * num_inserts; // query 0.001% of data inserted
-
-    std::cout << "Averaging from " + to_string(num_queries) + " queries" << std::endl;
 
     std::vector<int> x;
     std::vector<double> lru_throughput1;
@@ -72,13 +70,9 @@ void experiment2p1(int num_MB, int step_size_MB) {
 
     assert(step_size_MB * MEGABYTE < num_inserts);
 
-    std::random_device rand_dev;
-    std::mt19937 generator(rand_dev());
-    std::uniform_int_distribution<int> unif_sample(0, num_inserts);
-
     for (int i = 0; i < num_inserts; i++) {
         // Load db1s with randomly ordered keys
-        int key = unif_sample(generator);
+            int key = ::rand() % num_inserts;
         clock_db1.put(key, 0);
         lru_db1.put(key, 0);
 
@@ -110,7 +104,7 @@ void experiment2p1(int num_MB, int step_size_MB) {
         auto start = chrono::high_resolution_clock::now();
 
         for (int i = 0; i < num_queries; i++)
-            lru_db1.get(unif_sample(generator), (int &) val);
+            lru_db1.get(::rand() % num_inserts, (int &) val);
 
         auto stop = chrono::high_resolution_clock::now();
         double microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
@@ -121,7 +115,7 @@ void experiment2p1(int num_MB, int step_size_MB) {
         start = chrono::high_resolution_clock::now();
 
         for (int i = 0; i < num_queries; i++)
-            clock_db1.get(unif_sample(generator), (int &) val);
+            clock_db1.get(::rand() % num_inserts, (int &) val);
 
         stop = chrono::high_resolution_clock::now();
         microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
@@ -130,8 +124,6 @@ void experiment2p1(int num_MB, int step_size_MB) {
 
         // 2. === LRU BETTER ===
 
-        // Set key range we are iterating over
-
         // Maximum num pages in buf
         int num_pages_in_buf = buffer_size * MEGABYTE / PAGE_SIZE;
 
@@ -139,8 +131,8 @@ void experiment2p1(int num_MB, int step_size_MB) {
         // This tries to be long enough so that clock handle did not tick
         int reaccess_after = 0.30 * num_pages_in_buf; // take the floor of 30%
 
-        // Get keys PAGE_NUM_ENTRIES apart to gurantee different entries
-        int start_key = rand_int(1, num_inserts - (reaccess_after * PAGE_NUM_ENTRIES));
+        // Get keys PAGE_NUM_ENTRIES apart to guarantee different entries
+        int start_key = ::rand() % (num_inserts - (reaccess_after * PAGE_NUM_ENTRIES));
 
         std::vector<int> keys_iterated = {start_key};
         for (int i = 0; i < reaccess_after; i++)
@@ -153,7 +145,7 @@ void experiment2p1(int num_MB, int step_size_MB) {
             // To avoid synchronizing with the clock handle, query from
             // random key after 10% queries
             if (i % (int)(0.1 * num_queries) == 0) {
-                lru_db2.get(unif_sample(generator), (int &) val);
+                lru_db2.get(::rand() % num_inserts, (int &) val);
             } else {
                 lru_db2.get(keys_iterated[i % (reaccess_after + 1)], (int &) val);
             }
@@ -171,7 +163,7 @@ void experiment2p1(int num_MB, int step_size_MB) {
             // To avoid synchronizing with the clock handle, query from
             // random key after 10% queries
             if (i % (int)(0.1 * num_queries) == 0) {
-                clock_db2.get(unif_sample(generator), (int &) val);
+                clock_db2.get(::rand() % num_inserts, (int &) val);
             } else {
                 clock_db2.get(keys_iterated[i % (reaccess_after + 1)], (int &) val);
             }
@@ -215,9 +207,15 @@ void experiment2p2(int num_MB, int step_size_MB) {
 
     DbOptions *btree_options = new DbOptions();
     btree_options->setSSTSearch("BTree");
+    btree_options->setBufferPoolType("None");
+    btree_options->setSSTManager("BTree");
+    btree_options->setFilterBitsPerEntry(0);
 
     DbOptions *bs_options = new DbOptions();
     bs_options->setSSTSearch("BinarySearch");
+    bs_options->setBufferPoolType("None");
+    bs_options->setSSTManager("BTree");
+    bs_options->setFilterBitsPerEntry(0);
 
     SimpleKVStore btree_db;
     SimpleKVStore bs_db;
@@ -229,21 +227,15 @@ void experiment2p2(int num_MB, int step_size_MB) {
     int step_size = step_size_MB * MEGABYTE / ENTRY_SIZE;
     int num_queries = 0.00001 * num_inserts; // query 0.001% of data inserted
 
-    std::cout << "Averaging from " + to_string(num_queries) + " queries" << std::endl;
-
     std::vector<int> x;
     std::vector<double> btree_throughput;
     std::vector<double> bs_throughput;
 
     assert(step_size < num_inserts);
 
-    std::random_device rand_dev;
-    std::mt19937 generator(rand_dev());
-    std::uniform_int_distribution<int> unif_sample(0, num_inserts);
-
     for (int i = 0; i < num_inserts; i++) {
         // Load dbs with randomly ordered keys
-        int key = unif_sample(generator);
+        int key = ::rand() % num_inserts;
         btree_db.put(key, 0);
         bs_db.put(key, 0);
     }
@@ -261,7 +253,7 @@ void experiment2p2(int num_MB, int step_size_MB) {
         auto start = chrono::high_resolution_clock::now();
 
         for (int i = 0; i < num_queries; i++)
-            btree_db.get(unif_sample(generator), (int &) val);
+            btree_db.get(::rand() % num_inserts, (int &) val);
 
         auto stop = chrono::high_resolution_clock::now();
         double microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
@@ -272,7 +264,7 @@ void experiment2p2(int num_MB, int step_size_MB) {
         start = chrono::high_resolution_clock::now();
 
         for (int i = 0; i < num_queries; i++)
-            bs_db.get(unif_sample(generator), (int &) val);
+            bs_db.get(::rand() % num_inserts, (int &) val);
 
         stop = chrono::high_resolution_clock::now();
         microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();

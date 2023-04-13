@@ -24,6 +24,7 @@ void experiment3p1(int num_MB, int step_size_MB) {
 
     DbOptions *options = new DbOptions();
     options->setSSTSearch("LSMTree");
+    options->setBufferPoolType("Clock");
     options->setBufferPoolSize(0, 10);
     options->setFilterBitsPerEntry(5);
     options->setMaxMemtableSize(1 * MEGABYTE);
@@ -57,7 +58,7 @@ void experiment3p1(int num_MB, int step_size_MB) {
 
         // We assume that the time to generate random keys and manage the hash set is negligible
         for (int i = 0; i < step_size; i++) {
-            int key = ::rand() % num_inserts; // not necessarily uniformly distributed to simulate real workload (skewed towards lower keys)
+            int key = ::rand() % db_num_keys; // not necessarily uniformly distributed to simulate real workload (skewed towards lower keys)
             db.put(key, 0); // paylod is irrelevant
         }
 
@@ -71,7 +72,7 @@ void experiment3p1(int num_MB, int step_size_MB) {
         int val;
         start = chrono::high_resolution_clock::now();
         for (int j = 0; j < num_queries; j++)
-            db.get(::rand() % num_inserts, (int &) val);
+            db.get(::rand() % db_num_keys, (int &) val);
 
         stop = chrono::high_resolution_clock::now();
         microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
@@ -80,8 +81,8 @@ void experiment3p1(int num_MB, int step_size_MB) {
         // num_queries number of random scans
         start = chrono::high_resolution_clock::now();
         for (int j = 1; j < num_queries; j++) {
-            int k1 = ::rand() % num_inserts;
-            int k2 = ::rand() % num_inserts;
+            int k1 = ::rand() % db_num_keys;
+            int k2 = ::rand() % db_num_keys;
             db.scan(min(k1, k2), max(k1, k2));
         }
 
@@ -118,18 +119,12 @@ void experiment3p2(int max_M, int step_size) {
 
     // Load 128 MB of data on each run
     int num_inserts = 128 * MEGABYTE / ENTRY_SIZE;
-    int num_queries = 0.00001 * num_inserts; // query 0.001% of data inserted
-
-    std::cout << "Averaging from " + to_string(num_queries) + " queries" << std::endl;
+    int num_queries = 0.0001 * num_inserts; // query 0.01% of data inserted
 
     std::vector<int> x;
     std::vector<double> get_throughput;
 
     assert(step_size < num_inserts);
-
-    std::random_device rand_dev;
-    std::mt19937 generator(rand_dev());
-    std::uniform_int_distribution<int> unif_sample(0, num_inserts);
 
     std::cout << "Generating " + to_string(max_M / step_size) + " datapoints..." << std::endl;
     std::cout << "Iteration: ";
@@ -140,21 +135,22 @@ void experiment3p2(int max_M, int step_size) {
         fflush(stdout);
 
         DbOptions *options = new DbOptions();
+        options->setMaxMemtableSize(1 * MEGABYTE);
         options->setFilterBitsPerEntry(M);
 
         SimpleKVStore db;
         db.open("./experiments_dbs/exp3p2_" + to_string(M) + "bits_per_entry", options);
 
-        // Load db with uniformly random keys until num_inserts
+        // Load db with random keys until num_inserts
         for (int i = 0; i < num_inserts; i++)
-            db.put(unif_sample(generator), 0); // paylod is irrelevant
+            db.put(::rand() % num_inserts, 0); // paylod is irrelevant
 
         // Time queries
         int val;
         auto start = chrono::high_resolution_clock::now();
 
         for (int i = 0; i < num_queries; i++)
-            db.get(rand_int(1, num_queries), (int &) val);
+            db.get(::rand() % num_queries, (int &) val);
 
         auto stop = chrono::high_resolution_clock::now();
         double microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();

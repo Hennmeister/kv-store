@@ -53,7 +53,7 @@ void experiment1(int num_MB, int step_size_MB) {
 
         // We assume that the time to generate random keys and manage the hash set is negligible
         for (int i = 0; i < step_size; i++) {
-            int key = ::rand() % num_inserts; // not necessarily uniformly distributed to simulate real workload (skewed towards lower keys)
+            int key = ::rand() % db_num_keys; // not necessarily uniformly distributed to simulate real workload (skewed towards lower keys)
             db.put(key, 0); // paylod is irrelevant
         }
 
@@ -67,17 +67,17 @@ void experiment1(int num_MB, int step_size_MB) {
         int val;
         start = chrono::high_resolution_clock::now();
         for (int j = 0; j < num_queries; j++)
-            db.get(::rand() % num_inserts, (int &) val);
+            db.get(::rand() % db_num_keys, (int &) val);
 
         stop = chrono::high_resolution_clock::now();
         microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
         gets_throughput.push_back((1000 * (double)num_queries) / microsecs);
 
-        // num_queries number of random scans
+        // 0.5 * num_queries number of random scans
         start = chrono::high_resolution_clock::now();
-        for (int j = 1; j < num_queries; j++) {
-            int k1 = ::rand() % num_inserts;
-            int k2 = ::rand() % num_inserts;
+        for (int j = 1; j < 0.5 * num_queries; j++) {
+            int k1 = ::rand() % db_num_keys;
+            int k2 = ::rand() % db_num_keys;
             db.scan(min(k1, k2), max(k1, k2));
         }
 

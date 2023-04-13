@@ -26,7 +26,7 @@ def plot_exp1():
             line = data.readline().split(",")
 
         fig, (ax1, ax2, ax3) = plt.subplots(3)
-        fig.set_figheight(17)
+        fig.set_figheight(20)
 
         ax1.plot(x, put_throughput)
         ax1.set_title(put_label)
