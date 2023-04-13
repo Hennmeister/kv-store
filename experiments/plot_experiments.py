@@ -76,14 +76,14 @@ def plot_exp2p1():
 
         ax1.plot(x, lru1_throughput, label=lru1_label)
         ax1.plot(x, clock1_throughput, label=clock1_label)
-        ax1.set_legend()
+git status        ax1.legend()
         ax1.set_title("Experiment 2.1 (Clock Better): LRU Buffer vs. Clock Buffer")
         ax1.set_xlabel(x_label)
         ax1.set_ylabel(y_label)
 
         ax2.plot(x, lru2_throughput, label=lru2_label)
         ax2.plot(x, clock2_throughput, label=clock2_label)
-        ax2.set_legend()
+        ax2.legend()
         ax2.set_title("Experiment 2.1 (LRU Better): LRU Buffer vs. Clock Buffer")
         ax2.set_xlabel(x_label)
         ax2.set_ylabel(y_label)

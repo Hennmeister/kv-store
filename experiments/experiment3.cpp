@@ -2,16 +2,10 @@
 #include <cassert>
 #include "chrono"
 #include "../include/SimpleKVStore.h"
-#include "../include/constants.h"
-#include "../include/Base/DbOptions.h"
 #include "../include/util.h"
 #include <algorithm>
-#include <unordered_set>
-#include <random>
-#include <iostream>
 #include <fstream>
 #include <filesystem>
-#include <sys/stat.h>
 
 using namespace std;
 
@@ -25,7 +19,7 @@ void experiment3p1(int num_MB, int step_size_MB) {
     DbOptions *options = new DbOptions();
     options->setSSTSearch("LSMTree");
     options->setBufferPoolType("Clock");
-    options->setBufferPoolSize(0, 10);
+    options->setBufferPoolSize(1, 10);
     options->setFilterBitsPerEntry(5);
     options->setMaxMemtableSize(1 * MEGABYTE);
 
@@ -124,12 +118,12 @@ void experiment3p2(int max_M, int step_size) {
     // Make sure each experiment is inserting consistently
     std::vector<int> inserts(num_inserts);
     for (int j = 0; j < num_inserts; j++)
-        inserts.push_back(::rand() % num_inserts);
+        inserts[j] = ::rand() % num_inserts;
 
     // Make sure each experiment is querying consistently
     std::vector<int> queries(num_queries);
     for (int j = 0; j < num_queries; j++)
-        queries.push_back(::rand() % num_inserts);
+        queries[j] = ::rand() % num_inserts;
 
     std::vector<int> x;
     std::vector<double> get_throughput;
