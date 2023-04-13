@@ -72,7 +72,7 @@ void experiment2p1(int num_MB, int step_size_MB) {
 
     for (int i = 0; i < num_inserts; i++) {
         // Load db1s with randomly ordered keys
-            int key = ::rand() % num_inserts;
+        int key = ::rand() % num_inserts;
         clock_db1.put(key, 0);
         lru_db1.put(key, 0);
 
@@ -91,10 +91,15 @@ void experiment2p1(int num_MB, int step_size_MB) {
 
         int buffer_size = (i + 1) * step_size_MB;
 
-        clock_db1.set_buffer_pool_max_size(buffer_size);;
-        lru_db1.set_buffer_pool_max_size(buffer_size);;
-        clock_db2.set_buffer_pool_max_size(buffer_size);;
-        lru_db2.set_buffer_pool_max_size(buffer_size);;
+        clock_db1.set_buffer_pool_max_size(buffer_size);
+        lru_db1.set_buffer_pool_max_size(buffer_size);
+        clock_db2.set_buffer_pool_max_size(buffer_size);
+        lru_db2.set_buffer_pool_max_size(buffer_size);
+
+        // Make sure each experiment is querying consistently
+        std::vector<int> queries;
+        for (int j = 0; j < num_queries; j++)
+            queries.push_back(::rand() % num_inserts);
 
         // 1. === CLOCK BETTER ===
 
@@ -103,8 +108,8 @@ void experiment2p1(int num_MB, int step_size_MB) {
         // Time LRU
         auto start = chrono::high_resolution_clock::now();
 
-        for (int i = 0; i < num_queries; i++)
-            lru_db1.get(::rand() % num_inserts, (int &) val);
+        for (int j = 0; j < num_queries; j++)
+            lru_db1.get(queries[j], (int &) val);
 
         auto stop = chrono::high_resolution_clock::now();
         double microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
@@ -114,13 +119,15 @@ void experiment2p1(int num_MB, int step_size_MB) {
         // Time Clock
         start = chrono::high_resolution_clock::now();
 
-        for (int i = 0; i < num_queries; i++)
-            clock_db1.get(::rand() % num_inserts, (int &) val);
+        for (int j = 0; j < num_queries; j++)
+            clock_db1.get(queries[j], (int &) val);
 
         stop = chrono::high_resolution_clock::now();
         microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
 
         clock_throughput1.push_back((1000 * (double) num_queries) / microsecs);
+
+        queries.clear();
 
         // 2. === LRU BETTER ===
 
@@ -135,21 +142,26 @@ void experiment2p1(int num_MB, int step_size_MB) {
         int start_key = ::rand() % (num_inserts - (reaccess_after * PAGE_NUM_ENTRIES));
 
         std::vector<int> keys_iterated = {start_key};
-        for (int i = 0; i < reaccess_after; i++)
-            keys_iterated.push_back(start_key + i * PAGE_NUM_ENTRIES);
+        for (int j = 0; j < reaccess_after; j++)
+            keys_iterated.push_back(start_key + j * PAGE_NUM_ENTRIES);
+
+        // Make sure each experiment is querying consistently
+        for (int j = 0; j < num_queries; j++) {
+            // To avoid synchronizing with the clock handle, query from
+            // random key after 10% queries
+            if (j % (int)(0.1 * num_queries) == 0) {
+                queries.push_back(::rand() % num_inserts);
+            } else {
+                queries.push_back(keys_iterated[j % (reaccess_after + 1)]);
+            }
+        }
+
 
         // Time LRU
         start = chrono::high_resolution_clock::now();
 
-        for (int i = 0; i < num_queries; i++) {
-            // To avoid synchronizing with the clock handle, query from
-            // random key after 10% queries
-            if (i % (int)(0.1 * num_queries) == 0) {
-                lru_db2.get(::rand() % num_inserts, (int &) val);
-            } else {
-                lru_db2.get(keys_iterated[i % (reaccess_after + 1)], (int &) val);
-            }
-        }
+        for (int j = 0; j < num_queries; j++)
+            lru_db2.get(queries[j], (int &) val);
 
         stop = chrono::high_resolution_clock::now();
         microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
@@ -159,15 +171,9 @@ void experiment2p1(int num_MB, int step_size_MB) {
         // Time Clock
         start = chrono::high_resolution_clock::now();
 
-        for (int i = 0; i < num_queries; i++) {
-            // To avoid synchronizing with the clock handle, query from
-            // random key after 10% queries
-            if (i % (int)(0.1 * num_queries) == 0) {
-                clock_db2.get(::rand() % num_inserts, (int &) val);
-            } else {
-                clock_db2.get(keys_iterated[i % (reaccess_after + 1)], (int &) val);
-            }
-        }
+        for (int j = 0; j < num_queries; j++)
+            clock_db2.get(queries[j], (int &) val);
+
 
         stop = chrono::high_resolution_clock::now();
         microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
@@ -225,7 +231,6 @@ void experiment2p2(int num_MB, int step_size_MB) {
     // Multiply size of int by two since we are inserting both a key and a value
     int num_inserts = num_MB * MEGABYTE / ENTRY_SIZE;
     int step_size = step_size_MB * MEGABYTE / ENTRY_SIZE;
-    int num_queries = 0.00001 * num_inserts; // query 0.001% of data inserted
 
     std::vector<int> x;
     std::vector<double> btree_throughput;
@@ -233,45 +238,53 @@ void experiment2p2(int num_MB, int step_size_MB) {
 
     assert(step_size < num_inserts);
 
-    for (int i = 0; i < num_inserts; i++) {
-        // Load dbs with randomly ordered keys
-        int key = ::rand() % num_inserts;
-        btree_db.put(key, 0);
-        bs_db.put(key, 0);
-    }
-
     std::cout << "Generating " + to_string(num_inserts / step_size) + " datapoints..." << std::endl;
     std::cout << "Iteration: ";
 
     for (int i = 0; i < num_inserts / step_size; i++) {
+        int db_num_keys = (i + 1) * step_size;
 
         std::cout << to_string(i + 1) << " ";
         fflush(stdout);
 
+        // We assume that the time to generate random keys and manage the hash set is negligible
+        for (int j = 0; j < step_size; j++) {
+            int key = ::rand() % db_num_keys; // not necessarily uniformly distributed to simulate real workload (skewed towards lower keys)
+            btree_db.put(key, 0);
+            bs_db.put(key, 0);
+        }
+
+        int num_queries = 0.00001 * db_num_keys; // query 0.001% of data inserted
+
+        // Make sure each experiment is querying consistently
+        std::vector<int> queries;
+        for (int j = 0; j < num_queries; j++)
+            queries.push_back(::rand() % num_inserts);
+
         int val;
-        // Time and query Binary Search keys uniformly at random
+        // Time and query Binary Search keys at random
         auto start = chrono::high_resolution_clock::now();
 
-        for (int i = 0; i < num_queries; i++)
-            btree_db.get(::rand() % num_inserts, (int &) val);
+        for (int j = 0; j < num_queries; j++)
+            btree_db.get(queries[j], (int &) val);
 
         auto stop = chrono::high_resolution_clock::now();
         double microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
 
         btree_throughput.push_back((1000 * (double) num_queries) / microsecs);
 
-        // Time and query BTree keys uniformly at random
+        // Time and query BTree keys at random
         start = chrono::high_resolution_clock::now();
 
-        for (int i = 0; i < num_queries; i++)
-            bs_db.get(::rand() % num_inserts, (int &) val);
+        for (int j = 0; j < num_queries; j++)
+            bs_db.get(queries[j], (int &) val);
 
         stop = chrono::high_resolution_clock::now();
         microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
 
         bs_throughput.push_back((1000 * (double) num_queries) / microsecs);
 
-        x.push_back((i + 1) * step_size * ENTRY_SIZE);
+        x.push_back(db_num_keys * ENTRY_SIZE);
     }
 
     std::cout << std::endl;

@@ -2,15 +2,9 @@
 #include <cassert>
 #include "chrono"
 #include "../include/SimpleKVStore.h"
-#include "../include/constants.h"
-#include "../include/Base/DbOptions.h"
 #include "../include/util.h"
 #include <algorithm>
-#include <random>
-#include <iostream>
 #include <fstream>
-#include <filesystem>
-#include <sys/stat.h>
 
 using namespace std;
 
@@ -52,7 +46,7 @@ void experiment1(int num_MB, int step_size_MB) {
         auto start = chrono::high_resolution_clock::now();
 
         // We assume that the time to generate random keys and manage the hash set is negligible
-        for (int i = 0; i < step_size; i++) {
+        for (int j = 0; j < step_size; j++) {
             int key = ::rand() % db_num_keys; // not necessarily uniformly distributed to simulate real workload (skewed towards lower keys)
             db.put(key, 0); // paylod is irrelevant
         }
