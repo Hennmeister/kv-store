@@ -381,12 +381,12 @@ bool BTreeSST::get(const int &key, int &value) {
     if(size == 0){
         return false;
     }
-//    BloomFilter filter = get_bloom_filter();
-//    total++;
-//    if (!filter.testMembership(key)) {
-//        negatives++;
-//        return false;
-//    }
+    BloomFilter filter = get_bloom_filter();
+    total++;
+    if (!filter.testMembership(key)) {
+        negatives++;
+        return false;
+    }
 
     if(useBinary){
         int cur = this->binary_scan(key);
@@ -490,5 +490,4 @@ BloomFilter BTreeSST::get_bloom_filter() {
     BloomFilter fltr = BloomFilter(data_buf);
     delete[] data_buf;
     return fltr;
-
 }
