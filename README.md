@@ -165,8 +165,8 @@ This experiment aims to measure the throughput of the put, get, and scan operati
 For each iteration, we:
 
 1. Randomly sample STEP_SIZE keys and `put` those keys in the db. Time and average throughput for that iteration.
-2. Randomly sample NUM_QUERIES keys and `get` those keys from the db. Time and average throughput for that iteration.
 3. Randomly sample NUM_QUERIES keys and `get` those keys from the db. Time and average throughput for that iteration.
+4. Randomly sample NUM_QUERIES keys and `get` those keys from the db. Time and average throughput for that iteration.
 
 Note that "randomly" in this case is not uniform. Instead our sample has an intentional skew towards lower valued keys to more closely simulate a real database workload. For each iteration, we sample a key from a value that ranges from 0 to the number of keys inserted up to that point so that the likelihood of querying a key value that is indeed loaded in the database (and not a miss) remains consistent throughout each iteration. Since querying a key not in the database is the most expensive query (as we have to traverse all SSTs), this is an important consideration to make in order to compare the throughput at different sizes.
 
@@ -220,39 +220,30 @@ _Note: The internal nodes are only read from once, on SST load. While we underst
 
 In this experiment we aim at comparing the throuhgput performance of the Clock vs. LRU buffer pools.
 
-We perform two sub-experiments to display the performance difference in different load scenarios.
+We perform two sub-experiments to display the performance difference in different load scenarios. For both experiments, we make sure that the keys we are inserting and querying are consistent on both databases so that the experiment is a valid comparison. In other words, we insert the same keys and also query consistent keys in the same order so that the databases are beind compared under exactly the same load.
 
-1. Clock performing better than LRU
+1. **Clock performing better than LRU**
 
-Since Clock provides a smaller CPU overhead, trivially a workload that fits entirely in memory would likely perform better with Clock rather than LRU. However, thinking about a more "realistically" workload that uses the entirety of the database' s storing power, randomly loading and accessing keys in the database should display this difference. The extra overhead associated with LRU should be enough to yield worst performance as this overhead is not useful given that keys are sampled randomly across the database.
+    Since Clock provides a smaller CPU overhead, trivially a workload that fits entirely in memory would likely perform better with Clock rather than LRU. However, thinking about a more "realistically" workload that uses the entirety of the database' s storing power, randomly loading and accessing keys in the database should display this difference. The extra overhead associated with LRU should be enough to yield worst performance as this overhead is not useful given that keys are sampled randomly across the database.
+    <p align="center">
+      <img src="assets/experiment2p1-clock.png"  width=50% height=50%>
+    </p>
 
-TODO: image
+    Indeed, Clock performs better at pretty much every buffer 
 
-**Analysis**
+2. **LRU better than Clock**
 
-TODO
-
-2. LRU better than Clock:
-
-LRU provides a more accurate representation of the recency of a page at a higher CPU cost. This would then be useful and pay off when the data accesses are skewed and we indeed access a page more often more recently. We then set up
-// Access keys in a way that we benefit from the overhead of LRU
-// putting the page to the front while clock evicts page earlier
-// since it just sets a bit that is already 1 to 1 again (effectively doing nothing).
-// For that, we have to access a page once to put it in cache,
-// and then access it again fast enough so that the clock did
-// not reach said page and changed to 0, while still trying to
-// wait as long as possible so that LRU can still keep the page
-// while clock evicted on a third access
-
-TODO: image
-
-**Analysis**
-
-TODO
+    LRU provides a more accurate representation of the recency of a page at a higher CPU cost. This would then be useful and pay off when the data accesses are skewed and we indeed access a page more often more recently. We try to set up an experiment to exploit a workload that enhances the clock innacuracies. We access keys in a way that we benefit from the overhead of LRU putting the page to the front while Clock could evict that page earlier on. This is because we try to reaccess the same pages fast enough so that the clock handle does not get a change to reach that page (and the clock does not recognizes the new access by setting a bit that was already 1 to 1 again). We also try to access it far enough so that this delay is enough to cause the clock page to be evicted while the LRU maintains it in buffer (since it brought the page to the front on that reaccess).
+    <p align="center">
+      <img src="assets/experiment2p1-lruf.png"  width=50% height=50%>
+    </p>
 
 #### Step 2 Experiment 2
 
-This experiment aims at comparing our initial binary search to B-tree search. As such, we load the same randomly sampled keys with a skew like in [Step 1 Experiment](#step-1-experiment) to both databases of comparison. We then time and randomly query about 0.001% of the keys inserted. We plot the graph below:
+This experiment aims at comparing our initial binary search to B-tree search. As such, we load the same randomly sampled keys with a skew like in [Step 1 Experiment](#step-1-experiment) to both databases of comparison. We then time and randomly query about 0.001% of the keys inserted. For both experiments, we make sure that the keys we are inserting and querying are consistent on both databases so that the experiment is a valid comparison. In other words, we insert the same keys and also query consistent keys in the same order so that the databases are beind compared under exactly the same load.
+
+
+We plot the graph below:
 
 <p align="center">
   <img src="assets/experiment2p2-all.png"  width=50% height=50%>
@@ -267,7 +258,7 @@ For a better visualization of the trend in different SST insertions as data incr
     <img src="assets/experiment2p2-sst.png"  width=50% height=50%>
 </p>
 
-
+We see that B-tree outperforms 
 
 ### Step 3 <a name="step3"></a>
 
@@ -299,17 +290,23 @@ TODO
 
 #### Step 3 Experiment 1
 
-This experiment aims at providing an updated measure of throughput for put, get, and scan operations. More precisely, the database now stores the SSTs in a Log-structured merge-tree (LSM Tree) with a Bloom filter to check for key presence in every level as well a buffer pool to cache hot pages. It then follows precisely the same methodology as [Step 1 Experiment](#Step-1-Experiment), except with fixing the buffer pool size to 10 MB, the Bloom filters to use 5 bits per entry, and the memtable to 1 MB. The throughput is plotted as below:
+This experiment aims at providing an updated measure of throughput for put, get, and scan operations. More precisely, the database now stores the SSTs in a Log-structured merge-tree (LSM Tree) with a Bloom filter to check for key presence in every level as well a buffer pool to cache hot pages. It then follows precisely the same methodology as [Step 1 Experiment](#Step-1-Experiment), except that it additionally fixes the buffer pool size to 10 MB, the Bloom filters to use 5 bits per entry, and the memtable to 1 MB. The throughput is plotted as below:
 
-TODO: image
+<p align="center">
+  <img src="assets/experiment3p1-all.png"  width=50% height=50%>
+</p>
 
-**Analysis**
+As before, the same drop pattern from [Step 1 Experiment](#Step-1-Experiment) emerges, but we include the graph for completion. We also plot the data only after the drop below:
 
-TODO
+<p align="center">
+  <img src="assets/experiment3p1-sst.png"  width=50% height=50%>
+</p>
 
 #### Step 3 Experiment 2
 
-In this experiment, we explore how get performance varies as we vary the number of bits per entry used for your Bloom filters. Then, for each value of number of bits per entry being tested, we create a database with the desired number of filter bits and 1MB of memtable, load 128MB worth of data and time the time it takes to query from that database. We plot the throughput graph below:
+In this experiment, we explore how get performance varies as we vary the number of bits per entry used for your Bloom filters. Then, for each value of number of bits per entry being tested, we create a database with the desired number of filter bits and 1MB of memtable, load 256 MB worth of data and time the time it takes to query from that database. For all experiments, we make sure that the keys we are inserting and querying are consistent across databases so that the experiment is a valid comparison. In other words, we insert the same keys and also query consistent keys in the same order so that the databases are beind compared under exactly the same load.
+
+We plot the throughput graph below:
 
 <p align="center">
   <img src="assets/experiment3p2.png"  width=50% height=50%>
