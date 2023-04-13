@@ -41,7 +41,7 @@ bool LRUBuffer::put(std::string file_and_page, uint8_t *data, int size) {
 
     // insert the new entry_data
     LRUBufferEntry *entry = new LRUBufferEntry();
-    entry->file_and_page = file_and_page;
+    entry->file_and_page.assign(file_and_page);
 
     uint8_t *entry_data = new uint8_t[size];
     memcpy(entry_data, data, size);
@@ -89,7 +89,11 @@ bool LRUBuffer::get(string file_and_page, uint8_t *page_out_buf) {
 void LRUBuffer::evict() {
     // remove all the references to evicted buckets
     auto next_page_in_bucket = tail->bufferEntry->next_entry;
-    auto it = bucket_refs.find(hash_to_bucket_index(tail->bufferEntry->file_and_page));
+    int bucket_num = hash_to_bucket_index(tail->bufferEntry->file_and_page);
+    if (is_ref.find(bucket_num) != is_ref.end()) {
+        bucket_num = is_ref.find(bucket_num)->second;
+    }
+    auto it = bucket_refs.find(bucket_num);
     // the bucket holding the entry_data to be evicted has at least one other bucket pointing to it
     if (it != bucket_refs.end()) {
         for (auto vector_it = it->second.begin(); vector_it != it->second.end(); vector_it++) {
