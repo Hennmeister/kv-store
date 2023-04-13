@@ -215,13 +215,6 @@ void memtable_puts_and_gets(SimpleKVStore db)
     }
 }
 
-void memtable_puts_and_scans(SimpleKVStore db)
-{
-    // TODO
-}
-
-// TODO: specific SST testing?
-
 // ===================== User-facing Tests =========================
 void random_puts_and_gets(SimpleKVStore db)
 {

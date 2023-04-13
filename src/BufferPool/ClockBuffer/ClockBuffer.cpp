@@ -17,6 +17,8 @@ ClockBuffer::ClockBuffer(int minSize, int maxSize, double min_load_factor, doubl
 // If the directory is at capacity, evicts the LRU entry_data.
 // If the directory is more than 75% full, grows the directory to increase capacity
 bool ClockBuffer::put(std::string file_and_page, uint8_t *data, int size) {
+    if (max_size == 0) return true;
+
     // evict if the buffer pool is at capacity
     if (num_data_in_buffer + size > (max_size * MB) * max_load_factor) {
        evict();
@@ -28,7 +30,7 @@ bool ClockBuffer::put(std::string file_and_page, uint8_t *data, int size) {
     }
 
 
-    // do a lookup for this entry and replace its data if it exists
+//     do a lookup for this entry and replace its data if it exists
     int bucket_num = hash_to_bucket_index(file_and_page);
     ClockBufferEntry *curr_entry = entries[bucket_num];
     while (curr_entry != nullptr && curr_entry->file_and_page != file_and_page) {
@@ -43,7 +45,7 @@ bool ClockBuffer::put(std::string file_and_page, uint8_t *data, int size) {
 
     // insert the new page
     ClockBufferEntry *entry = new ClockBufferEntry();
-    entry->file_and_page = file_and_page;
+    entry->file_and_page.assign(file_and_page);
     uint8_t *entry_data = new uint8_t[size];
     memcpy(entry_data, data, size);
     entry->page_size = size;
@@ -64,6 +66,8 @@ bool ClockBuffer::put(std::string file_and_page, uint8_t *data, int size) {
 // Update used used_bit of requested entry
 // TODO: return not found error status
 bool ClockBuffer::get(string file_and_page, uint8_t *page_out_buf) {
+    if (num_data_in_buffer == 0) return false;
+
     int bucket_num = hash_to_bucket_index(file_and_page);
     ClockBufferEntry *curr_entry = entries[bucket_num];
     while (curr_entry != nullptr && curr_entry->file_and_page != file_and_page) {
@@ -91,7 +95,9 @@ void ClockBuffer::increment_clock() {
         clock_pointer = nullptr;
         while (clock_pointer == nullptr) {
             clock_entry_index = (clock_entry_index + 1) % (int) entries.size();
-            clock_pointer = entries[clock_entry_index];
+            if (is_ref.find(clock_entry_index) == is_ref.end()) {
+                clock_pointer = entries[clock_entry_index];
+            }
         }
     }
 }
@@ -103,7 +109,8 @@ void ClockBuffer::evict() {
     }
     // remove all the references to evicted buckets
     auto next_page_in_bucket = clock_pointer->next_entry;
-    auto it = bucket_refs.find(hash_to_bucket_index(clock_pointer->file_and_page));
+
+    auto it = bucket_refs.find(clock_entry_index);
     // the bucket holding the entry_data to be evicted has at least one other bucket pointing to it
     if (it != bucket_refs.end()) {
         for (auto vector_it = it->second.begin(); vector_it != it->second.end(); vector_it++) {

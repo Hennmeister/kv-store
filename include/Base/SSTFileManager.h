@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 using namespace std;
+
 class SSTFileManager {
 public:
     // Load a single entry_data from the file

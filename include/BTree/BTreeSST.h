@@ -23,9 +23,11 @@ public:
     vector<vector<int>> internal_btree;
     ~BTreeSST();
     int getSize() const;
+    void delete_sst();
     int get_internal_node_count();
     vector<pair<int, int>> get_pages(int start_ind, int end_ind);
     vector<pair<int, int>> get_page(int page_ind);
+    pair<int*, int> get_page_raw(int page_ind);
     explicit BTreeSST(SSTFileManager *fileManager, int ind, int fanout,
                       vector<pair<int, int>> data, int useBinarySearch, int filter_bits_per_entry);
     explicit BTreeSST(SSTFileManager *fileManager, string filename, int size, int useBinarySearch);

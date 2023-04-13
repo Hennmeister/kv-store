@@ -4,6 +4,9 @@
 #ifndef KV_STORE_UTIL_H
 #define KV_STORE_UTIL_H
 
+const long long int MEGABYTE = 1024 * 1024;
+bool sortByFname(const std::pair<std::string,int> &a, const std::pair<std::string,int> &b);
+int rand_int(int range_from, int range_to);
 int dir_exists(std::string dir);
 char* string_to_char(std::string);
 int safe_write(int fd, void* buf, long nbyte, long offset);
@@ -12,7 +15,7 @@ std::vector<std::pair<int, int>> priority_merge(std::vector<std::pair<int, int>>
                                                 std::vector<std::pair<int, int>> older);
 
 void print_data(const std::vector<std::pair<int, int>>& data);
-
+int binary_search_raw(int* data, int size, int target, int &value);
 void pad_data(std::vector<std::pair<int, int>>& src, int size);
 
 

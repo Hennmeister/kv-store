@@ -1,6 +1,7 @@
 ﻿#include "../../include/SimpleKVStore.h"
 #include "../../include/RedBlack/RedBlackMemtable.h"
 #include "../../include/LSMTreeManager.h"
+#include "../../include/BTree/BTreeSSTManager.h"
 #include "../../include/util.h"
 #include "../../include/SimpleSSTFileManager.h"
 #include "../../include/Base/BufferPool.h"
@@ -20,11 +21,17 @@ void SimpleKVStore::open(std::string db_path, DbOptions *options)
     else if (options->bufferPoolType == "Clock") {
         bufferPool = new ClockBuffer(options->bufferPoolMinSize, options->bufferPoolMaxSize);
     }
-    this->sstManager = new LSMTreeManager(new SimpleSSTFileManager(db_path, bufferPool),
-                                          options->btreeFanout,
-                                          options->useBinarySearch,
-                                          options->maxMemtableSize,
-                                          options->filterBitsPerEntry);
+    this->fileManager = new SimpleSSTFileManager(db_path, bufferPool);
+
+    if (options->sstManager == "BTree") {
+        this->sstManager = new BTreeSSTManager(this->fileManager, options->btreeFanout, options->useBinarySearch,options->filterBitsPerEntry);
+    } else {
+        this->sstManager = new LSMTreeManager(this->fileManager,
+                                              options->btreeFanout,
+                                              options->useBinarySearch,
+                                              options->maxMemtableSize,
+                                              options->filterBitsPerEntry);
+    }
 
     this->maxMemtableSize = options->maxMemtableSize;
 
@@ -67,10 +74,13 @@ std::vector<std::pair<int, int>> SimpleKVStore::scan(const int &key1, const int 
 
 void SimpleKVStore::close()
 {
-    //TODO: Memtable contents should not dump to SST but rather get stored separately and reloaded into memtable
     auto dat = memtable->inorderTraversal();
-//    pad_data(dat, maxMemtableSize);
     sstManager->add_sst(dat);
     delete this->memtable;
     delete this->sstManager;
+    delete this->fileManager;
+}
+
+void SimpleKVStore::set_buffer_pool_max_size(const int &new_max) {
+    this->fileManager->cache->set_max_size(new_max);
 }
