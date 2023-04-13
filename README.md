@@ -4,18 +4,18 @@ Refer to [this page](https://docs.google.com/document/d/1dsIuIzXiIBbiZcNYi1cC62P
 
 # Table of Contents
 1. [Introduction](#introduction)
-2. [Execution](#execution)
-3. [Playground](#playground)
-4. [Experiments](#experiments)
-5. [Project Status](#status)
-6. [Database Initialization and Parameters](#init_param)
-    1. [DbOptions](#dboptions)
-7. [Implementation Steps](#steps)
+2. [Compilation](#compilation)
+    1. [Tests](#tests)
+    2. [Playground](#playground)
+    3. [Experiments](#experiments)
+3. [Project Status](#status)
+4. [Database Initialization and Parameters](#init_param)
+5. [Implementation Steps](#steps)
     1. [Abstractions](#abstractions)
     2. [Step 1](#step1)
     3. [Step 2](#step2)
     4. [Step 3](#step3)
-8. [Testing](#testing)
+6. [Testing](#testing)
 
 
 ## Introduction
@@ -34,57 +34,103 @@ We implement this key-value store using various data structures covered in class
 
 KV-stores are widely used in industry. Note that they have a far simpler API than traditional relational database systems, which expose SQL as an API to the user. There are many applications for which a simple KV API is sufficient. Note, however, that KV-stores can also be used as the backbone for relational database management systems. For example, MyRocks by Meta is an example of a relational database utilizing as its backbone a key-value store very similar to the one we built, namely RocksDB.
 
-## Experiments
+## "I don't care, just tell me how to run it." - Fine... <a name="compilation"></a>
 
-Parameters of `kv-store-performance-test.cpp`:
+Run `./make.sh` to compile all executables and run the tests in one command. 
 
-    -e [num]: The experiment number to run
-    -d [data amount]: The amount of data to run the experiement on in MB
-    -s [num steps]: The number of operations to time (ex: 1000 means the time is measured every 1000 get operations)
+### Tests
 
-## Implementation Steps
-
-## "I don't care, just tell me how to run it." - Fine... (Execution) <a name="execution"></a>
-
-Run `./make.sh` to compile the program and run the tests in one command. The test executable file will be located under `/build/kv-store-test`. It also compiles the experiments executable at `/build/kv-store-performance-test` and a playground executable at `/build/kv-store-performance-test`.
+The test executable file will be located under `/build/kv-store-test` and this file runs all unit tests.
 
 ### Playground
 
-We provide an empty C++ file with a default version of our database (that you are free modify if you wish - see [Database Initialization and Parameters](#database-initialization-and-parameters)) for you to play with and write any calls to `open`, `put`, `get`, `scan`, print results and verify functionality. The aim is to provide you with an easy way to interact with our database without having to compile a new project.
+We provide an "empty" C++ file with a default version of our database (that you are free modify if you wish - see [Database Initialization and Parameters](#database-initialization-and-parameters)) for you to play with and write any calls to `open`, `put`, `get`, `scan`, print results and verify functionality. The aim is to provide you with an easy way to interact with our database without having to compile a new project. The executable can be found at `/build/kv-store-test` and the file can be changed at `/playground.cpp`.
 
 ### Experiments
 
-Run `./experiments.sh` to run the excutable that generates all experiments data. You can also generate data individually for each experiment by calling the executable file `/build/kv-store-performance-test` with the parameters indicated on the calls of `experiments.sh`. We also provide a `plot_experiments.sh` script that plots the data generated for each experiment. You can also plot the data of individual experiments by using the same approach.
+Run `./experiments.sh` to run the executable that generates all experiments data. You can also generate data individually for each experiment by calling the executable file `/build/kv-store-performance-test` with the parameters indicated on the calls of `experiments.sh`. We also provide a `plot_experiments.sh` script that plots the data generated for each experiment. You can also plot the data of individual experiments by using the same approach.
 
-## Project Status <a name="status"></a>
+Parameters of `/build/kv-store-performance-test`:
+
+    -e [num]: The experiment number to run
+    -d [data amount]: The amount of data to run the experiement
+    -s [num steps]: The number of operations to time (ex: 1000 means the time is measured every 1000 get operations)
+
+## Project Status <a name="status"></a> 
 
 TODO: at the end
+
+All experiments plotted below were run on a MacBookAir (13 inch, 2017) with the following specifications:
+
+- **OS**: macOS Monterey Version 12.4
+- **Processor:** 1.8 GHz Dual-Core Intel Core i5
+- **Memory**: 8 GB 1600 MHz DDR3
+- **Graphics:** Intel HD Graphics 6000 1536 MB
 
 ## Database Initialization and Parameters <a name="init_param"></a>
 
 We provide the user with a DbOptions object that is used to set default configurations for any database instantiated, and also giving the freedom to specify some options based on the user's preference.
 
-As such, open("database name") is a valid call to create a database if the user simply wants a functioning databse without thinking about possible parameters/options, but they may also generate a DbOptions object and pass that in as a second parameter to the call for further customization.
+As such, open("database name") is a valid call to create a database if the user simply wants a functioning KV-store without thinking about possible parameters/options, but they may also generate a DbOptions object and pass that in as a second parameter to the call for further customization.
 
 ### DbOptions
 
-Default values: TODO
+**Default values**
 
-Options: TODO
+    - Memtable
+        - memTableType: "RedBlackTree"
+        - maxMemtableSize: 10 * MEGABYTE
 
-An example is as follows:
+    - SST
+        - sstManager: "LSMTreeManager"
+        - sstSearch: "BTree"
+        - btreeFanout: 100
+
+    - Buffer Pool
+        - bufferPoolType: "LRU"
+        - bufferPoolMinSize: 1
+        - bufferPoolMaxSize: 10
+
+    - Bloom filter
+        - filterBitsPerEntry: 10
+
+**Avalable Options**
+
+    - Memtable
+        - memTableType: "RedBlackTree"
+        - maxMemtableSize: any positive integer multiple of ENTRY_SIZE (representing the maximum number of bytes stored in the memtable)
+
+    - SST
+        - sstManager: "BTreeManager", "LSMTreeManager"
+        - sstSearch: "BTree", "BinarySearh"
+        - btreeFanout: any positive integer value (representing the fanout of the btree)
+
+    - Buffer Pool
+        - bufferPoolType: "Clock", "LRU", "None"
+        - bufferPoolMinSize: any non-negative integer value (representing the minimum size of buffer pool in MB)
+        - bufferPoolMaxSize: any positive integer value (representing the maximum size of buffer pool in MB)
+
+    - Bloom filter
+        - filterBitsPerEntry: any non-negative integer value (representing the number of bits per entry in the Bloom filterff)
+
+**Example**
 
 ````md
-  example
-  example
-  example
+    DbOptions *options = new DbOptions();
+    options->setSSTSearch("LSMTree");
+    options->setBufferPoolSize(1, 10); // min size, max size
+    options->setFilterBitsPerEntry(10);
+    options->setMaxMemtableSize(1 * MEGABYTE);
+    
+    SimpleKVStore db;
+    db.open("<db_path>/<db_name>", options);
 ````
 ---
 ## Implementation Steps <a name="steps"></a>
 
 Here we outline the process of implementation the various parts of our system. For simplicity, our simple KV-Store only handles integer keys and integer values.
 
-The general flow is the following: entries get populated in a memtable (fitting entirely in memory) that holds the most recent key-value insertions in the database. Once the memtable grows beyond its capacity, the contents of the memtable are dumped to an SST sorted
+The general flow is the following: entries get populated in a memtable (fitting entirely in memory) that holds the most recent key-value insertions in the database. Once the memtable grows beyond its capacity, the contents of the memtable are dumped to an SST sorted by the keys.
 
 ### Abstractions
 
@@ -97,6 +143,12 @@ We have a few base interfaces that can be found under the `/include/Base` direct
 
 - `priority_merge` - This function is a core utility function used throughout our implementation. It allows the neat compaction of various sources of data in order to produce output data which prioritizes the newest data. The function takes in 2 inputs, 1 set of newer data (key-value pairs) and one set of older data. If there is ever an entry which is present in both sources, the function will use the newer version of the key. An example of usage would be when priority merging data from the memtable with data found in SSTs. 
 
+### High-Level OOP Diagram
+
+For better understanding of the codebase and our design decisions, we include here a diagram of our main classes and how they interact with each other:
+
+TODO: image
+
 
 ### Step 1 <a name="step1"></a>
 
@@ -106,32 +158,43 @@ We implement a memtable as a balanced binary search tree ([red-black tree](https
 
 - **SSTs (Sorted String Tables)**
 
-We set a maximum capacity (e.g. a page size of 4KB) to the Memtable, at which point we dump the contents key-value pairs in sorted order to an SST file `sstX`. The SSTs are thus stored in decreasing order of longevity where `sst1` is the oldest Memtable dumped. On a get query that is not found on the current Memtable, our database traverses over the SSTs from newest to oldest to find a key. Note that we implement the SST dump so that it writes in binary so an append-only file to maximize efficiency in sequential writes.
+We set a maximum capacity (e.g. a page size of 4KB) to the Memtable, at which point we dump the key-value pairs in sorted order to an SST file `x.sst`. The SSTs are thus stored in decreasing order of longevity where `1.sst` is the oldest Memtable dumped. On a get query that is not found on the current Memtable, our database traverses over the SSTs from newest to oldest to find a key. Note that we implement the SST dump so that it writes in binary to an append-only file to maximize efficiency in sequential writes.
 
-Our initial implementation was quite raw and assumed that a new SST File was made every time a memtable was dumped. This implies that each operation performed on any SST's loaded from disk could be performed in memory seeing as they do not grow in size. This assumption is later relaxed as we introduce more complications to our implementation. 
+Our initial implementation was quite raw and assumed that a new SST File was made every time a memtable was dumped. This implies that each operation performed on any SST loaded from disk could be performed in memory seeing as they do not grow in size. This assumption is later relaxed as we introduce more complications to our implementation. 
 
 In order to ensure efficiency, we use the `O_DIRECT` flag when opening a file and ensure that all reads are multiples of 512. 
 
-#### Experiments
+#### Step 1 Experiment <a name="step-1-experiment"></a>
 
-Run `/build/kv-store-performance-test -e 1 -d MB_OF_DATA -s STEP_SIZE` to collect data and `python plot_experiments.py` to plot them.
+This experiment aims to measure the throughput of the put, get, and scan operations. The methodology is as follows:
 
-Experiment 1 aims to measure the throughput of the `put`, `get`, and `scan` operations. The current methodology is as follows:
-1. Randomly sample a set of keys for insertion. Note that this could cause insertion of an existing key (uptade), so we sample a few extra keys to guarantee we will get the correct number of unique insertions by the end. 
-2. Perform STEP_SIZE number of unique puts, where keys are randomly sampled and the data payload is always 0, and measure the time taken.
-3. From the keys in the database, sample STEP_SIZE random unique keys and perform STEP_SIZE number of gets on these keys. Also measure the time taken.
-5. Perform STEP_SIZE - 1 number of random scans over the inserted keys and measure the time.
-6. Graph the above times against the amount of data inserted into the kv-store at the time of measurement.
+For each iteration, we:
 
-The graphs are saved under the name `experiment1.png` and shown below:
+1. Randomly sample STEP_SIZE keys and `put` those keys in the db. Time and average throughput for that iteration.
+3. Randomly sample NUM_QUERIES keys and `get` those keys from the db. Time and average throughput for that iteration.
+4. Randomly sample NUM_QUERIES keys and `get` those keys from the db. Time and average throughput for that iteration.
 
-[]()
+Note that "randomly" in this case is not uniform. Instead our sample has an intentional skew towards lower valued keys to more closely simulate a real database workload. For each iteration, we sample a key from a value that ranges from 0 to the number of keys inserted up to that point so that the likelihood of querying a key value that is indeed loaded in the database (and not a miss) remains consistent throughout each iteration. Since querying a key not in the database is the most expensive query (as we have to traverse all SSTs), this is an important consideration to make in order to compare the throughput at different sizes.
 
-**Analysis**
+At each iteration, since we increase the total database size at every step, NUM_QUERIES is calculated from a percentage of all the keys inserted into the database at that point.
+ 
+The graphs are shown below:
 
-- **Put**:
-- **Get**:
-- **Scan**:
+<p align="center">
+  <img src="assets/experiment1-all.png"  width=50% height=50%>
+</p>
+
+We first notice a huge drop in throughput of gets ans scans after 10MB. This is expected as 10MB is the default size of the memtable and this further displays the strong difference between IO operations and CPU operations as discussed in class. For a better visualization of the trend in different SST insertions as data increases, we plot another version of the graph excluding this initial 10MB drop:
+
+<p align="center">
+    <img src="assets/experiment1-sst.png"  width=50% height=50%>
+</p>
+
+It is sensible that, as the data size increases, so does the time to return from a query (throughput decreases) as there is more data to look through to find the key. As such, we see this pattern happening precisely in both gets and scans. This is not seen as much in puts, however, because inserts are first bufferd into the memtable and only written out to disk after the memtable is full. 
+
+This is also the reason why puts have much higher throughput (in the order of 100 to 1000 times as high) compared to gets. It is also interesting to see that there are frequent drops in throughput at somewhat regular intervals of time. This should be precisely when the database is dumping the memtable into an SST, which takes signigicantly longer than the other operations.
+
+On a similar note, we also see that scans are significantly slower than gets (also in the order of 100 to 1000 times as high). This is intuitive as scans require iterating over a lot more data items to retrieve all elements that fall within the desired range.
 
 ### Step 2 <a name="step2"></a>
 
@@ -159,9 +222,49 @@ At this point, our BTree could function as both a large Append Only File or a BT
 
 _Note: The internal nodes are only read from once, on SST load. While we understand that these nodes should be handled as regular pages and read from disk each time, with sufficiently large fanouts, the number of integers in all internal nodes scales very very very well (log base fannout). This allows us to keep all internal ndoes in memory at all times._ 
 
-#### Experiments
+#### Step 2 Experiment 1
 
-TODO: step2 experiments
+In this experiment we aim at comparing the throuhgput performance of the Clock vs. LRU buffer pools.
+
+We perform two sub-experiments to display the performance difference in different load scenarios. For both experiments, we make sure that the keys we are inserting and querying are consistent on both databases so that the experiment is a valid comparison. In other words, we insert the same keys and also query consistent keys in the same order so that the databases are beind compared under exactly the same load.
+
+1. **Clock performing better than LRU**
+
+    Since Clock provides a smaller CPU overhead, trivially a workload that fits entirely in memory would likely perform better with Clock rather than LRU. However, thinking about a more "realistically" workload that uses the entirety of the database' s storing power, randomly loading and accessing keys in the database should display this difference. The extra overhead associated with LRU should be enough to yield worst performance as this overhead is not useful given that keys are sampled randomly across the database.
+    <p align="center">
+      <img src="assets/experiment2p1-clock.png"  width=50% height=50%>
+    </p>
+
+    Indeed, Clock performs better at pretty much every buffer 
+
+2. **LRU better than Clock**
+
+    LRU provides a more accurate representation of the recency of a page at a higher CPU cost. This would then be useful and pay off when the data accesses are skewed and we indeed access a page more often more recently. We try to set up an experiment to exploit a workload that enhances the clock innacuracies. We access keys in a way that we benefit from the overhead of LRU putting the page to the front while Clock could evict that page earlier on. This is because we try to reaccess the same pages fast enough so that the clock handle does not get a change to reach that page (and the clock does not recognizes the new access by setting a bit that was already 1 to 1 again). We also try to access it far enough so that this delay is enough to cause the clock page to be evicted while the LRU maintains it in buffer (since it brought the page to the front on that reaccess).
+    <p align="center">
+      <img src="assets/experiment2p1-lruf.png"  width=50% height=50%>
+    </p>
+
+#### Step 2 Experiment 2
+
+This experiment aims at comparing our initial binary search to B-tree search. As such, we load the same randomly sampled keys with a skew like in [Step 1 Experiment](#step-1-experiment) to both databases of comparison. We then time and randomly query about 0.001% of the keys inserted. For both experiments, we make sure that the keys we are inserting and querying are consistent on both databases so that the experiment is a valid comparison. In other words, we insert the same keys and also query consistent keys in the same order so that the databases are beind compared under exactly the same load.
+
+
+We plot the graph below:
+
+<p align="center">
+  <img src="assets/experiment2p2-all.png"  width=50% height=50%>
+</p>
+
+We also notice here a the same throughput after 10MB as seen in [Step 1 Experiment](#step-1-experiment) for the same IO vs. CPU reasons as before. 
+Additionally, it is interesting to note that for the first few iterations where most operations happen in memory, binary search actually outperforms b-tree search. This is likely because the data is 
+
+For a better visualization of the trend in different SST insertions as data increases, we plot another version of the graph excluding this initial 10MB drop:
+
+<p align="center">
+    <img src="assets/experiment2p2-sst.png"  width=50% height=50%>
+</p>
+
+We see that B-tree outperforms 
 
 ### Step 3 <a name="step3"></a>
 
@@ -191,72 +294,53 @@ TODO
 Bloom filter file names are bloom_filter_{level}, where level is the level of the LSM tree for which this bloom filter tracks set membership.
 TODO
 
-#### Experiments
+#### Step 3 Experiment 1
 
-TODO: step3 experiments
+This experiment aims at providing an updated measure of throughput for put, get, and scan operations. More precisely, the database now stores the SSTs in a Log-structured merge-tree (LSM Tree) with a Bloom filter to check for key presence in every level as well a buffer pool to cache hot pages. It then follows precisely the same methodology as [Step 1 Experiment](#Step-1-Experiment), except that it additionally fixes the buffer pool size to 10 MB, the Bloom filters to use 5 bits per entry, and the memtable to 1 MB. The throughput is plotted as below:
+
+<p align="center">
+  <img src="assets/experiment3p1-all.png"  width=50% height=50%>
+</p>
+
+As before, the same drop pattern from [Step 1 Experiment](#Step-1-Experiment) emerges, but we include the graph for completion. We also plot the data only after the drop below:
+
+<p align="center">
+  <img src="assets/experiment3p1-sst.png"  width=50% height=50%>
+</p>
+
+#### Step 3 Experiment 2
+
+In this experiment, we explore how get performance varies as we vary the number of bits per entry used for your Bloom filters. Then, for each value of number of bits per entry being tested, we create a database with the desired number of filter bits and 1MB of memtable, load 256 MB worth of data and time the time it takes to query from that database. For all experiments, we make sure that the keys we are inserting and querying are consistent across databases so that the experiment is a valid comparison. In other words, we insert the same keys and also query consistent keys in the same order so that the databases are beind compared under exactly the same load.
+
+We plot the throughput graph below:
+
+<p align="center">
+  <img src="assets/experiment3p2.png"  width=50% height=50%>
+</p>
+
 
 ## Testing
 
-TODO
+In our efforts to assure the quality of our code, we relied on unit tests to check individual isolated components, integrated tests to verify that all our components are correctly combined in the flow of the application, as well as a lot of manual testing on playground and on the larger experiments. Some of the unit/integration tests are included in the `src/kv-store-test.cpp` file and we include them here for reference:
 
+- **simple_test:** a basic interaction with a database of putting, getting and updating a few values 
+- **hash_test:** a simple test that a the hashing function used is consistent with the same value
+- **memtable_puts_and_gets:** checks that memtables correctly stores and retrieves key-value pairs
+- **sequential_puts_and_gets:** checks that the db correctly stores sequential keys and retrieves them on get calls
+- **sequential_puts_and_scans:** checks that the db correctly stores sequential keys and retrieves them on scan calls
+- **random_puts_and_gets:** checks that the db correctly stores random keys and retrieves them on get calls
+- **update_keys:** checks that the db correctly updates keys corretly
+- **edge_case_values:** checks for edge cases
+- **multiple_dbs:** manages multiple dbs opened at once and ensure they are each correctly managed
+- **simple_LRU_buffer:**
+- **LRU_simple_evict:**
+- **LRU_ref_evict:**
+- **LRU_grow:**
+- **LRU_shrink:**
+- **simple_clock_buffer:**
+- **clock_simple_evict:**
+- **bloom_filter_simple:**
 
-Marking scheme:
+We also run the same tests with multiple database configurations (different search techniques, different buffer options, different sizes of various components) to ensure that the options behave consistenly across the board.
 
-Marking scheme (tentative) - Total 100 points + bonus (10 points)
-Experiments - 33 points
-Core Implementation - 52 points
-Software Engineering practices - 15 points
-
-List of report must-haves
-
--Description of design elements - concisely describe the different elements of your design (i.e., memtable, B-tree creation, extendible hashing, etc), and any interesting design decision you have made. This should correspond to the list of design elements below. Feel free to tell us about extra cool stuff you might have added. Please also tell us where to find the implementation of each design element in the code (i.e., file and function name). 
--Project status - Give details on what works and what does not. If there are known bugs in your code, list them here. 
--Experiments - please show experimental figures and explain your findings for each experiment. If you have some extra experiments that you did, put them here under a separate “Extra Experiments” heading.
--Testing - Testing is a very important part of any implementation, Mention how you tested your implementation, if you have several unit and integration tests, list them here.
--Compilation & running Instructions - detail out how to run your project (i.e., give makefile targets and describe what they are for). If you have an executable that we can use to run simple commands, give instructions on how to use that.
-
-List of coding practices to check
-
--Code readability - consistent naming and indentation, meaningful identifiers, comments, no too long lines (3 points)
--Code modularity - short and specific task functions, good code reuse (3 points)
--Version control - use of version control to collaborate and making meaningful commits (2 points)
--Makefile - makefile for experiments and executable build (doesn’t have to be separate as long as instructions are in the report) - (2 points)
--Tests - correctness and performance tests (5 points)
-
-List of Design Elements 
-
--KV-store get API (1) - 1 points
--KV-store put API (1) - 1 point
--KV-store scan API (1) - 2 point
--In-memory memtable as balanced binary tree (1) - 4 points
--SSTs in storage with efficient binary search (1) - 3 points
--Database open and close API (1) - 2 points
--Extendible hash buffer pool (2) - 6 points
--Integration buffer with get (2) - 2 points
--shrink API (2) - 2 point
--Clock eviction policy (2) - 4 points
--LRU eviction policy (2) - 4 points
--Static B-tree for SSTs (2) - 4 points
--Bloom filter for SST and integration with get (3) - 5 points
--Compaction/Merge of two trees (3) - 5 points
--Support update (3) - 3 points
--Support delete (3) - 4 points
-
-List of Experiments
-
--Data volume VS put performance (1) - 3 points
--Data volume VS get performance (1) - 3 points
--Data Volume VS scan performance (1) - 3 points
--LRU vs Clock eviction policy with query throughput with changing buffer pool size (2) - 5 points
--Binary search vs B-tree index with query throughput with changing data size (2) - 5 points
--Put throughput with increasing data size (3) - 3 points
--Get throughput with increasing data size (3) - 3 points
--Scan throughput with increasing data size (3) - 3 points
--Get performance for changing bloom filter bits with growing data size (3) - 5 points
-
-A few things about the bonus marks:
-
--If you get it, the project is still capped at 100 points
--Extra things do not necessarily get you bonus unless they provide new insights (new experiments) or improve the design (new or changed implementation)
--You get a bonus if grading becomes easier, for example by mentioning clearly what doesn’t work, or having a lot of suitable tests.
 
