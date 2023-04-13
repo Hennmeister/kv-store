@@ -32,11 +32,15 @@ void experiment2p1(int num_MB, int step_size_MB) {
     cout << "Running Experiment 2.1" << endl;
 
     DbOptions *lru_options = new DbOptions();
+    lru_options->setSSTSearch("BTree");
+    lru_options->setSSTManager("BTreeManager");
     lru_options->setBufferPoolType("LRU");
     lru_options->setBufferPoolSize(1, num_MB);
     lru_options->setFilterBitsPerEntry(0);
 
     DbOptions *clock_options = new DbOptions();
+    lru_options->setSSTSearch("BTree");
+    lru_options->setSSTManager("BTreeManager");
     clock_options->setBufferPoolType("Clock");
     clock_options->setBufferPoolSize(1, num_MB);
     clock_options->setFilterBitsPerEntry(0);
@@ -206,12 +210,12 @@ void experiment2p2(int num_MB, int step_size_MB) {
 
     DbOptions *btree_options = new DbOptions();
     btree_options->setSSTSearch("BTree");
-    btree_options->setSSTManager("BTree");
+    btree_options->setSSTManager("LSMTreeManager");
     btree_options->setFilterBitsPerEntry(0);
 
     DbOptions *bs_options = new DbOptions();
     bs_options->setSSTSearch("BinarySearch");
-    bs_options->setSSTManager("BTree");
+    bs_options->setSSTManager("LSMTreeManager");
     bs_options->setFilterBitsPerEntry(0);
 
     SimpleKVStore btree_db;

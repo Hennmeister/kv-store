@@ -15,7 +15,7 @@ void experiment1(int num_MB, int step_size_MB) {
     cout << "Running Experiment 1" << endl;
 
     DbOptions *options = new DbOptions();
-    options->setSSTManager("BTree");
+    options->setSSTManager("BTreeManager");
     options->setSSTSearch("BinarySearch");
     options->setBufferPoolType("None");
     options->setFilterBitsPerEntry(0);

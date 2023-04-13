@@ -17,7 +17,8 @@ void experiment3p1(int num_MB, int step_size_MB) {
     cout << "Running Experiment 3.1" << endl;
 
     DbOptions *options = new DbOptions();
-    options->setSSTSearch("LSMTree");
+    options->setSSTSearch("BTree");
+    options->setSSTManager("LSMTreeManager");
     options->setBufferPoolType("Clock");
     options->setBufferPoolSize(1, 10);
     options->setFilterBitsPerEntry(5);
@@ -139,6 +140,10 @@ void experiment3p2(int max_M, int step_size) {
         fflush(stdout);
 
         DbOptions *options = new DbOptions();
+        options->setSSTSearch("BTree");
+        options->setSSTManager("LSMTreeManager");
+        options->setBufferPoolType("Clock");
+        options->setBufferPoolSize(20, 20);
         options->setMaxMemtableSize(1 * MEGABYTE);
         options->setFilterBitsPerEntry(M);
 
