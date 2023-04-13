@@ -339,7 +339,14 @@ BTreeSST* LSMTreeManager::combine_SST(BTreeSST* newer, BTreeSST* older){
 bool LSMTreeManager::compact_tree(int level) {
     auto res = combine_SST(levels[level][1], levels[level][0]);
     sst_counter++;
+
+    // Delete ssts and free memory
+    levels[level][1]->delete_sst();
+    levels[level][0]->delete_sst();
+    delete levels[level][1];
+    delete levels[level][0];
     levels[level].clear();
+
     // Create a new level if it exists
     if(levels.size() == level + 1){
         auto new_level = vector<BTreeSST*>();

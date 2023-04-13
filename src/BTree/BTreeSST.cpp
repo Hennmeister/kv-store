@@ -18,6 +18,10 @@ BTreeSST::~BTreeSST(){
 //    cout << "total: "<< total<< " negatives: " << negatives << " false positives: " << false_positive << endl;
 };
 
+void BTreeSST::delete_sst(){
+    fileManager->delete_file(this->filename);
+}
+
 int BTreeSST::getSize() const {
     return this->size;
 }

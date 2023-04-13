@@ -78,6 +78,7 @@ void SimpleKVStore::close()
     sstManager->add_sst(dat);
     delete this->memtable;
     delete this->sstManager;
+    delete this->fileManager;
 }
 
 void SimpleKVStore::set_buffer_pool_max_size(const int &new_max) {
