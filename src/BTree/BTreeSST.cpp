@@ -122,19 +122,25 @@ vector<pair<int, int>> BTreeSST::get_pages(int start_ind, int end_ind){
     if(start_ind >= ceil((double) size/ (double) PAGE_NUM_ENTRIES) || start_ind > end_ind){
         return res;
     }
+
     int num_entries = (end_ind - start_ind + 1) * PAGE_NUM_ENTRIES;
+    res = vector<pair<int,int>>(num_entries);
     int *data = new int[num_entries * PAGE_NUM_ENTRIES * 2];
 
     // Ignore internal node pages
     fileManager->scan(this->internal_node_pages + start_ind,
                       this->internal_node_pages+ end_ind, filename, data);
-
+    int count = 0;
     for (int ind = 0; ind < num_entries; ind++)
     {
         if(data[ind * 2] != INT_MAX) {
-            res.emplace_back(data[ind * 2], data[ind * 2 + 1]);
+            count++;
+            res[ind] = pair(data[ind * 2], data[ind * 2 + 1]);
+        }else{
+            break;
         }
     }
+    res.resize(count);
     delete[] data;
     return res;
 }
@@ -147,6 +153,11 @@ vector<pair<int, int>> BTreeSST::get_page(int page_ind){
         return res;
     }
     int num_entries = PAGE_NUM_ENTRIES;
+    if(page_ind * PAGE_NUM_ENTRIES > this->size){
+        num_entries = this->size % PAGE_NUM_ENTRIES;
+    }
+    res = vector<pair<int,int>>(num_entries);
+
     int *data = new int[PAGE_NUM_ENTRIES * 2];
 
     // Ignore internal node pages
@@ -155,7 +166,7 @@ vector<pair<int, int>> BTreeSST::get_page(int page_ind){
     for (int ind = 0; ind < num_entries; ind++)
     {
         if(data[ind * 2] != INT_MAX) {
-            res.emplace_back(data[ind * 2], data[ind * 2 + 1]);
+            res[ind] = pair(data[ind * 2], data[ind * 2 + 1]);
         }
     }
     delete[] data;
