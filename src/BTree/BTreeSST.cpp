@@ -58,6 +58,7 @@ int BTreeSST::binary_scan(int target){
 
         if (ind != -1 && cur_page.first[ind * 2] == target)
         {
+            delete[] cur_page.first;
             return mid * PAGE_NUM_ENTRIES + ind;
         }
         else if (cur_page.first[(cur_page.second - 1) * 2] < target)
@@ -68,6 +69,7 @@ int BTreeSST::binary_scan(int target){
         {
             right = mid - 1;
         }
+        delete[] cur_page.first;
     }
     return -1;
 
@@ -396,6 +398,7 @@ bool BTreeSST::get(const int &key, int &value) {
         auto page_data = this->get_page_raw(page);
         if(page_data.first[(cur % PAGE_NUM_ENTRIES) * 2] == key){
             value = page_data.first[(cur % PAGE_NUM_ENTRIES) * 2 + 1];
+            delete[] page_data.first;
             return true;
         }
         false_positive++;
@@ -412,6 +415,7 @@ bool BTreeSST::get(const int &key, int &value) {
             if (offset == 0 && i != 0) {
                 if (cur >= this->getSize()) {
                     false_positive++;
+                    delete[] page_data.first;
                     return false;
                 }
                 page++;
@@ -419,6 +423,7 @@ bool BTreeSST::get(const int &key, int &value) {
             }
             if (page_data.first[offset * 2] == key) {
                 value = page_data.first[offset * 2 + 1];
+                delete[] page_data.first;
                 return true;
             }
             cur++;
