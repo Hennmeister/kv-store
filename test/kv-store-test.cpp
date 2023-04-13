@@ -142,7 +142,7 @@ int main()
 
     // Shared DBs
     SimpleKVStore shared_db;
-    shared_db.open(test_dir + "shared_db", options);
+    shared_db.open(test_dir + "shared_db");
 
     for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
     {
