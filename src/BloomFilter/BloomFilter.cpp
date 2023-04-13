@@ -4,19 +4,17 @@
 #include <climits>
 using namespace std;
 
-
-void run_hash(int key, int seed, int& res){
-    res =  (key + seed) * pow(seed, 10);
-}
-
-
 BloomFilter::BloomFilter(int num_entries, int bits_per_entry) {
     // generate set of random seeds
     int num_hash_functions = log(2) * bits_per_entry;
+    int i = 0;
     while (seeds.size() != num_hash_functions) {
-        seeds.insert(std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::time_point_cast<std::chrono::milliseconds>(
-                        std::chrono::high_resolution_clock::now()).time_since_epoch()).count());
+        // TODO: some random thing
+        seeds.insert(i);
+        i++;
+//        seeds.insert(std::chrono::duration_cast<std::chrono::milliseconds>(
+//                std::chrono::time_point_cast<std::chrono::milliseconds>(
+//                        std::chrono::high_resolution_clock::now()).time_since_epoch()).count());
     }
     bits = std::vector<int>(ceil((double) num_entries * bits_per_entry / (sizeof(int) * 8)), 0);
 }

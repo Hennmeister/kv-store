@@ -4,6 +4,7 @@
 
 template <typename T>
 Directory<T>::Directory(int min_size, int max_size, double min_load_factor, double max_load_factor) {
+    assert(min_size >= 0);
     this->min_size = min_size;
     this->max_size = max_size;
     this->min_load_factor = min_load_factor;
@@ -13,7 +14,7 @@ Directory<T>::Directory(int min_size, int max_size, double min_load_factor, doub
     this->num_data_in_buffer = 0;
 
 
-    this->num_bits = ceil(log2((min_size * MB) / sizeof(T)));
+    this->num_bits = max(ceil(log2((min_size * MB) / sizeof(T))), (double) 0);
 
     for (int i = 0; i < (1<<num_bits); i++) {
         entries.emplace_back(nullptr);
