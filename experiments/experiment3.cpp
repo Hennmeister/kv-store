@@ -57,7 +57,7 @@ void experiment3p1(int num_MB, int step_size_MB) {
         auto start = chrono::high_resolution_clock::now();
 
         // We assume that the time to generate random keys and manage the hash set is negligible
-        for (int i = 0; i < step_size; i++) {
+        for (int j = 0; j < step_size; j++) {
             int key = ::rand() % db_num_keys; // not necessarily uniformly distributed to simulate real workload (skewed towards lower keys)
             db.put(key, 0); // paylod is irrelevant
         }
@@ -117,9 +117,19 @@ void experiment3p1(int num_MB, int step_size_MB) {
 void experiment3p2(int max_M, int step_size) {
     cout << "Running Experiment 3.2" << endl;
 
-    // Load 128 MB of data on each run
-    int num_inserts = 128 * MEGABYTE / ENTRY_SIZE;
+    // Load 256 MB of data on each run
+    int num_inserts = 256 * MEGABYTE / ENTRY_SIZE;
     int num_queries = 0.0001 * num_inserts; // query 0.01% of data inserted
+
+    // Make sure each experiment is inserting consistently
+    std::vector<int> inserts(num_inserts);
+    for (int j = 0; j < num_inserts; j++)
+        inserts.push_back(::rand() % num_inserts);
+
+    // Make sure each experiment is querying consistently
+    std::vector<int> queries(num_queries);
+    for (int j = 0; j < num_queries; j++)
+        queries.push_back(::rand() % num_inserts);
 
     std::vector<int> x;
     std::vector<double> get_throughput;
@@ -142,15 +152,15 @@ void experiment3p2(int max_M, int step_size) {
         db.open("./experiments_dbs/exp3p2_" + to_string(M) + "bits_per_entry", options);
 
         // Load db with random keys until num_inserts
-        for (int i = 0; i < num_inserts; i++)
-            db.put(::rand() % num_inserts, 0); // paylod is irrelevant
+        for (int j = 0; j < num_inserts; j++)
+            db.put(inserts[j], 0); // paylod is irrelevant
 
         // Time queries
         int val;
         auto start = chrono::high_resolution_clock::now();
 
-        for (int i = 0; i < num_queries; i++)
-            db.get(::rand() % num_queries, (int &) val);
+        for (int j = 0; j < num_queries; j++)
+            db.get(queries[j], (int &) val);
 
         auto stop = chrono::high_resolution_clock::now();
         double microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
@@ -160,6 +170,10 @@ void experiment3p2(int max_M, int step_size) {
         x.push_back(M);
 
         db.close();
+
+        // Clear experiment db
+        for (const auto &entry : std::filesystem::directory_iterator("./experiments_dbs"))
+            std::filesystem::remove_all(entry.path());
     }
 
     std::cout << std::endl;
