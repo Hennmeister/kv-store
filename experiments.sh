@@ -16,8 +16,8 @@
 
 # Smaller experiments
 
-#./build/kv-store-performance-test -e 1 -d 64 -s 4
-#./build/kv-store-performance-test -e 21 -d 16 -s 1
+./build/kv-store-performance-test -e 21 -d 32 -s 1
 ./build/kv-store-performance-test -e 22 -d 256 -s 8
-./build/kv-store-performance-test -e 32 -d 20 -s 1
-#./build/kv-store-performance-test -e 31 -d 1024 -s 8
+./build/kv-store-performance-test -e 32 -d 30 -s 1
+./build/kv-store-performance-test -e 31 -d 1024 -s 16
+./build/kv-store-performance-test -e 1 -d 256 -s 8

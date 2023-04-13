@@ -2,15 +2,9 @@
 #include <cassert>
 #include "chrono"
 #include "../include/SimpleKVStore.h"
-#include "../include/constants.h"
-#include "../include/Base/DbOptions.h"
 #include "../include/util.h"
 #include <algorithm>
-#include <random>
-#include <iostream>
 #include <fstream>
-#include <filesystem>
-#include <sys/stat.h>
 
 using namespace std;
 
@@ -59,7 +53,7 @@ void experiment2p1(int num_MB, int step_size_MB) {
     int max_buf_size_MB = num_MB;
 
     // Load 8 * max_buf_size bytes of entries in the database
-    int num_inserts = 8 * max_buf_size_MB * MEGABYTE/ ENTRY_SIZE;
+    int num_inserts = 8 * max_buf_size_MB * MEGABYTE / ENTRY_SIZE;
     int num_queries = 0.00001 * num_inserts; // query 0.001% of data inserted
 
     std::vector<int> x;
@@ -101,8 +95,7 @@ void experiment2p1(int num_MB, int step_size_MB) {
         // Make sure each experiment is querying consistently
         std::vector<int> queries(num_queries);
         for (int j = 0; j < num_queries; j++)
-            // Query randomly
-            queries.push_back(::rand() % num_inserts);
+            queries[j] = ::rand() % num_inserts; // Query randomly
 
         int val;
 
@@ -151,9 +144,9 @@ void experiment2p1(int num_MB, int step_size_MB) {
             // To avoid synchronizing with the clock handle, query from
             // random key after 10% queries
             if (j % (int)(0.1 * num_queries) == 0) {
-                queries.push_back(::rand() % num_inserts);
+                queries[j] = ::rand() % num_inserts;
             } else {
-                queries.push_back(keys_iterated[j % (reaccess_after + 1)]);
+                queries[j] = keys_iterated[j % (reaccess_after + 1)];
             }
         }
 
@@ -213,13 +206,11 @@ void experiment2p2(int num_MB, int step_size_MB) {
 
     DbOptions *btree_options = new DbOptions();
     btree_options->setSSTSearch("BTree");
-    btree_options->setBufferPoolType("None");
     btree_options->setSSTManager("BTree");
     btree_options->setFilterBitsPerEntry(0);
 
     DbOptions *bs_options = new DbOptions();
     bs_options->setSSTSearch("BinarySearch");
-    bs_options->setBufferPoolType("None");
     bs_options->setSSTManager("BTree");
     bs_options->setFilterBitsPerEntry(0);
 
@@ -259,7 +250,7 @@ void experiment2p2(int num_MB, int step_size_MB) {
         // Make sure each experiment is querying consistently
         std::vector<int> queries(num_queries);
         for (int j = 0; j < num_queries; j++)
-            queries.push_back(::rand() % num_inserts);
+            queries[j] = ::rand() % num_inserts;
 
         int val;
         // Time and query Binary Search keys at random
