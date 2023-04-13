@@ -97,7 +97,7 @@ vector<pair<string, DbOptions *>> get_db_options() {
     small_btree_fanout_options->setBtreeFanout(2);
     options.push_back(pair("small_btree_fanout_options", small_btree_fanout_options));
 
-    // small btree fanout
+    // large btree fanout
     DbOptions *large_btree_fanout_options = new DbOptions();
     large_btree_fanout_options->maxMemtableSize = 10000;
     large_btree_fanout_options->setBtreeFanout(1000);
