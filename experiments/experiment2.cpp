@@ -96,12 +96,13 @@ void experiment2p1(int num_MB, int step_size_MB) {
         clock_db2.set_buffer_pool_max_size(buffer_size);
         lru_db2.set_buffer_pool_max_size(buffer_size);
 
-        // Make sure each experiment is querying consistently
-        std::vector<int> queries;
-        for (int j = 0; j < num_queries; j++)
-            queries.push_back(::rand() % num_inserts);
-
         // 1. === CLOCK BETTER ===
+
+        // Make sure each experiment is querying consistently
+        std::vector<int> queries(num_queries);
+        for (int j = 0; j < num_queries; j++)
+            // Query randomly
+            queries.push_back(::rand() % num_inserts);
 
         int val;
 
@@ -155,7 +156,6 @@ void experiment2p1(int num_MB, int step_size_MB) {
                 queries.push_back(keys_iterated[j % (reaccess_after + 1)]);
             }
         }
-
 
         // Time LRU
         start = chrono::high_resolution_clock::now();
@@ -257,7 +257,7 @@ void experiment2p2(int num_MB, int step_size_MB) {
         int num_queries = 0.00001 * db_num_keys; // query 0.001% of data inserted
 
         // Make sure each experiment is querying consistently
-        std::vector<int> queries;
+        std::vector<int> queries(num_queries);
         for (int j = 0; j < num_queries; j++)
             queries.push_back(::rand() % num_inserts);
 

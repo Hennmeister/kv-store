@@ -121,6 +121,16 @@ void experiment3p2(int max_M, int step_size) {
     int num_inserts = 256 * MEGABYTE / ENTRY_SIZE;
     int num_queries = 0.0001 * num_inserts; // query 0.01% of data inserted
 
+    // Make sure each experiment is inserting consistently
+    std::vector<int> inserts(num_inserts);
+    for (int j = 0; j < num_inserts; j++)
+        inserts.push_back(::rand() % num_inserts);
+
+    // Make sure each experiment is querying consistently
+    std::vector<int> queries(num_queries);
+    for (int j = 0; j < num_queries; j++)
+        queries.push_back(::rand() % num_inserts);
+
     std::vector<int> x;
     std::vector<double> get_throughput;
 
@@ -143,14 +153,14 @@ void experiment3p2(int max_M, int step_size) {
 
         // Load db with random keys until num_inserts
         for (int j = 0; j < num_inserts; j++)
-            db.put(::rand() % num_inserts, 0); // paylod is irrelevant
+            db.put(inserts[j], 0); // paylod is irrelevant
 
         // Time queries
         int val;
         auto start = chrono::high_resolution_clock::now();
 
         for (int j = 0; j < num_queries; j++)
-            db.get(::rand() % num_inserts, (int &) val);
+            db.get(queries[j], (int &) val);
 
         auto stop = chrono::high_resolution_clock::now();
         double microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
