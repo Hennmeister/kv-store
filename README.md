@@ -10,7 +10,6 @@ Refer to [this page](https://docs.google.com/document/d/1dsIuIzXiIBbiZcNYi1cC62P
     3. [Experiments](#experiments)
 3. [Project Status](#status)
 4. [Database Initialization and Parameters](#init_param)
-    1. [DbOptions](#dboptions)
 5. [Implementation Steps](#steps)
     1. [Abstractions](#abstractions)
     2. [Step 1](#step1)
@@ -54,6 +53,13 @@ Run `./experiments.sh` to run the executable that generates all experiments data
 ## Project Status <a name="status"></a> 
 
 TODO: at the end
+
+All experiments plotted below were run on a MacBookAir (13 inch, 2017) with the following specifications:
+
+- **OS**: macOS Monterey Version 12.4
+- **Processor:** 1.8 GHz Dual-Core Intel Core i5
+- **Memory**: 8 GB 1600 MHz DDR3
+- **Graphics:** Intel HD Graphics 6000 1536 MB
 
 ## Database Initialization and Parameters <a name="init_param"></a>
 
@@ -334,69 +340,4 @@ In our efforts to assure the quality of our code, we relied on unit tests to che
 
 We also run the same tests with multiple database configurations (different search techniques, different buffer options, different sizes of various components) to ensure that the options behave consistenly across the board.
 
-
-
-
-
-TODO: DELETE THE FOLLOWING
-
-Marking scheme:
-
-Marking scheme (tentative) - Total 100 points + bonus (10 points)
-Experiments - 33 points
-Core Implementation - 52 points
-Software Engineering practices - 15 points
-
-List of report must-haves
-
--Description of design elements - concisely describe the different elements of your design (i.e., memtable, B-tree creation, extendible hashing, etc), and any interesting design decision you have made. This should correspond to the list of design elements below. Feel free to tell us about extra cool stuff you might have added. Please also tell us where to find the implementation of each design element in the code (i.e., file and function name). 
--Project status - Give details on what works and what does not. If there are known bugs in your code, list them here. 
--Experiments - please show experimental figures and explain your findings for each experiment. If you have some extra experiments that you did, put them here under a separate “Extra Experiments” heading.
--Testing - Testing is a very important part of any implementation, Mention how you tested your implementation, if you have several unit and integration tests, list them here.
--Compilation & running Instructions - detail out how to run your project (i.e., give makefile targets and describe what they are for). If you have an executable that we can use to run simple commands, give instructions on how to use that.
-
-List of coding practices to check
-
--Code readability - consistent naming and indentation, meaningful identifiers, comments, no too long lines (3 points)
--Code modularity - short and specific task functions, good code reuse (3 points)
--Version control - use of version control to collaborate and making meaningful commits (2 points)
--Makefile - makefile for experiments and executable build (doesn’t have to be separate as long as instructions are in the report) - (2 points)
--Tests - correctness and performance tests (5 points)
-
-List of Design Elements 
-
--KV-store get API (1) - 1 points
--KV-store put API (1) - 1 point
--KV-store scan API (1) - 2 point
--In-memory memtable as balanced binary tree (1) - 4 points
--SSTs in storage with efficient binary search (1) - 3 points
--Database open and close API (1) - 2 points
--Extendible hash buffer pool (2) - 6 points
--Integration buffer with get (2) - 2 points
--shrink API (2) - 2 point
--Clock eviction policy (2) - 4 points
--LRU eviction policy (2) - 4 points
--Static B-tree for SSTs (2) - 4 points
--Bloom filter for SST and integration with get (3) - 5 points
--Compaction/Merge of two trees (3) - 5 points
--Support update (3) - 3 points
--Support delete (3) - 4 points
-
-List of Experiments
-
--Data volume VS put performance (1) - 3 points
--Data volume VS get performance (1) - 3 points
--Data Volume VS scan performance (1) - 3 points
--LRU vs Clock eviction policy with query throughput with changing buffer pool size (2) - 5 points
--Binary search vs B-tree index with query throughput with changing data size (2) - 5 points
--Put throughput with increasing data size (3) - 3 points
--Get throughput with increasing data size (3) - 3 points
--Scan throughput with increasing data size (3) - 3 points
--Get performance for changing bloom filter bits with growing data size (3) - 5 points
-
-A few things about the bonus marks:
-
--If you get it, the project is still capped at 100 points
--Extra things do not necessarily get you bonus unless they provide new insights (new experiments) or improve the design (new or changed implementation)
--You get a bonus if grading becomes easier, for example by mentioning clearly what doesn’t work, or having a lot of suitable tests.
 
