@@ -51,7 +51,7 @@ We provide an "empty" C++ file with a default version of our database (that you 
 
 Run `./experiments.sh` to run the executable that generates all experiments data. You can also generate data individually for each experiment by calling the executable file `/build/kv-store-performance-test` with the parameters indicated on the calls of `experiments.sh`. We also provide a `plot_experiments.sh` script that plots the data generated for each experiment. You can also plot the data of individual experiments by using the same approach.
 
-## Project Status <a name="status"></a>
+## Project Status <a name="status"></a> 
 
 TODO: at the end
 
@@ -152,7 +152,7 @@ Our initial implementation was quite raw and assumed that a new SST File was mad
 
 In order to ensure efficiency, we use the `O_DIRECT` flag when opening a file and ensure that all reads are multiples of 512. 
 
-#### Step 1 Experiment
+#### Step 1 Experiment <a name="step-1-experiment"></a>
 
 This experiment aims to measure the throughput of the put, get, and scan operations. The methodology is as follows:
 
@@ -168,13 +168,21 @@ At each iteration, since we increase the total database size at every step, NUM_
  
 The graphs are shown below:
 
-TODO: image
+<p align="center">
+  <img src="assets/experiment1-all.png"  width=50% height=50%>
+</p>
 
-**Analysis**
+We first notice a huge drop in throughput of gets ans scans after 10MB. This is expected as 10MB is the default size of the memtable and this further displays the strong difference between IO operations and CPU operations as discussed in class. For a better visualization of the trend in different SST insertions as data increases, we plot another version of the graph excluding this initial 10MB drop:
 
-It is sensible that, as the data size increases, so does the time to return from a query (throughput decreases) as there is more data to look through to find the key.
-We notice a big drop in throughput after 10MB as this is the default size of the Memtable. This shows the strong difference between IO operations and CPU operations.
-One thing worth mentioning is that we would expect the throghput drop to also be influenced by the number of keys in the database. since we are querying randomly with the , as more data is increased the more likely that the database will find this data in a SST and return from the query before
+<p align="center">
+    <img src="assets/experiment1-sst.png"  width=50% height=50%>
+</p>
+
+It is sensible that, as the data size increases, so does the time to return from a query (throughput decreases) as there is more data to look through to find the key. As such, we see this pattern happening precisely in both gets and scans. This is not seen as much in puts, however, because inserts are first bufferd into the memtable and only written out to disk after the memtable is full. 
+
+This is also the reason why puts have much higher throughput (in the order of 100 to 1000 times as high) compared to gets. It is also interesting to see that there are frequent drops in throughput at somewhat regular intervals of time. This should be precisely when the database is dumping the memtable into an SST, which takes signigicantly longer than the other operations.
+
+On a similar note, we also see that scans are significantly slower than gets (also in the order of 100 to 1000 times as high). This is intuitive as scans require iterating over a lot more data items to retrieve all elements that fall within the desired range.
 
 ### Step 2 <a name="step2"></a>
 
@@ -238,13 +246,22 @@ TODO
 
 #### Step 2 Experiment 2
 
-This experiment aims at comparing our initial binary search to B-tree search. As such, we load the same randomly sampled keys with a skew like in [Step 1 Experiment](#Step-1-Experiment) to both databases of comparison. We then time and randomly query about 0.001% of the keys inserted. We plot the graph below:
+This experiment aims at comparing our initial binary search to B-tree search. As such, we load the same randomly sampled keys with a skew like in [Step 1 Experiment](#step-1-experiment) to both databases of comparison. We then time and randomly query about 0.001% of the keys inserted. We plot the graph below:
 
-TODO: image
+<p align="center">
+  <img src="assets/experiment2p2-all.png"  width=50% height=50%>
+</p>
 
-**Analysis**
+We also notice here a the same throughput after 10MB as seen in [Step 1 Experiment](#step-1-experiment) for the same IO vs. CPU reasons as before. 
+Additionally, it is interesting to note that for the first few iterations where most operations happen in memory, binary search actually outperforms b-tree search. This is likely because the data is 
 
-TODO:
+For a better visualization of the trend in different SST insertions as data increases, we plot another version of the graph excluding this initial 10MB drop:
+
+<p align="center">
+    <img src="assets/experiment2p2-sst.png"  width=50% height=50%>
+</p>
+
+
 
 ### Step 3 <a name="step3"></a>
 
@@ -288,9 +305,9 @@ TODO
 
 In this experiment, we explore how get performance varies as we vary the number of bits per entry used for your Bloom filters. Then, for each value of number of bits per entry being tested, we create a database with the desired number of filter bits and 1MB of memtable, load 128MB worth of data and time the time it takes to query from that database. We plot the throughput graph below:
 
-**Analysis**
-
-TODO
+<p align="center">
+  <img src="assets/experiment3p2.png"  width=50% height=50%>
+</p>
 
 
 ## Testing
