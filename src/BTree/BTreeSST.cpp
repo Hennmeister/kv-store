@@ -53,13 +53,14 @@ int BTreeSST::binary_scan(int target){
     while (left <= right)
     {
         int mid = left + (right - left) / 2;
-        auto cur_page = this->get_page(mid);
-        int ind = binary_search(cur_page, target, discard);
-        if (cur_page[ind].first == target)
+        auto cur_page = this->get_page_raw(mid);
+        int ind = binary_search_raw(cur_page.first, cur_page.second, target, discard);
+
+        if (ind != -1 && cur_page.first[ind * 2] == target)
         {
             return mid * PAGE_NUM_ENTRIES + ind;
         }
-        else if (cur_page[cur_page.size() - 1].first < target)
+        else if (cur_page.first[(cur_page.second - 1) * 2] < target)
         {
             left = mid + 1;
         }
@@ -85,7 +86,7 @@ int BTreeSST::binary_lower_bound(int target){
                                 {
                                     return info.first < value;
                                 });
-        int ind = distance(cur_page.begin(), elem);
+        int ind = min((int) distance(cur_page.begin(), elem), (int) cur_page.size() - 1);
 
         bool is_lb = true;
         if(mid != 0 && ind == 0){
@@ -147,13 +148,13 @@ vector<pair<int, int>> BTreeSST::get_pages(int start_ind, int end_ind){
 
 // Get a single entry_data from the file manager and parse it into a vector of key-value pairs.
 // NOTE: This DOES store data in the buffer by virtue of calling filemanager->get_page
-vector<pair<int, int>> BTreeSST::get_page(int page_ind){
+vector<pair<int,int>> BTreeSST::get_page(int page_ind){
     auto res = vector<pair<int,int>>();
     if(page_ind >= ceil((double) size/ (double) PAGE_NUM_ENTRIES)){
         return res;
     }
     int num_entries = PAGE_NUM_ENTRIES;
-    if(page_ind * PAGE_NUM_ENTRIES > this->size){
+    if((page_ind + 1) * PAGE_NUM_ENTRIES > this->size){
         num_entries = this->size % PAGE_NUM_ENTRIES;
     }
     res = vector<pair<int,int>>(num_entries);
@@ -173,6 +174,24 @@ vector<pair<int, int>> BTreeSST::get_page(int page_ind){
     return res;
 }
 
+
+pair<int*, int> BTreeSST::get_page_raw(int page_ind){
+    if(page_ind >= ceil((double) size/ (double) PAGE_NUM_ENTRIES)){
+        return pair(new int[0], 0);
+    }
+
+    int num_entries = PAGE_NUM_ENTRIES;
+    if(page_ind * PAGE_NUM_ENTRIES > this->size){
+        num_entries = this->size % PAGE_NUM_ENTRIES;
+    }
+
+    int *data = new int[num_entries * 2];
+
+    // Ignore internal node pages
+    fileManager->get_page(this->internal_node_pages + page_ind, filename, data);
+
+    return pair(data, num_entries);
+}
 
 // Construct a btree from the given key-value pair data (assuming sorted order)
 void BTreeSST::constructBtree(const vector<pair<int, int>>& data){
@@ -360,12 +379,12 @@ bool BTreeSST::get(const int &key, int &value) {
     if(size == 0){
         return false;
     }
-    BloomFilter filter = get_bloom_filter();
-    total++;
-    if (!filter.testMembership(key)) {
-        negatives++;
-        return false;
-    }
+//    BloomFilter filter = get_bloom_filter();
+//    total++;
+//    if (!filter.testMembership(key)) {
+//        negatives++;
+//        return false;
+//    }
 
     if(useBinary){
         int cur = this->binary_scan(key);
@@ -374,9 +393,9 @@ bool BTreeSST::get(const int &key, int &value) {
             return false;
         }
         int page = cur / PAGE_NUM_ENTRIES;
-        auto page_data = this->get_page(page);
-        if(page_data[cur % PAGE_NUM_ENTRIES].first == key){
-            value = page_data[cur % PAGE_NUM_ENTRIES].second;
+        auto page_data = this->get_page_raw(page);
+        if(page_data.first[(cur % PAGE_NUM_ENTRIES) * 2] == key){
+            value = page_data.first[(cur % PAGE_NUM_ENTRIES) * 2 + 1];
             return true;
         }
         false_positive++;
@@ -384,7 +403,7 @@ bool BTreeSST::get(const int &key, int &value) {
     }else {
         int pos = btree_find(internal_btree, key, fanout);
         int page = pos / PAGE_NUM_ENTRIES, offset;
-        auto page_data = this->get_page(page);
+        auto page_data = this->get_page_raw(page);
         int cur = pos;
 
         // Check all elements in node pointed to by btree (i.e. lowest level of a virtually clustered btree)
@@ -396,10 +415,10 @@ bool BTreeSST::get(const int &key, int &value) {
                     return false;
                 }
                 page++;
-                page_data = this->get_page(page);
+                page_data = this->get_page_raw(page);
             }
-            if (page_data[offset].first == key) {
-                value = page_data[offset].second;
+            if (page_data.first[offset * 2] == key) {
+                value = page_data.first[offset * 2 + 1];
                 return true;
             }
             cur++;

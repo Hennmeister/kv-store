@@ -181,3 +181,29 @@ int binary_search(std::vector<std::pair<int, int>> data, int target, int &value)
     }
     return -1;
 }
+
+int binary_search_raw(int* data, int size, int target, int &value){
+    int left = 0;
+    int right = size;
+    while (left <= right)
+    {
+        int mid = left + (right - left) / 2;
+
+        int key = data[mid * 2];
+
+        if (key == target)
+        {
+            value = data[mid * 2 + 1];
+            return mid;
+        }
+        else if (key < target)
+        {
+            left = mid + 1;
+        }
+        else
+        {
+            right = mid - 1;
+        }
+    }
+    return -1;
+}

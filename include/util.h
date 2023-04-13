@@ -15,7 +15,7 @@ std::vector<std::pair<int, int>> priority_merge(std::vector<std::pair<int, int>>
                                                 std::vector<std::pair<int, int>> older);
 
 void print_data(const std::vector<std::pair<int, int>>& data);
-
+int binary_search_raw(int* data, int size, int target, int &value);
 void pad_data(std::vector<std::pair<int, int>>& src, int size);
 
 
