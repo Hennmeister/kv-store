@@ -14,7 +14,9 @@ LRUBuffer::LRUBuffer(int minSize, int maxSize, double min_load_factor, double ma
 // If the directory is at capacity, evicts the LRU entry_data.
 // If the directory is more than 75% full, grows the directory to increase capacity
 bool LRUBuffer::put(std::string file_and_page, uint8_t *data, int size) {
-    if (max_size == 0) return true;
+    if (max_size == 0) {
+        return false;
+    }
 
     // evict if the buffer pool if near capacity
     if (num_data_in_buffer + size > (max_size * MB) * max_load_factor) {

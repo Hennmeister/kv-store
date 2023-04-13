@@ -45,8 +45,8 @@ LSMTreeManager::LSMTreeManager(SSTFileManager *fileManager, int newFanout, int u
                                         useBinary));
         total_entries += tmp_ssts[i]->getSize();
         int file_num = stoi(fileDat.first.substr(0, fileDat.first.find('.')));
-        if(file_num -1 > sst_counter){
-            sst_counter = file_num - 1;
+        if(file_num - 1 >= sst_counter){
+            sst_counter = file_num;
         }
         i++;
     }
