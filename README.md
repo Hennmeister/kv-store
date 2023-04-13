@@ -112,7 +112,7 @@ As such, open("database name") is a valid call to create a database if the user 
 ````md
     DbOptions *options = new DbOptions();
     options->setSSTSearch("LSMTree");
-    options->setBufferPoolSize(0, 10); // min size, max size
+    options->setBufferPoolSize(1, 10); // min size, max size
     options->setFilterBitsPerEntry(10);
     options->setMaxMemtableSize(1 * MEGABYTE);
     
