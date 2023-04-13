@@ -2,19 +2,18 @@
 #include "../../include/MurmurHash3.h"
 #include "../../include/constants.h"
 #include <climits>
+#include "random"
+
 using namespace std;
 
 BloomFilter::BloomFilter(int num_entries, int bits_per_entry) {
     // generate set of random seeds
     int num_hash_functions = log(2) * bits_per_entry;
-    int i = 0;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<unsigned int> dis;
     while (seeds.size() != num_hash_functions) {
-        // TODO: some random thing
-        seeds.insert(i);
-        i++;
-//        seeds.insert(std::chrono::duration_cast<std::chrono::milliseconds>(
-//                std::chrono::time_point_cast<std::chrono::milliseconds>(
-//                        std::chrono::high_resolution_clock::now()).time_since_epoch()).count());
+        seeds.insert(dis(gen));
     }
     bits = std::vector<int>(ceil((double) num_entries * bits_per_entry / (sizeof(int) * 8)), 0);
 }
@@ -72,7 +71,6 @@ std::pair<int *, int> BloomFilter::serialize() {
 void BloomFilter::insert(int key) {
     for (auto seed : seeds) {
         int hash;
-//        run_hash(key, seed, hash);
         MurmurHash3_x86_32((void *) &key, sizeof(int), seed, (void *) &hash);
         hash = hash % (bits.size() * sizeof(int) * 8);
         bits[hash / (sizeof(int) * 8)] |= 1 << (hash % (sizeof(int) * 8));
@@ -85,7 +83,6 @@ bool BloomFilter::testMembership(int key) {
     for (auto seed : seeds) {
         int hash;
         MurmurHash3_x86_32((void *) &key, sizeof(int), seed, (void *) &hash);
-//        run_hash(key, seed, hash);
         hash = hash % (bits.size() * sizeof(int) * 8);
         if ((bits[hash / (sizeof(int) * 8)] & (1 << (hash % (sizeof(int) * 8)))) == 0) {
             return false;
