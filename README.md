@@ -152,7 +152,7 @@ Our initial implementation was quite raw and assumed that a new SST File was mad
 
 In order to ensure efficiency, we use the `O_DIRECT` flag when opening a file and ensure that all reads are multiples of 512. 
 
-#### Step 1 Experiments
+#### Step 1 Experiment
 
 This experiment aims to measure the throughput of the put, get, and scan operations. The methodology is as follows:
 
@@ -162,13 +162,19 @@ For each iteration, we:
 2. Randomly sample NUM_QUERIES keys and `get` those keys from the db. Time and average throughput for that iteration.
 3. Randomly sample NUM_QUERIES keys and `get` those keys from the db. Time and average throughput for that iteration.
 
-Note that "randomly" in this case is not uniform. Instead our sample has an intentional skew towards lower valued keys to more closely simulate a real database workload.
+Note that "randomly" in this case is not uniform. Instead our sample has an intentional skew towards lower valued keys to more closely simulate a real database workload. For each iteration, we sample a key from a value that ranges from 0 to the number of keys inserted up to that point so that the likelihood of querying a key value that is indeed loaded in the database (and not a miss) remains consistent throughout each iteration. Since querying a key not in the database is the most expensive query (as we have to traverse all SSTs), this is an important consideration to make in order to compare the throughput at different sizes.
 
-At each iteration, since we increase the total database size at every step, NUM_QUERIES is calcaulated from a percentage of all the keys inserted into the database at that point.
+At each iteration, since we increase the total database size at every step, NUM_QUERIES is calculated from a percentage of all the keys inserted into the database at that point.
  
-The graphs are saved under the name experiment1.png and shown below:
+The graphs are shown below:
 
 TODO: image
+
+**Analysis**
+
+It is sensible that, as the data size increases, so does the time to return from a query (throughput decreases) as there is more data to look through to find the key.
+We notice a big drop in throughput after 10MB as this is the default size of the Memtable. This shows the strong difference between IO operations and CPU operations.
+One thing worth mentioning is that we would expect the throghput drop to also be influenced by the number of keys in the database. since we are querying randomly with the , as more data is increased the more likely that the database will find this data in a SST and return from the query before
 
 ### Step 2 <a name="step2"></a>
 
@@ -196,9 +202,49 @@ At this point, our BTree could function as both a large Append Only File or a BT
 
 _Note: The internal nodes are only read from once, on SST load. While we understand that these nodes should be handled as regular pages and read from disk each time, with sufficiently large fanouts, the number of integers in all internal nodes scales very very very well (log base fannout). This allows us to keep all internal ndoes in memory at all times._ 
 
-#### Experiments
+#### Step 2 Experiment 1
 
-TODO: step2 experiments
+In this experiment we aim at comparing the throuhgput performance of the Clock vs. LRU buffer pools.
+
+We perform two sub-experiments to display the performance difference in different load scenarios.
+
+1. Clock performing better than LRU
+
+Since Clock provides a smaller CPU overhead, trivially a workload that fits entirely in memory would likely perform better with Clock rather than LRU. However, thinking about a more "realistically" workload that uses the entirety of the database' s storing power, randomly loading and accessing keys in the database should display this difference. The extra overhead associated with LRU should be enough to yield worst performance as this overhead is not useful given that keys are sampled randomly across the database.
+
+TODO: image
+
+**Analysis**
+
+TODO
+
+2. LRU better than Clock:
+
+LRU provides a more accurate representation of the recency of a page at a higher CPU cost. This would then be useful and pay off when the data accesses are skewed and we indeed access a page more often more recently. We then set up
+// Access keys in a way that we benefit from the overhead of LRU
+// putting the page to the front while clock evicts page earlier
+// since it just sets a bit that is already 1 to 1 again (effectively doing nothing).
+// For that, we have to access a page once to put it in cache,
+// and then access it again fast enough so that the clock did
+// not reach said page and changed to 0, while still trying to
+// wait as long as possible so that LRU can still keep the page
+// while clock evicted on a third access
+
+TODO: image
+
+**Analysis**
+
+TODO
+
+#### Step 2 Experiment 2
+
+This experiment aims at comparing our initial binary search to B-tree search. As such, we load the same randomly sampled keys with a skew like in [Step 1 Experiment](#Step-1-Experiment) to both databases of comparison. We then time and randomly query about 0.001% of the keys inserted. We plot the graph below:
+
+TODO: image
+
+**Analysis**
+
+TODO:
 
 ### Step 3 <a name="step3"></a>
 
@@ -228,9 +274,24 @@ TODO
 Bloom filter file names are bloom_filter_{level}, where level is the level of the LSM tree for which this bloom filter tracks set membership.
 TODO
 
-#### Experiments
+#### Step 3 Experiment 1
 
-TODO: step3 experiments
+This experiment aims at providing an updated measure of throughput for put, get, and scan operations. More precisely, the database now stores the SSTs in a Log-structured merge-tree (LSM Tree) with a Bloom filter to check for key presence in every level as well a buffer pool to cache hot pages. It then follows precisely the same methodology as [Step 1 Experiment](#Step-1-Experiment), except with fixing the buffer pool size to 10 MB, the Bloom filters to use 5 bits per entry, and the memtable to 1 MB. The throughput is plotted as below:
+
+TODO: image
+
+**Analysis**
+
+TODO
+
+#### Step 3 Experiment 2
+
+In this experiment, we explore how get performance varies as we vary the number of bits per entry used for your Bloom filters. Then, for each value of number of bits per entry being tested, we create a database with the desired number of filter bits and 1MB of memtable, load 128MB worth of data and time the time it takes to query from that database. We plot the throughput graph below:
+
+**Analysis**
+
+TODO
+
 
 ## Testing
 
