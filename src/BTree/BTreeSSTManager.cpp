@@ -15,14 +15,6 @@ bool BTreeSSTManager::get(const int &key, int &value) {
     return false;
 }
 
-bool sortByFname(const pair<string,int> &a,
-                 const pair<string,int> &b)
-{
-    int pos_a = stoi(a.first.substr(0, a.first.size()-4));
-    int pos_b = stoi(b.first.substr(0, b.first.size()-4));
-    return (pos_a < pos_b);
-}
-
 BTreeSSTManager::BTreeSSTManager(SSTFileManager *fileManager, int newFanout, int useBinarySearch, int filter_bits_per_entry) {
     auto files = fileManager->get_files();
     // Reverse SST order by filename so that newer SSTs are first.

@@ -7,9 +7,9 @@ set(CMAKE_CXX_STANDARD 20)
 
 project ("kv-store")
 
-add_executable (kv-store-test test/kv-store-test.cpp test/kv-store-test.h test/test_util.cpp test/test_util.h test/tests.cpp test/tests.h)
+add_executable (kv-store-test test/kv-store-test.cpp test/kv-store-test.h test/test_util.cpp test/test_util.h test/tests.cpp test/tests.h experiments/experiment1.cpp)
 
-add_library(kv-store src/KVStore/SimpeKVStore.cpp include/Base/KVStore.h include/RedBlack/RedBlackTree.h
+add_library(kv-store src/KVStore/SimpleKVStore.cpp include/Base/KVStore.h include/RedBlack/RedBlackTree.h
         src/RedBlackTree/RedBlackTree.cpp src/KVStore/RedBlackMemtable.cpp include/RedBlack/RedBlackMemtable.h
         include/Base/KVStore.h include/SimpleKVStore.h include/Base/Memtable.h include/Base/SSTManager.h
         include/ArraySST/SimpleSSTManager.h include/Base/SST.h include/constants.h
@@ -27,4 +27,13 @@ add_library(kv-store src/KVStore/SimpeKVStore.cpp include/Base/KVStore.h include
         src/BTree/BTreeSST.cpp include/LSMTreeManager.h src/LSMTreeManager.cpp src/BloomFilter/BloomFilter.cpp src/BloomFilter/BloomFilter.h)
 # Add source to this project's executable.
 
+
 target_link_libraries(kv-store-test PUBLIC kv-store)
+
+add_executable(kv-store-performance-test experiments/kv-store-performance-testing.cpp experiments/kv-store-performance-testing experiments/experiment1.cpp experiments/experiment2.cpp experiments/experiment3.cpp experiments/experiment1.h experiments/experiment2.h experiments/experiment3.h)
+
+target_link_libraries(kv-store-performance-test PUBLIC kv-store) 
+
+add_executable(playground playground.cpp playground)
+
+target_link_libraries(playground PUBLIC kv-store) 

@@ -50,6 +50,12 @@ We provide an "empty" C++ file with a default version of our database (that you 
 
 Run `./experiments.sh` to run the executable that generates all experiments data. You can also generate data individually for each experiment by calling the executable file `/build/kv-store-performance-test` with the parameters indicated on the calls of `experiments.sh`. We also provide a `plot_experiments.sh` script that plots the data generated for each experiment. You can also plot the data of individual experiments by using the same approach.
 
+Parameters of `/build/kv-store-performance-test`:
+
+    -e [num]: The experiment number to run
+    -d [data amount]: The amount of data to run the experiement
+    -s [num steps]: The number of operations to time (ex: 1000 means the time is measured every 1000 get operations)
+
 ## Project Status <a name="status"></a> 
 
 TODO: at the end

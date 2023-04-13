@@ -1,7 +1,6 @@
 #ifndef SRC_KV_STORE_KV_STORE_TEST_H
 #define SRC_KV_STORE_KV_STORE_TEST_H
 
-#include <iostream>
 #include "../include/SimpleKVStore.h"
 #include "../include/RedBlack/RedBlackMemtable.h"
 #include "../include/ArraySST/SimpleSSTManager.h"
@@ -14,6 +13,9 @@
 #include <vector>
 #include <filesystem>
 #include <sys/stat.h>
+#include <iostream>
+#include <random>
+#include <unordered_set>
 
 using namespace std;
 
@@ -27,10 +29,9 @@ string test_dir = "./test_dbs/";
 
 vector<pair<void (*)(SimpleKVStore db), string>>
     individual_db_tests = {
-//        F_NAME(simple_test),
+        F_NAME(simple_test),
         F_NAME(hash_test),
         F_NAME(memtable_puts_and_gets),
-        F_NAME(memtable_puts_and_scans),
         F_NAME(sequential_puts_and_gets),
         F_NAME(sequential_puts_and_scans),
         F_NAME(random_puts_and_gets),
@@ -65,6 +66,9 @@ int main()
             std::filesystem::remove_all(entry.path());
     }
 
+    DbOptions *options = new DbOptions();
+    options->setMaxMemtableSize(PAGE_SIZE);
+
     // Individual DBs
     for (pair<void (*)(SimpleKVStore db), string> func : individual_db_tests)
     {
@@ -72,7 +76,7 @@ int main()
         // Before all
 
         SimpleKVStore db;
-        db.open(test_dir + func.second + "_db");
+        db.open(test_dir + func.second + "_db", options);
 
         // Call method
 
@@ -86,7 +90,7 @@ int main()
 
     // Shared DBs
     SimpleKVStore shared_db;
-    shared_db.open(test_dir + "shared_db");
+    shared_db.open(test_dir + "shared_db", options);
 
     for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
     {

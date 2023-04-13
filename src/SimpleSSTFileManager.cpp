@@ -18,6 +18,15 @@ long GetFileSize(std::string filename)
     return rc == 0 ? stat_buf.st_size : -1;
 }
 
+
+int get_ind_from_fname(string fname){
+    string delimiter = ".";
+    string token = fname.substr(0, fname.find(delimiter));
+    return stoi(token);
+}
+
+
+
 SimpleSSTFileManager::SimpleSSTFileManager(std::string target_dir, BufferPool *cache) {
     this->cache = cache;
     this->dir_name = target_dir;
@@ -31,10 +40,33 @@ SimpleSSTFileManager::SimpleSSTFileManager(std::string target_dir, BufferPool *c
     {
         throw invalid_argument("Provided path is a file: unable to initialize database");
     }
+    int max_file_ind = 0;
+    this->files = vector<int>();
+
+    auto file_list =  vector<string>();
+    for (const auto &entry : std::filesystem::directory_iterator(dir_name))
+        file_list.emplace_back(entry.path().filename());
+
+    for(const string& file: file_list){
+        max_file_ind = max(get_ind_from_fname(file), max_file_ind);
+    }
+
+    for(int i = 0; i <= max_file_ind; i++){
+        files.push_back(-1);
+    }
+
+    for(const string& file: file_list){
+        files[get_ind_from_fname(file)] = open((dir_name + "/" + file).c_str(), O_RDWR, 0777);
+    }
+
 }
 
 SimpleSSTFileManager::~SimpleSSTFileManager() {
-
+    for(int file_fd: this->files){
+        if(file_fd != -1){
+            close(file_fd);
+        }
+    }
 }
 
 int SimpleSSTFileManager::get_page(int page, string file, void *data_buf) {
@@ -45,15 +77,12 @@ int SimpleSSTFileManager::get_page(int page, string file, void *data_buf) {
 
     // Check if entry_data is cached
     if (this->cache->get(buf_entry_id, (std::uint8_t *) data_buf)) {
-        // Reinsert page into buffer to acknowledge acess
-        this->cache->put(buf_entry_id, (std::uint8_t *) data_buf, PAGE_SIZE);
         return PAGE_SIZE;
     }
 
-    char* filename = string_to_char(dir_name + "/" + file);
-    int file_fd = open(filename, O_RDWR, 0777);
+    int file_fd = this->files[get_ind_from_fname(file)];
     int successful_read = safe_read(file_fd, data_buf, PAGE_SIZE, PAGE_SIZE * page);
-    close(file_fd);
+//    close(file_fd);
 
     // Add page to cache
     this->cache->put(buf_entry_id, (std::uint8_t *) data_buf, PAGE_SIZE);
@@ -76,11 +105,9 @@ int SimpleSSTFileManager::scan(int start_page, int end_page, string file, void *
     }
 
     // Don't cache scanned pages to avoid sequential flooding
-
-    char* filename = string_to_char(dir_name + "/" + file);
-    int file_fd = open(filename, O_RDWR, 0777);
+    int file_fd = this->files[get_ind_from_fname(file)];
     int successful_read = safe_read(file_fd, data_buf, PAGE_SIZE * diff, PAGE_SIZE * start_page);
-    close(file_fd);
+//    close(file_fd);
 
     if (should_cache) {
         this->cache->put(buf_entry_id, (std::uint8_t *) data_buf, diff * PAGE_SIZE);
@@ -89,11 +116,15 @@ int SimpleSSTFileManager::scan(int start_page, int end_page, string file, void *
 }
 
 int SimpleSSTFileManager::write_file(void *data, int size, string new_filename, void* metadata) {
-    char* filename = string_to_char(dir_name + "/" + new_filename);
-    int file_fd = open(filename, O_RDWR | O_CREAT, 0777);
+    string filename = dir_name + "/" + new_filename;
+    int file_fd = open(filename.c_str(), O_RDWR | O_CREAT, 0777);
+    int file_ind = get_ind_from_fname(new_filename);
+    while(file_ind >= this->files.size()){
+        this->files.push_back(-1);
+    }
+    this->files[file_ind] = file_fd;
     int meta_write = safe_write(file_fd, metadata, PAGE_SIZE, 0);
     int successful_write = safe_write(file_fd, data, size, PAGE_SIZE);
-    close(file_fd);
     return successful_write + meta_write;
 }
 
@@ -109,6 +140,10 @@ int SimpleSSTFileManager::get_metadata(void *data, string filename) {
 }
 
 bool SimpleSSTFileManager::delete_file(string filename) {
+    int ind = get_ind_from_fname(filename);
+    if(this->files[ind] != -1){
+        close(this->files[ind]);
+    }
     if(remove((dir_name + "/" + filename).c_str()) == -1) {
         perror("Error deleting file");
         return false;
@@ -117,11 +152,11 @@ bool SimpleSSTFileManager::delete_file(string filename) {
 }
 
 int SimpleSSTFileManager::write_page(void *data, int size, int start_page_num, string fname) {
-    char* filename = string_to_char(dir_name + "/" + fname);
-    int file_fd = open(filename, O_RDWR, 0777);
+//    string filename = dir_name + "/" + fname;
+    int file_fd = this->files[get_ind_from_fname(fname)];
+//    int file_fd = open(filename.c_str(), O_RDWR, 0777);
     int successful_write = safe_write(file_fd, data, size, start_page_num * PAGE_SIZE);
-    close(file_fd);
+//    close(file_fd);
     return successful_write;
 }
-
 

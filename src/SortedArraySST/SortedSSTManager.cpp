@@ -129,3 +129,4 @@ vector<pair<int, int>> SortedSSTManager::get_sst(int sst_ind)
     delete[] data;
     return res;
 }
+

@@ -3,9 +3,19 @@
 #include <iostream>
 #include <climits>
 #include <cstring>
+#include <string>
 #include <sys/stat.h>
+#include <random>
 
 using namespace std;
+
+bool sortByFname(const std::pair<std::string,int> &a,
+                 const std::pair<std::string,int> &b)
+{
+    int pos_a = stoi(a.first.substr(0, a.first.size()-4));
+    int pos_b = stoi(b.first.substr(0, b.first.size()-4));
+    return (pos_a < pos_b);
+}
 
 int dir_exists(std::string dir)
 {
@@ -17,6 +27,13 @@ int dir_exists(std::string dir)
     else if (info.st_mode & S_IFDIR)
         return 1;
     return -1;
+}
+
+int rand_int(int range_from, int range_to) {
+    std::random_device rand_dev;
+    std::mt19937 generator(rand_dev());
+    std::uniform_int_distribution<int> unif_sample(range_from, range_to);
+    return unif_sample(generator);
 }
 
 void pad_data(std::vector<std::pair<int, int>> &src, int size)
@@ -151,6 +168,32 @@ int binary_search(std::vector<std::pair<int, int>> data, int target, int &value)
         if (key == target)
         {
             value = data[mid].second;
+            return mid;
+        }
+        else if (key < target)
+        {
+            left = mid + 1;
+        }
+        else
+        {
+            right = mid - 1;
+        }
+    }
+    return -1;
+}
+
+int binary_search_raw(int* data, int size, int target, int &value){
+    int left = 0;
+    int right = size;
+    while (left <= right)
+    {
+        int mid = left + (right - left) / 2;
+
+        int key = data[mid * 2];
+
+        if (key == target)
+        {
+            value = data[mid * 2 + 1];
             return mid;
         }
         else if (key < target)

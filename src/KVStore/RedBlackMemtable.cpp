@@ -1,8 +1,6 @@
 #include "../../include/RedBlack/RedBlackMemtable.h"
 #include "../../include/RedBlack/RedBlackTree.h"
 
-#include <iostream>
-#include <fstream>
 
 using namespace std;
 RedBlackMemtable::RedBlackMemtable()

@@ -14,6 +14,8 @@ LRUBuffer::LRUBuffer(int minSize, int maxSize, double min_load_factor, double ma
 // If the directory is at capacity, evicts the LRU entry_data.
 // If the directory is more than 75% full, grows the directory to increase capacity
 bool LRUBuffer::put(std::string file_and_page, uint8_t *data, int size) {
+    if (max_size == 0) return true;
+
     // evict if the buffer pool if near capacity
     if (num_data_in_buffer + size > (max_size * MB) * max_load_factor) {
         evict();
@@ -39,7 +41,7 @@ bool LRUBuffer::put(std::string file_and_page, uint8_t *data, int size) {
 
     // insert the new entry_data
     LRUBufferEntry *entry = new LRUBufferEntry();
-    entry->file_and_page = file_and_page;
+    entry->file_and_page.assign(file_and_page);
 
     uint8_t *entry_data = new uint8_t[size];
     memcpy(entry_data, data, size);
@@ -65,6 +67,8 @@ bool LRUBuffer::put(std::string file_and_page, uint8_t *data, int size) {
 // Make retrieved entry_data the most recently used entry
 // TODO: return not found error status
 bool LRUBuffer::get(string file_and_page, uint8_t *page_out_buf) {
+    if(num_data_in_buffer == 0) return false;
+
     int bucket_num = hash_to_bucket_index(file_and_page);
     LRUBufferEntry *curr_entry = entries[bucket_num];
     while (curr_entry != nullptr && curr_entry->file_and_page != file_and_page) {
@@ -85,7 +89,11 @@ bool LRUBuffer::get(string file_and_page, uint8_t *page_out_buf) {
 void LRUBuffer::evict() {
     // remove all the references to evicted buckets
     auto next_page_in_bucket = tail->bufferEntry->next_entry;
-    auto it = bucket_refs.find(hash_to_bucket_index(tail->bufferEntry->file_and_page));
+    int bucket_num = hash_to_bucket_index(tail->bufferEntry->file_and_page);
+    if (is_ref.find(bucket_num) != is_ref.end()) {
+        bucket_num = is_ref.find(bucket_num)->second;
+    }
+    auto it = bucket_refs.find(bucket_num);
     // the bucket holding the entry_data to be evicted has at least one other bucket pointing to it
     if (it != bucket_refs.end()) {
         for (auto vector_it = it->second.begin(); vector_it != it->second.end(); vector_it++) {
@@ -108,7 +116,9 @@ void LRUBuffer::evict() {
     num_pages_in_buffer--;
     delete tail;
     tail = new_tail;
-    tail->next = nullptr;
+
+    if (tail != nullptr)
+        tail->next = nullptr;
 }
 // move the corresponding LRU node to head of LRU linked list tracking recency
 void LRUBuffer::move_to_head(LRUNode *node) {
