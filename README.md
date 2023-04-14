@@ -6,17 +6,31 @@ Refer to [this page](https://docs.google.com/document/d/1dsIuIzXiIBbiZcNYi1cC62P
 
 1. [Introduction](#introduction)
 2. [Compilation](#compilation)
-   1. [Tests](#tests)
-   2. [Playground](#playground)
-   3. [Experiments](#experiments)
+   - [Tests](#tests)
+   - [Playground](#playground)
+   - [Experiments](#experiments)
 3. [Project Status](#status)
 4. [Database Initialization and Parameters](#init_param)
 5. [Implementation Steps](#steps)
-   1. [Abstractions](#abstractions)
-   2. [Step 1](#step1)
-   3. [Step 2](#step2)
-   4. [Step 3](#step3)
-6. [Testing](#testing)
+   - [Abstractions](#abstractions)
+6. [Design Elements](#design-elements)
+   - [Get API](#kv-store-get-api)
+   - [Put API](#kv-store-put-api)
+   - [Scan API](#kv-store-scan-api)
+   - [Memtable](#memtable)
+   - [SSTs](#ssts-sorted-string-tables)
+   - [Database Open & Close](#database-open-and-close-api)
+   - [Extendible Hash Buffer Pool](#extendible-hash-buffer-pool)
+   - [Integration of Buffer with Get](#integration-of-buffer-with-get)
+   - [Shink](#shrink-api)
+   - [Eviction Policies](#eviction-policies)
+   - [B-Trees](#b-tree-for-sst)
+   - [Bloom Filters](#bloom-filter)
+   - [LSM Trees (compaction/merge)](#lsm-tree)
+   - [Updates](#updates)
+   - [Deletes](#deletes)
+7. [Experiments](#experiments-1)
+8. [Testing](#testing)
 
 ## Introduction
 
@@ -195,7 +209,7 @@ Two eviction policies, `ClockBuffer` and `LRUBuffer`, are implemented as derived
 
 `LRUBuffer` uses a corresponding node for each entry. These nodes are kept in a doubly linked list that tracks usage recency. On references to an entry, its corresponding node is moved to the head of the list. On eviction, the node at the tail of the list and its corresponding entry are evicted.
 
-**B-Tree for SST**
+### **B-Tree for SST**
 
 In order to execute a BTree correctly, we increased the complexity of our program by now introducing the SSTFileManager class that adds a layer of abstraction and allows the BufferPool to not have to interface directly with any SSTManager. The BTree SST was implemented in stages, the first of which being the exact same as the Append Only SST. In this stage, the data on disk was the exact same but every time an SST was loaded/created, an in-memory BTree was built, allowing Get/Scan calls to query the in memory structure before needing to access disk.
 
@@ -211,7 +225,7 @@ At this point, our BTree could function as both a large Append Only File or a BT
 
 _Note: The internal nodes are only read from once, on SST load. While we understand that these nodes should be handled as regular pages and read from disk each time, with sufficiently large fanouts, the number of integers in all internal nodes scales very very very well (log base fannout). This allows us to keep all internal ndoes in memory at all times._
 
-**Bloom Filter**
+### **Bloom Filter**
 
 The implementation of bloom filters can be found in src/BloomFilter. Each bloom filter is associated with a specific SST. When an SST is created, its corresponding bloom filter is created from the keys and written to disk.
 
@@ -221,7 +235,7 @@ Serialization and deserialization of bloom filters are supported. To serialize a
 
 To retrieve these filters, a scan call is made for the pages holding the bloom filter information. Our scan call is handled by a file manager abstraction, and the scan optionally takes in a to_cache parameter (false by default). For bloom filter retrievals, this option is set to true. The result of this query is cached in the buffer pool as a variable size entry. This decision enables the buffer pool to stay agnostic of the type of data it is storing, and it simply holds pages.
 
-**LSM Tree**
+### **LSM Tree**
 
 Since our BTree implementation had already been completed in the last step, this step was simply a case of creating a new style of SSTManager, the LSMSSTManager. This class would have to manage the various levels in memory, reconstruct the levels on load of an existing database, and perform compaction when required.
 
@@ -238,13 +252,13 @@ Finally, the most significant part of the LSM Tree implementation, compaction. I
 
 _Note: When scanning across pages, we do not store data in the buffer pool - this is to prevent sequential flooding_
 
-**Updates**
+### **Updates**
 
-**Deletes**
+### **Deletes**
 
 TODO
 
-## Experiements
+## Experiments
 
 #### Step 1 Experiment <a name="step-1-experiment"></a>
 
