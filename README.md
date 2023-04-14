@@ -64,7 +64,11 @@ We provide an "empty" C++ file with a default version of our database (that you 
 
 ### Experiments
 
-Run `./experiments.sh` to run the executable that generates all experiments data. You can also generate data individually for each experiment by calling the executable file `/build/kv-store-performance-test` with the parameters indicated on the calls of `experiments.sh`. We also provide a `plot_experiments.sh` script that plots the data generated for each experiment. You can also plot the data of individual experiments by using the same approach.
+Run `./experiments.sh` to run the executable that generates all experiments data, but beware they take some time to run. You can also generate data individually for each experiment by calling the executable file `/build/kv-store-performance-test` with the parameters indicated on the calls of `experiments.sh`.
+
+You may see `reading failed.: Bad file descriptor` or `writing failed.: Bad file descriptor` depending on how you set up your directories, but this should not affect the results of the experiments. The stdout and csv outputs of the experiments are dumped to `/experiments/data`.
+
+We also provide a `plot_experiments.sh` script that plots the data generated for each experiment. You can also plot the data of individual experiments by also chosing to call the corresponding experiment commang in this file. 
 
 Parameters of `/build/kv-store-performance-test`:
 
@@ -74,7 +78,7 @@ Parameters of `/build/kv-store-performance-test`:
 
 ## Project Status <a name="status"></a>
 
-TODO: at the end
+The project is fully complete with no known bugs to us.
 
 All experiments plotted below were run on a MacBookAir (13 inch, 2017) with the following specifications:
 
