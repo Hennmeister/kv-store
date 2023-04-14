@@ -32,9 +32,9 @@ protected:
     //
     std::vector<T *> entries;
     // Entry number to entry number pointing at this bucket, if one exists
-    std::map<int, vector<int>> bucket_refs;
+    std::map<int, vector<int>> bucket_num_to_references;
     // Holds a bucket number if it is referring to another bucket
-    std::map<int, int> is_ref;
+    std::map<int, int> reference_to;
 
     virtual void evict() = 0;
     // Calculate the bucket number of a given entry_data

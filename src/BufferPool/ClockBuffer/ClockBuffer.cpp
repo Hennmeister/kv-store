@@ -95,7 +95,7 @@ void ClockBuffer::increment_clock() {
         clock_pointer = nullptr;
         while (clock_pointer == nullptr) {
             clock_entry_index = (clock_entry_index + 1) % (int) entries.size();
-            if (is_ref.find(clock_entry_index) == is_ref.end()) {
+            if (reference_to.find(clock_entry_index) == reference_to.end()) {
                 clock_pointer = entries[clock_entry_index];
             }
         }
@@ -110,20 +110,20 @@ void ClockBuffer::evict() {
     // remove all the references to evicted buckets
     auto next_page_in_bucket = clock_pointer->next_entry;
 
-    auto it = bucket_refs.find(clock_entry_index);
+    auto it = bucket_num_to_references.find(clock_entry_index);
     // the bucket holding the entry_data to be evicted has at least one other bucket pointing to it
-    if (it != bucket_refs.end()) {
+    if (it != bucket_num_to_references.end()) {
         for (auto vector_it = it->second.begin(); vector_it != it->second.end(); vector_it++) {
             entries[*vector_it] = next_page_in_bucket; // could be nullptr
             // if we are emptying this bucket by deleting the last entry_data in the bucket,
             // unmark buckets pointing to this bucket as references
             if (next_page_in_bucket == nullptr) {
-                is_ref.erase(*vector_it);
+                reference_to.erase(*vector_it);
             }
         }
         // if we are deleting the last entry in this bucket, nothing will be referencing this bucket anymore
         if (next_page_in_bucket == nullptr) {
-            bucket_refs.erase(it);
+            bucket_num_to_references.erase(it);
         }
     }
 
