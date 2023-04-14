@@ -427,5 +427,6 @@ In our efforts to assure the quality of our code, we relied on unit tests to che
 - **simple_clock_buffer:** verifies that the database still works as expected when integrating with clock buffer, without evictions
 - **clock_simple_evict:** verifies that a inserted value gets evicted when no references are made
 - **bloom_filter_simple:** check that querying a missing value on a new bloom filter is false, and that querying after inserting returns true
+- **close_and_recover:** checks that database successfully shut downs and recovers from the same consistent state as left off
 
 We also run the same tests with multiple database configurations (different search techniques, different buffer options, different sizes of various components) to ensure that the options behave consistenly across the board. We also run various sizes of the experiments as stress/load tests of our databases.
