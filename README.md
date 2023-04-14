@@ -68,7 +68,7 @@ Run `./experiments.sh` to run the executable that generates all experiments data
 
 You may see `reading failed.: Bad file descriptor` or `writing failed.: Bad file descriptor` depending on how you set up your directories, but this should not affect the results of the experiments. The stdout and csv outputs of the experiments are dumped to `/experiments/data`.
 
-We also provide a `plot_experiments.sh` script that plots the data generated for each experiment. You can also plot the data of individual experiments by also chosing to call the corresponding experiment commang in this file. 
+We also provide a `plot_experiments.sh` script that plots the data generated for each experiment. You can also plot the data of individual experiments by also chosing to call the corresponding experiment commang in this file.
 
 Parameters of `/build/kv-store-performance-test`:
 
@@ -166,25 +166,27 @@ We have a few base interfaces that can be found under the `/include/Base` direct
 
 ## Design Elements
 
-### **KV-store get API**
+_Note that each header below is a link to the directory or source file containing relevant logic_
+
+### [**KV-store get API**](./src/KVStore/SimpleKVStore.cpp)
 
 When we perform a get call, we first check the memtable for the presence of the key to see if it was one of the most recently added keys that are stored in memory. If this call fails (not found), we resort to searching through the SSTs to find the key on disk. We implement various ways that this SST search could be done, from plain doing Binary Search starting with the newest SST to oldest SST, to more complicated methods such as with LSM Trees and B-tree searches outlined below.
 
-### **KV-Store put API**
+### [**KV-Store put API**](./src/KVStore/SimpleKVStore.cpp)
 
 To perform a put operation, the database buffers all keys in the memtable until it reaches capacity. Once that is done, we dump the components to their respective SSTs based on whatever SSTManager is chosen (BTreeSSTManager or LSMTreeSSTManager), see below for more details on those.
 
-### **KV-store scan API**
+### [**KV-store scan API**](<(./src/KVStore/SimpleKVStore.cpp)>)
 
 Scan calls are similar in concept to get calls. They check the memtable and are then handed off to the SSTManagers. They often use the spatial locality to the sorted keys in the SST to reduce the number of operations needed to get an entire chunk of relevant data. We explain in more detail below how exactly these scans are performed.
 
 Scans, by default, do not integrate with the buffer pool. There is an option to do so on the file manager's scan function, which allows inserting and getting a range of pages into the buffer pool with a entry name of the filename appended by the page range. This option is also used to store bloom filter entries in the buffer.
 
-### **Memtable**
+### [**Memtable**](./src/KVStore/RedBlackMemtable.cpp)
 
-We implement a memtable as a balanced binary search tree ([red-black tree](https://en.wikipedia.org/wiki/Red%E2%80%93black_tree) to be precise) supporting standard `put(key,val)`, `get(key)` and `scan(key1, key2)` methods. We also implement an inorder tree traversal that returns all the key-value pairs sorted by their keys, which will be helpful to dump the content into the corresponding SST (refer to next bullet point).
+We implement a memtable as a balanced binary search tree ([red-black tree](https://en.wikipedia.org/wiki/Red%E2%80%93black_tree) to be precise) supporting standard `put(key,val)`, `get(key)` and `scan(key1, key2)` methods. We also implement an inorder tree traversal that returns all the key-value pairs sorted by their keys, which will be helpful to dump the content into the corresponding SST (refer to next bullet point). See also [RedBlackTree](./src/RedBlackTree/RedBlackTree.cpp).
 
-### **SSTs (Sorted String Tables)**
+### [**SSTs (Sorted String Tables)**](./src/SortedArraySST)
 
 We set a maximum capacity (e.g. a page size of 4KB) to the Memtable, at which point, we dump the key-value pairs in sorted order to an SST file `x.sst`. The SSTs are thus stored in decreasing order of longevity where `1.sst` is the oldest SST dumped. On a get query that is not found on the current memtable, our database traverses over the SSTs from newest to oldest to find a key. Note that we implement the SST dump so that it writes in binary to an append-only file to maximize efficiency in sequential writes.
 
@@ -192,17 +194,17 @@ Our initial implementation was quite raw and assumed that a new SST File was mad
 
 In order to ensure efficiency, we use the `O_DIRECT` flag when opening a file and ensure that all reads are multiples of 512.
 
-### **Database Open and Close API**
+### [**Database Open and Close API**](./src/KVStore/SimpleKVStore.cpp)
 
-To open a new database with default parameters, we call db.open("<db_path>/<db_name>") and this will create a new database at `<db_path>/<db_name>` with the default parameters outlined [here](#init_param). We can additionally create a `DbOptions` object and include that in as a second parameter db.open("<db_path>/<db_name>", options) to create a kv-store with any specific options. Also refer to [this section](#init_param) on how that is done. 
+To open a new database with default parameters, we call db.open("<db_path>/<db_name>") and this will create a new database at `<db_path>/<db_name>` with the default parameters outlined [here](#init_param). We can additionally create a `DbOptions` object and include that in as a second parameter db.open("<db_path>/<db_name>", options) to create a kv-store with any specific options. Also refer to [this section](#init_param) on how that is done.
 
 We can also reopen an existing database by passing in the path to where such db was stored.
 
-At the end of your session, you shoud db.close() the database. This call does some book keeping work to ensure the memory contents of the database (i.e. the memtable) is correctly dumped in a way that the db can be reloaded to its normal state. It also frees the memory we allocated during runtime. 
+At the end of your session, you shoud db.close() the database. This call does some book keeping work to ensure the memory contents of the database (i.e. the memtable) is correctly dumped in a way that the db can be reloaded to its normal state. It also frees the memory we allocated during runtime.
 
 Both of these functions are located in `SimpleKVStore.cpp`.
 
-### **Extendible Hash Buffer Pool**
+### [**Extendible Hash Buffer Pool**](./src/BufferPool/)
 
 The buffer pool is implemented using extendable hashing and is located in the `./include/BufferPool` and `./src/BufferPool` directories. The implementation includes a `BufferPool` interface and an abstract class `Directory`, which is responsible for the logic related to extenible hashing. Directory holds a vector of pointers to `BufferPoolEntry` objects, which store data and relevant metadata such as the next and previous entry that are hashed to the same bucket. The entries can hold variable-sized data to accommodate dynamically sized bloom filter data.
 
@@ -212,23 +214,23 @@ After doubling the directory size, every bucket is evaluated, and if more than o
 
 Note that scans are by default not placed or retrieved from the buffer pool. This is to prevent sequential flooding, and because gets are a stronger signal of hot data.
 
-### **Integration of Buffer with get**
+### [**Integration of Buffer with get**](./src/SimpleSSTFileManager.cpp)
 
-To interact with disk, we use a [file manager](./include/SimpleSSTFileManager.h) as an abstraction. Entries are only placed in the buffer pool on gets. If a get to the buffer pool fails from within the file manager, the page is retrieved from disk and then placed into the buffer pool.
+To interact with disk, we use a [file manager](./include/SimpleSSTFileManager.h) as an abstraction. Entries are only placed in the buffer pool on gets. If a get to the buffer pool fails from within the file manager, the page is retrieved from disk and then placed into the buffer pool. See the get and scan functions for use of the cache.
 
-### **Shrink API**
+### [**Shrink API**](./src/BufferPool/Directory.cpp)
 
 Shrink is implemented in `Directory::shrink()`, in [Directory](./src/BufferPool/Directory.cpp). When the `set_size` is called on the kv-store with a new buffer pool size that is smaller than the current maximum, the maximum is updated. If it is smaller than the current maximum size, entries are continually evicted according to the eviction policy until the amount of data in the buffer pool is not larger than the maximum size. Then, the directory itself (number of entries and the bit suffix) is shrunk until at least a minimum percentage (set by the user, default 25%) of entries are being used.
 
-### **Eviction Policies**
+### [**Eviction Policies**](./src/BufferPool/)
 
-Two eviction policies, `ClockBuffer` and `LRUBuffer`, are implemented as derived classes of `Directory` and located in the `./include/BufferPool` and `./src/BufferPool` directories. The use of inheritance instead of something like a strategy pattern makes the use of eviction-policy-specific metadata easier to handle.
+Two eviction policies, [`ClockBuffer`](./src/BufferPool/ClockBuffer/ClockBuffer.cpp) and [`LRUBuffer`](./src/BufferPool/LRUBuffer/LRUBuffer.cpp), are implemented as derived classes of `Directory` and located in the `./include/BufferPool` and `./src/BufferPool` directories. The use of inheritance instead of something like a strategy pattern makes the use of eviction-policy-specific metadata easier to handle.
 
 `ClockBuffer` keeps a byte that tracks whether an entry has been used or not since it has been last seen. Every eviction, it searches through all entries (skipping buckets that are references) and decrements the byte if it is one or stops and evicts the page if it is already 0.
 
 `LRUBuffer` uses a corresponding node for each entry. These nodes are kept in a doubly linked list that tracks usage recency. On references to an entry, its corresponding node is moved to the head of the list. On eviction, the node at the tail of the list and its corresponding entry are evicted.
 
-### **B-Tree for SST**
+### [**B-Tree for SST**](./src/BTree/)
 
 In order to execute a BTree correctly, we increased the complexity of our program by now introducing the SSTFileManager class that adds a layer of abstraction and allows the BufferPool to not have to interface directly with any SSTManager. The BTree SST was implemented in stages, the first of which being the exact same as the Append Only SST. In this stage, the data on disk was the exact same but every time an SST was loaded/created, an in-memory BTree was built, allowing Get/Scan calls to query the in memory structure before needing to access disk.
 
@@ -244,7 +246,7 @@ At this point, our BTree could function as both a large Append Only File or a BT
 
 _Note: The internal nodes are only read from once, on SST load. While we understand that these nodes should be handled as regular pages and read from disk each time, with sufficiently large fanouts, the number of integers in all internal nodes scales very very very well (log base fannout). This allows us to keep all internal ndoes in memory at all times._
 
-### **Bloom Filter**
+### [**Bloom Filter**](./src/BloomFilter/)
 
 The implementation of bloom filters can be found in src/BloomFilter. Each bloom filter is associated with a specific SST. When an SST is created, its corresponding bloom filter is created from the keys and written to disk.
 
@@ -254,7 +256,7 @@ Serialization and deserialization of bloom filters are supported. To serialize a
 
 To retrieve these filters, a scan call is made for the pages holding the bloom filter information. Our scan call is handled by a file manager abstraction, and the scan optionally takes in a to_cache parameter (false by default). For bloom filter retrievals, this option is set to true. The result of this query is cached in the buffer pool as a variable size entry. This decision enables the buffer pool to stay agnostic of the type of data it is storing, and it simply holds pages.
 
-### **LSM Tree**
+### [**LSM Tree**](./src/LSMTreeManager.cpp)
 
 Since our BTree implementation had already been completed in the last step, this step was simply a case of creating a new style of SSTManager, the LSMSSTManager. This class would have to manage the various levels in memory, reconstruct the levels on load of an existing database, and perform compaction when required.
 
@@ -271,24 +273,23 @@ Finally, the most significant part of the LSM Tree implementation, compaction. I
 
 _Note: When scanning across pages, we do not store data in the buffer pool - this is to prevent sequential flooding_
 
-### **Updates**
+### [**Updates**](./src/KVStore/SimpleKVStore.cpp)
 
-Updates can be called by simply calling a `put` with an existing key. No special processing is required. 
+Updates can be called by simply calling a `put` with an existing key. No special processing is required.
 
-Updates are not in-place in order to ensure performance as discussed in lectures. When issuing an update, if an entry is already present in the memtable, the RedBlackTree will simply update the value associated with the given key. 
+Updates are not in-place in order to ensure performance as discussed in lectures. When issuing an update, if an entry is already present in the memtable, the RedBlackTree will simply update the value associated with the given key.
 
-When issuing a get call, we know that data is accessed in order of time, i.e. most recent entries are accessed first. As a result, the most recent value associated with a key will always be returned. This applies to SSTs as we scan SSTs from latest to oldest. 
+When issuing a get call, we know that data is accessed in order of time, i.e. most recent entries are accessed first. As a result, the most recent value associated with a key will always be returned. This applies to SSTs as we scan SSTs from latest to oldest.
 
-When issuing a scan call, we rely on the aforementioned `priority_merge` function to ensure that if there is a key conflict, only the latest version of the key is persisted. 
+When issuing a scan call, we rely on the aforementioned `priority_merge` function to ensure that if there is a key conflict, only the latest version of the key is persisted.
 
+### [**Deletes**](./src/KVStore/SimpleKVStore.cpp)
 
-### **Deletes**
+Deletes can be called using `delete_key` which returns false if the key is not already present in the database. If the key is present in the database, a tombstone is added with the key being the key to be deleted and the value being `INT_MIN`.
 
-Deletes can be called using `delete_key` which returns false if the key is not already present in the database. If the key is present in the database, a tombstone is added with the key being the key to be deleted and the value being `INT_MIN`. 
+When we now issue a `get`, if the value at the end of the get call is `INT_MIN` the function now returns false. And similarly to updates, due to how we access data temporally, we can ensure that if the most recent update to a key is a delete, the get call will return false.
 
-When we now issue a `get`, if the value at the end of the get call is `INT_MIN` the function now returns false. And similarly to updates, due to how we access data temporally, we can ensure that if the most recent update to a key is a delete, the get call will return false. 
-
-For scans, `priority_merge` has a speical situation which ensures that if 2 keys are equal in the master and older data, neither key is persisted in the resulting data. Since we always know that the key has to be present in the data before issuing a delete, at some point, the older data (with the old value of the key) will get priority merged with the new tombstone. LSMTree compaction also performs a similar operation, eventually removing the tombstone and freeing space. 
+For scans, `priority_merge` has a speical situation which ensures that if 2 keys are equal in the master and older data, neither key is persisted in the resulting data. Since we always know that the key has to be present in the data before issuing a delete, at some point, the older data (with the old value of the key) will get priority merged with the new tombstone. LSMTree compaction also performs a similar operation, eventually removing the tombstone and freeing space.
 
 ## Experiments
 
@@ -305,7 +306,7 @@ For each iteration, we:
 Note that "randomly" in this case is not uniform. Instead our sample has an intentional skew towards lower valued keys to more closely simulate a real database workload. For each iteration, we sample a key from a value that ranges from 0 to the number of keys inserted up to that point so that the likelihood of querying a key value that is indeed loaded in the database (and not a miss) remains consistent throughout each iteration. Since querying a key not in the database is the most expensive query (as we have to traverse all SSTs), this is an important consideration to make in order to compare the throughput at different sizes.
 
 At each iteration, since we increase the total database size at every step, NUM_QUERIES is calculated from a percentage of all the keys inserted into the database at that point.
- 
+
 The graphs are shown below:
 
 <p align="center">
@@ -318,14 +319,13 @@ We first notice a huge drop in throughput of gets ans scans after 10MB. This is 
     <img src="assets/experiment1-sst.png"  width=50% height=50%>
 </p>
 
-It is sensible that, as the data size increases, so does the time to finish a query operation (causing throughput to decrease) as there is likely more data to look through to find the key. As such, we see this pattern happening precisely in both gets and scans. Query throghput is, however, dependent on how likley it is that we find this data in a a recently dumped SST. Thus we expect to see a general downwards trend in throughput, yet it also expected to vary when the keys are "easier" to find. This is observed in the graph by a few spikes in both the get and scan plots. 
+It is sensible that, as the data size increases, so does the time to finish a query operation (causing throughput to decrease) as there is likely more data to look through to find the key. As such, we see this pattern happening precisely in both gets and scans. Query throghput is, however, dependent on how likley it is that we find this data in a a recently dumped SST. Thus we expect to see a general downwards trend in throughput, yet it also expected to vary when the keys are "easier" to find. This is observed in the graph by a few spikes in both the get and scan plots.
 
 This general downwards pattern is not seen as much in puts, however, because inserts are first bufferd into the memtable and only written out to disk after the memtable is full. In addition, the memtable dump does not depends on the nuber of items inserted in the database since we write SSTs in order of recency to files on disk.
 
 This is also the reason why puts have much higher throughput (in the order of 10 to 100 times as high) compared to gets. It is also interesting to see that there are frequent drops in throughput at regular intervals of time. This should be precisely when the database is dumping the memtable into an SST, which takes significantly longer than the other operations due to IO overheads.
 
 On a similar note, we also see that scans are significantly slower than gets (in the order of 100 to 1000 times as high). This is intuitive as scans retrieve more data and require iterating over a lot more data items to retrieve all elements that fall within the desired range.
-
 
 #### Step 2 Experiment 1
 
@@ -335,25 +335,23 @@ We perform two sub-experiments to display the performance difference in differen
 
 1. **Clock performing better than LRU**
 
-    Since Clock provides a smaller CPU overhead, trivially a workload that fits entirely in memory would likely perform better with Clock rather than LRU. However, thinking about a more "realistically" workload that uses the entirety of the database's storing power, uniformly and randomly loading as well as uniformly and randomly accessing keys in the database should display this difference. The extra overhead associated with LRU should be enough to yield worst performance as this overhead is not useful given that keys are sampled randomly across the database.
+   Since Clock provides a smaller CPU overhead, trivially a workload that fits entirely in memory would likely perform better with Clock rather than LRU. However, thinking about a more "realistically" workload that uses the entirety of the database's storing power, uniformly and randomly loading as well as uniformly and randomly accessing keys in the database should display this difference. The extra overhead associated with LRU should be enough to yield worst performance as this overhead is not useful given that keys are sampled randomly across the database.
 
 2. **LRU better than Clock**
 
-    LRU provides a more accurate representation of the recency of a page at a higher CPU cost. This would then be useful and pay off when the data accesses are skewed and we indeed access a page that was recently used more often. Therefore, we perform the same experiment as before, except we sample the keys from a skewed distribution that favours lower valued keys.
-    
+   LRU provides a more accurate representation of the recency of a page at a higher CPU cost. This would then be useful and pay off when the data accesses are skewed and we indeed access a page that was recently used more often. Therefore, we perform the same experiment as before, except we sample the keys from a skewed distribution that favours lower valued keys.
+
 Both experiments are plotted below:
-    
+
 <p align="center">
    <img src="assets/experiment2p1.png"  width=50% height=50%>
 </p>
   
-As expected, Clock slightly outperfermos LRU in most iterations of the first graph and LRU slightly outperforms Clock in most iterations in the second graph. It is also interesting to note, that as the buffer size increases, we do not see a signifcant increase in throughput. This is likely because our buffer pool is large enough to begin (at least 1 MB) to fit most of our queries in. To see this increase more explicitly, we might need to perform a much bigger volume of queries or significantly reduce the size magnitude of the buffer pool. 
-
+As expected, Clock slightly outperfermos LRU in most iterations of the first graph and LRU slightly outperforms Clock in most iterations in the second graph. It is also interesting to note, that as the buffer size increases, we do not see a signifcant increase in throughput. This is likely because our buffer pool is large enough to begin (at least 1 MB) to fit most of our queries in. To see this increase more explicitly, we might need to perform a much bigger volume of queries or significantly reduce the size magnitude of the buffer pool.
 
 #### Step 2 Experiment 2
 
 This experiment aims at comparing our initial binary search to B-tree search. As such, we load the same randomly sampled keys with a skew like in [Step 1 Experiment](#step-1-experiment) to both databases of comparison. We then time and randomly query about 0.001% of the keys inserted. For both experiments, we make sure that the keys we are inserting and querying are consistent on both databases so that the experiment is a valid comparison. In other words, we insert the same keys and also query consistent keys in the same order so that the databases are beind compared under exactly the same load. Finally, we also choose not to have any buffer pools interfering with our search so as to leave all the queries going through the SSTs, and we also set SSTManager to LSMTreeManager so that SSTs are larger in size and the the discrepancy is shown more aggresively between the two methods.
-
 
 We plot the graph below excluding the initial throughput drop seen in [Step 1 Experiment](#step-1-experiment) due to the memtable IO vs. CPU difference:
 
@@ -361,10 +359,9 @@ We plot the graph below excluding the initial throughput drop seen in [Step 1 Ex
   <img src="assets/experiment2p2.png"  width=50% height=50%>
 </p>
 
-We see that BTree outperforms the binary search as expected. This is as discussed in class, as the size grows, the amount of data increases and `log_f(N) << log_2(N)` where `f = 100`. Additionally, our BTree internal nodes are always in memory, so it makes sense that much less I/O is performed per get query. 
+We see that BTree outperforms the binary search as expected. This is as discussed in class, as the size grows, the amount of data increases and `log_f(N) << log_2(N)` where `f = 100`. Additionally, our BTree internal nodes are always in memory, so it makes sense that much less I/O is performed per get query.
 
-Finally, we notice some spikes in the data, this is because we generate a new set of queries (the same set is used for both BTree and Binary Search) for each data point. This means that some datapoints may get queries which have more data in the memtable. Nonetheless, the spikes are consistent across both the BTree and Binary Search, implying a systematic error. 
-
+Finally, we notice some spikes in the data, this is because we generate a new set of queries (the same set is used for both BTree and Binary Search) for each data point. This means that some datapoints may get queries which have more data in the memtable. Nonetheless, the spikes are consistent across both the BTree and Binary Search, implying a systematic error.
 
 #### Step 3 Experiment 1
 
@@ -374,7 +371,7 @@ This experiment aims at providing an updated measure of throughput for put, get,
   <img src="assets/experiment3p1.png" width=50% height=50%>
 </p>
 
-Here, again, we notice similar patterns with get and scan calls in a downward throughput trend. 
+Here, again, we notice similar patterns with get and scan calls in a downward throughput trend.
 
 We also realize that the throughput on this experiment is much slower compared to the one in step 1. We reason that this is likely a consequence of our random workload choice for our experiments. All the components we added since step 1 (LSM Trees, Buffer Pools and Bloom Filters) are geared towards improving sequential access or skewed key access, and we think that the overhead they create are not worth the improvements they bring in a randomly accessed load as it was done in this experiment. As such, this overhead actually brings down our throughput with no gains in performance as seen in the graphs.
 
@@ -393,12 +390,16 @@ We plot the throughput graph below:
 Contrary to our initial expectations, the query throughput decreases gradually as more bits are allocated to the bloom filter. We believe that this indicates the overhead of managing a larger bitmap is worse for performance than the benefit gained from the lower false positive rate of using additional bits. Since the bitmap is often being serialized and deserialized as a bloom filter is recreated for each query, additional bits make these operations even more expensive. Meanwhile, we noticed that even with 10 bits our false positive rate was quite low, so we likely saving very few I/Os by adding more bits.
 
 ## Profiling
+
 ### Improving Get Calls
+
 #### Raw Data vs Vectors
-When initially running the experiments for step 2 and 3, we used the CLion's profiler to get a call graph and visualize what was contributing to our runtimes. Originally, our get calls relied on a function `get_page` which can be seen in the BTreeSST. This function converts raw data read from disk into a vector so that operations performed could be much more simple and readable. The profiler made it clear that vector operations were a significant contribution as even if we were examining one or 2 values in the page, we would have had to iterate over the entire page. As a result, we created a `get_page_raw` function which simply returns an array of ints directly read from disk. This **significantly** improved runtime and we had to modify some functions to now operate on raw data instead of vectors. 
+
+When initially running the experiments for step 2 and 3, we used the CLion's profiler to get a call graph and visualize what was contributing to our runtimes. Originally, our get calls relied on a function `get_page` which can be seen in the BTreeSST. This function converts raw data read from disk into a vector so that operations performed could be much more simple and readable. The profiler made it clear that vector operations were a significant contribution as even if we were examining one or 2 values in the page, we would have had to iterate over the entire page. As a result, we created a `get_page_raw` function which simply returns an array of ints directly read from disk. This **significantly** improved runtime and we had to modify some functions to now operate on raw data instead of vectors.
 
 #### The case of the ampersand
-After making the optimization noted above, we noticed that our BTree search was much slower than the binary search. Once again, the profiler came to the rescue. It was notable that most of the runtime of the `btree_find` function, a function that takes in a BTree and returns the leaf starting position, was coming from `~vector`, the vector destructor. Now, a simple inspection of the `btree_find` function can show that no vectors are being constructed nor destructed, implying that this is something unexpected in the call graph. As hinted to by the title, it was because we were passing in the BTree into the `btree_find` function which was making a temporary copy of the entire vector, and hence, ruining performance. By changing the type of the parameter to `const &`, we made it a constant reference, increasing our performance by orders of magnitude. 
+
+After making the optimization noted above, we noticed that our BTree search was much slower than the binary search. Once again, the profiler came to the rescue. It was notable that most of the runtime of the `btree_find` function, a function that takes in a BTree and returns the leaf starting position, was coming from `~vector`, the vector destructor. Now, a simple inspection of the `btree_find` function can show that no vectors are being constructed nor destructed, implying that this is something unexpected in the call graph. As hinted to by the title, it was because we were passing in the BTree into the `btree_find` function which was making a temporary copy of the entire vector, and hence, ruining performance. By changing the type of the parameter to `const &`, we made it a constant reference, increasing our performance by orders of magnitude.
 
 ### Bloom Filter Performance
 
