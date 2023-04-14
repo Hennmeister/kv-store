@@ -489,5 +489,6 @@ BloomFilter *BTreeSST::get_bloom_filter() {
     fileManager->scan(filter_start_page, (filter_start_page + num_filter_pages) - 1,
                       filename, data_buf, true);
     BloomFilter *fltr = new BloomFilter(data_buf);
+    delete[] data_buf;
     return fltr;
 }
