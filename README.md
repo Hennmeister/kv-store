@@ -176,7 +176,7 @@ When we perform a get call, we first check the memtable for the presence of the 
 
 To perform a put operation, the database buffers all keys in the memtable until it reaches capacity. Once that is done, we dump the components to their respective SSTs based on whatever SSTManager is chosen (BTreeSSTManager or LSMTreeSSTManager), see below for more details on those.
 
-### [**KV-store scan API**](<(./src/KVStore/SimpleKVStore.cpp)>)
+### [**KV-store scan API**](./src/KVStore/SimpleKVStore.cpp)
 
 Scan calls are similar in concept to get calls. They check the memtable and are then handed off to the SSTManagers. They often use the spatial locality to the sorted keys in the SST to reduce the number of operations needed to get an entire chunk of relevant data. We explain in more detail below how exactly these scans are performed.
 
