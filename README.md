@@ -201,11 +201,15 @@ To hash the entry name, which is a combination of the file and page number in th
 
 After doubling the directory size, every bucket is evaluated, and if more than one entry is in a bucket, the buffer pool rehashes every entry in that bucket using the new bit suffix and updates bucket references accordingly. If the user sets a new maximum size smaller than the current maximum size, entries are continually evicted according to the eviction policy until the amount of data in the buffer pool is not larger than the maximum size. Then, the directory itself (number of entries and the bit suffix) is shrunk until at least a minimum percentage (set by the user) of entries are being used.
 
+Note that scans are by default not placed or retrieved from the buffer pool. This is to prevent sequential flooding, and because gets are a stronger signal of hot data.
+
 ### **Integration of Buffer with get**
 
-Entries are only placed in the buffer pool on gets. If a get to the buffer pool fails, the page is retrieved from disk and then placed into the buffer pool.
+To interact with disk, we use a [file manager](./include/SimpleSSTFileManager.h) as an abstraction. Entries are only placed in the buffer pool on gets. If a get to the buffer pool fails from within the file manager, the page is retrieved from disk and then placed into the buffer pool.
 
 ### **Shrink API**
+
+Shrink is implemented in `Directory::shrink()`, in [Directory](./src/BufferPool/Directory.cpp). When the `set_size` is called on the kv-store with a new buffer pool size that is smaller than the current maximum, the maximum is updated. If it is smaller than the current maximum size, entries are continually evicted according to the eviction policy until the amount of data in the buffer pool is not larger than the maximum size. Then, the directory itself (number of entries and the bit suffix) is shrunk until at least a minimum percentage (set by the user, default 25%) of entries are being used.
 
 ### **Eviction Policies**
 
@@ -399,13 +403,13 @@ In our efforts to assure the quality of our code, we relied on unit tests to che
 - **delete_keys:** checks that the db correctly delete keys correctly while maintaining undeleted keys intact.
 - **edge_case_values:** checks for edge cases
 - **multiple_dbs:** manages multiple dbs opened at once and ensure they are each correctly managed
-- **simple_LRU_buffer:**
-- **LRU_simple_evict:**
-- **LRU_ref_evict:**
-- **LRU_grow:**
-- **LRU_shrink:**
-- **simple_clock_buffer:**
-- **clock_simple_evict:**
-- **bloom_filter_simple:**
+- **simple_LRU_buffer:**: verifies that the database still works as expected when integrating with LRU buffer, without evictions
+- **LRU_simple_evict:**: verifies that the first inserted value (least recent) gets evicted when no references are made
+- **LRU_ref_evict:**: verifies that referecing a value updates its recency by checking that a recently referenced value does not get evicted first
+- **buffer_grow:**: test that a buffer can grow directory size and still support puts and gets as expected
+- **buffer_shrink:**: test that a buffer can shrink directory size and still support puts and gets as expected
+- **simple_clock_buffer:**: verifies that the database still works as expected when integrating with clock buffer, without evictions
+- **clock_simple_evict:**: verifies that a inserted value gets evicted when no references are made
+- **bloom_filter_simple:**: check that querying a missing value on a new bloom filter is false, and that querying after inserting returns true
 
 We also run the same tests with multiple database configurations (different search techniques, different buffer options, different sizes of various components) to ensure that the options behave consistenly across the board. We also run various sizes of the experiments as stress/load tests of our databases.
