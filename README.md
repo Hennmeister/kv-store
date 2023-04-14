@@ -22,7 +22,7 @@ Refer to [this page](https://docs.google.com/document/d/1dsIuIzXiIBbiZcNYi1cC62P
    - [Database Open & Close](#database-open-and-close-api)
    - [Extendible Hash Buffer Pool](#extendible-hash-buffer-pool)
    - [Integration of Buffer with Get](#integration-of-buffer-with-get)
-   - [Shrink](#shrink-api)
+   - [Shink](#shrink-api)
    - [Eviction Policies](#eviction-policies)
    - [B-Trees](#b-tree-for-sst)
    - [Bloom Filters](#bloom-filter)
@@ -273,7 +273,7 @@ For each iteration, we:
 Note that "randomly" in this case is not uniform. Instead our sample has an intentional skew towards lower valued keys to more closely simulate a real database workload. For each iteration, we sample a key from a value that ranges from 0 to the number of keys inserted up to that point so that the likelihood of querying a key value that is indeed loaded in the database (and not a miss) remains consistent throughout each iteration. Since querying a key not in the database is the most expensive query (as we have to traverse all SSTs), this is an important consideration to make in order to compare the throughput at different sizes.
 
 At each iteration, since we increase the total database size at every step, NUM_QUERIES is calculated from a percentage of all the keys inserted into the database at that point.
-
+ 
 The graphs are shown below:
 
 <p align="center">
@@ -286,13 +286,14 @@ We first notice a huge drop in throughput of gets ans scans after 10MB. This is 
     <img src="assets/experiment1-sst.png"  width=50% height=50%>
 </p>
 
-It is sensible that, as the data size increases, so does the time to finish a query operation (causing throughput to decrease) as there is likely more data to look through to find the key. As such, we see this pattern happening precisely in both gets and scans. Query throghput is, however, dependent on how likley it is that we find this data in a a recently dumped SST. Thus we expect to see a general downwards trend in throughput, yet it also expected to vary when the keys are "easier" to find. This is observed in the graph by a few spikes in both the get and scan plots.
+It is sensible that, as the data size increases, so does the time to finish a query operation (causing throughput to decrease) as there is likely more data to look through to find the key. As such, we see this pattern happening precisely in both gets and scans. Query throghput is, however, dependent on how likley it is that we find this data in a a recently dumped SST. Thus we expect to see a general downwards trend in throughput, yet it also expected to vary when the keys are "easier" to find. This is observed in the graph by a few spikes in both the get and scan plots. 
 
 This general downwards pattern is not seen as much in puts, however, because inserts are first bufferd into the memtable and only written out to disk after the memtable is full. In addition, the memtable dump does not depends on the nuber of items inserted in the database since we write SSTs in order of recency to files on disk.
 
 This is also the reason why puts have much higher throughput (in the order of 10 to 100 times as high) compared to gets. It is also interesting to see that there are frequent drops in throughput at regular intervals of time. This should be precisely when the database is dumping the memtable into an SST, which takes significantly longer than the other operations due to IO overheads.
 
 On a similar note, we also see that scans are significantly slower than gets (in the order of 100 to 1000 times as high). This is intuitive as scans retrieve more data and require iterating over a lot more data items to retrieve all elements that fall within the desired range.
+
 
 #### Step 2 Experiment 1
 
@@ -309,16 +310,18 @@ We perform two sub-experiments to display the performance difference in differen
     LRU provides a more accurate representation of the recency of a page at a higher CPU cost. This would then be useful and pay off when the data accesses are skewed and we indeed access a page that was recently used more often. Therefore, we perform the same experiment as before, except we sample the keys from a skewed distribution that favours lower valued keys.
     
 Both experiments are plotted below:
-
+    
 <p align="center">
    <img src="assets/experiment2p1.png"  width=50% height=50%>
 </p>
   
-As expected, Clock slightly outperfermos LRU in most iterations of the first graph and LRU slightly outperforms Clock in most iterations in the second graph.
+As expected, Clock slightly outperfermos LRU in most iterations of the first graph and LRU slightly outperforms Clock in most iterations in the second graph. It is also interesting to note, that as the buffer size increases, we do not see a signifcant increase in throughput. This is likely because our buffer pool is large enough to begin (at least 1 MB) to fit most of our queries in. To see this increase more explicitly, we might need to perform a much bigger volume of queries or significantly reduce the size magnitude of the buffer pool. 
+
 
 #### Step 2 Experiment 2
 
 This experiment aims at comparing our initial binary search to B-tree search. As such, we load the same randomly sampled keys with a skew like in [Step 1 Experiment](#step-1-experiment) to both databases of comparison. We then time and randomly query about 0.001% of the keys inserted. For both experiments, we make sure that the keys we are inserting and querying are consistent on both databases so that the experiment is a valid comparison. In other words, we insert the same keys and also query consistent keys in the same order so that the databases are beind compared under exactly the same load.
+
 
 We plot the graph below excluding the initial throughput drop seen in [Step 1 Experiment](#step-1-experiment) due to the memtable IO vs. CPU difference:
 
@@ -326,7 +329,7 @@ We plot the graph below excluding the initial throughput drop seen in [Step 1 Ex
   <img src="assets/experiment2p2.png"  width=50% height=50%>
 </p>
 
-We see that the B-tree mostly outperforms
+We see that the B-tree mostly outperforms 
 
 #### Step 3 Experiment 1
 
@@ -362,16 +365,17 @@ In our efforts to assure the quality of our code, we relied on unit tests to che
 - **sequential_puts_and_gets:** checks that the db correctly stores sequential keys and retrieves them on get calls
 - **sequential_puts_and_scans:** checks that the db correctly stores sequential keys and retrieves them on scan calls
 - **random_puts_and_gets:** checks that the db correctly stores random keys and retrieves them on get calls
-- **update_keys:** checks that the db correctly updates keys corretly
+- **update_keys:** checks that the db correctly updates keys correctly
+- **delete_keys:** checks that the db correctly delete keys correctly while maintaining undeleted keys intact.
 - **edge_case_values:** checks for edge cases
 - **multiple_dbs:** manages multiple dbs opened at once and ensure they are each correctly managed
-- **simple_LRU_buffer:**: verifies that the database still works as expected when integrating with LRU buffer, without evictions
-- **LRU_simple_evict:**: verifies that the first inserted value (least recent) gets evicted when no references are made
-- **LRU_ref_evict:**: verifies that referecing a value updates its recency by checking that a recently referenced value does not get evicted first
-- **buffer_grow:**: test that a buffer can grow directory size and still support puts and gets as expected
-- **buffer_shrink:**: test that a buffer can shrink directory size and still support puts and gets as expected
-- **simple_clock_buffer:**: verifies that the database still works as expected when integrating with clock buffer, without evictions
-- **clock_simple_evict:**: verifies that a inserted value gets evicted when no references are made
-- **bloom_filter_simple:**: check that querying a missing value on a new bloom filter is false, and that querying after inserting returns true
+- **simple_LRU_buffer:**
+- **LRU_simple_evict:**
+- **LRU_ref_evict:**
+- **LRU_grow:**
+- **LRU_shrink:**
+- **simple_clock_buffer:**
+- **clock_simple_evict:**
+- **bloom_filter_simple:**
 
 We also run the same tests with multiple database configurations (different search techniques, different buffer options, different sizes of various components) to ensure that the options behave consistenly across the board. We also run various sizes of the experiments as stress/load tests of our databases.
