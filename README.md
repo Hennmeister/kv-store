@@ -24,6 +24,7 @@ In this project, we build a key-value store from scratch. A key-value store (KV-
 
 - `Open(“database name”)` opens your database and prepares it to run
 - `Put(key, value)` stores a key associated with a value
+- `Delete(key)` deletes a key
 - `Value = Get(key)` retrieves a value associated with a given key
 - `KV-pairs = Scan(Key1, Key2)` retrieves all KV-pairs in a key range in key order (key1 < key2)
 - `Close()` closes your database
@@ -49,12 +50,6 @@ We provide an "empty" C++ file with a default version of our database (that you 
 ### Experiments
 
 Run `./experiments.sh` to run the executable that generates all experiments data. You can also generate data individually for each experiment by calling the executable file `/build/kv-store-performance-test` with the parameters indicated on the calls of `experiments.sh`. We also provide a `plot_experiments.sh` script that plots the data generated for each experiment. You can also plot the data of individual experiments by using the same approach.
-
-Parameters of `/build/kv-store-performance-test`:
-
-    -e [num]: The experiment number to run
-    -d [data amount]: The amount of data to run the experiement
-    -s [num steps]: The number of operations to time (ex: 1000 means the time is measured every 1000 get operations)
 
 ## Project Status <a name="status"></a> 
 
@@ -171,8 +166,8 @@ This experiment aims to measure the throughput of the put, get, and scan operati
 For each iteration, we:
 
 1. Randomly sample STEP_SIZE keys and `put` those keys in the db. Time and average throughput for that iteration.
-3. Randomly sample NUM_QUERIES keys and `get` those keys from the db. Time and average throughput for that iteration.
-4. Randomly sample NUM_QUERIES keys and `get` those keys from the db. Time and average throughput for that iteration.
+2. Randomly sample NUM_QUERIES keys and `get` those keys from the db. Time and average throughput for that iteration.
+3. Randomly sample NUM_QUERIES keys and `scans` those keys from the db. Time and average throughput for that iteration.
 
 Note that "randomly" in this case is not uniform. Instead our sample has an intentional skew towards lower valued keys to more closely simulate a real database workload. For each iteration, we sample a key from a value that ranges from 0 to the number of keys inserted up to that point so that the likelihood of querying a key value that is indeed loaded in the database (and not a miss) remains consistent throughout each iteration. Since querying a key not in the database is the most expensive query (as we have to traverse all SSTs), this is an important consideration to make in order to compare the throughput at different sizes.
 
@@ -184,17 +179,19 @@ The graphs are shown below:
   <img src="assets/experiment1-all.png"  width=50% height=50%>
 </p>
 
-We first notice a huge drop in throughput of gets ans scans after 10MB. This is expected as 10MB is the default size of the memtable and this further displays the strong difference between IO operations and CPU operations as discussed in class. For a better visualization of the trend in different SST insertions as data increases, we plot another version of the graph excluding this initial 10MB drop:
+We first notice a huge drop in throughput of gets ans scans after 10MB. This is expected as 10MB is the default size of the memtable and this further displays the strong difference between IO operations and CPU operations as discussed in class. For a better visualization of the trend with regards to SST operations as data increases, we plot another version of the graph excluding this initial 10MB drop:
 
 <p align="center">
     <img src="assets/experiment1-sst.png"  width=50% height=50%>
 </p>
 
-It is sensible that, as the data size increases, so does the time to return from a query (throughput decreases) as there is more data to look through to find the key. As such, we see this pattern happening precisely in both gets and scans. This is not seen as much in puts, however, because inserts are first bufferd into the memtable and only written out to disk after the memtable is full. 
+It is sensible that, as the data size increases, so does the time to finish a query operation (causing throughput to decrease) as there is likely more data to look through to find the key. As such, we see this pattern happening precisely in both gets and scans. Query throghput is, however, dependent on how likley it is that we find this data in a a recently dumped SST. Thus we expect to see a general downwards trend in throughput, yet it also expected to vary when the keys are "easier" to find. This is observed in the graph by a few spikes in both the get and scan plots. 
 
-This is also the reason why puts have much higher throughput (in the order of 100 to 1000 times as high) compared to gets. It is also interesting to see that there are frequent drops in throughput at somewhat regular intervals of time. This should be precisely when the database is dumping the memtable into an SST, which takes signigicantly longer than the other operations.
+This general downwards pattern is not seen as much in puts, however, because inserts are first bufferd into the memtable and only written out to disk after the memtable is full. In addition, the memtable dump does not depends on the nuber of items inserted in the database since we write SSTs in order of recency to files on disk.
 
-On a similar note, we also see that scans are significantly slower than gets (also in the order of 100 to 1000 times as high). This is intuitive as scans require iterating over a lot more data items to retrieve all elements that fall within the desired range.
+This is also the reason why puts have much higher throughput (in the order of 10 to 100 times as high) compared to gets. It is also interesting to see that there are frequent drops in throughput at regular intervals of time. This should be precisely when the database is dumping the memtable into an SST, which takes significantly longer than the other operations due to IO overheads.
+
+On a similar note, we also see that scans are significantly slower than gets (in the order of 100 to 1000 times as high). This is intuitive as scans retrieve more data and require iterating over a lot more data items to retrieve all elements that fall within the desired range.
 
 ### Step 2 <a name="step2"></a>
 
@@ -296,7 +293,7 @@ TODO
 
 #### Step 3 Experiment 1
 
-This experiment aims at providing an updated measure of throughput for put, get, and scan operations. More precisely, the database now stores the SSTs in a Log-structured merge-tree (LSM Tree) with a Bloom filter to check for key presence in every level as well a buffer pool to cache hot pages. It then follows precisely the same methodology as [Step 1 Experiment](#Step-1-Experiment), except that it additionally fixes the buffer pool size to 10 MB, the Bloom filters to use 5 bits per entry, and the memtable to 1 MB. The throughput is plotted as below:
+This experiment aims at providing an updated measure of throughput for put, get, and scan operations. More precisely, the database now stores the SSTs in a Log-structured merge-tree (LSM Tree) with a Bloom filter to check for key presence in every level as well a buffer pool to cache hot pages. It then follows precisely the same methodology as [Step 1 Experiment](#Step-1-Experiment), except that it additionally fixes the buffer pool to type Clock and size of 10 MB, the Bloom filters to use 5 bits per entry, and the memtable to 1 MB. The throughput is plotted as below:
 
 <p align="center">
   <img src="assets/experiment3p1-all.png"  width=50% height=50%>
@@ -341,6 +338,6 @@ In our efforts to assure the quality of our code, we relied on unit tests to che
 - **clock_simple_evict:**
 - **bloom_filter_simple:**
 
-We also run the same tests with multiple database configurations (different search techniques, different buffer options, different sizes of various components) to ensure that the options behave consistenly across the board.
+We also run the same tests with multiple database configurations (different search techniques, different buffer options, different sizes of various components) to ensure that the options behave consistenly across the board. We also run various sizes of the experiments as stress/load tests of our databases.
 
 

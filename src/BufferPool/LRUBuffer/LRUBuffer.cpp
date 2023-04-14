@@ -92,23 +92,23 @@ void LRUBuffer::evict() {
     // remove all the references to evicted buckets
     auto next_page_in_bucket = tail->bufferEntry->next_entry;
     int bucket_num = hash_to_bucket_index(tail->bufferEntry->file_and_page);
-    if (is_ref.find(bucket_num) != is_ref.end()) {
-        bucket_num = is_ref.find(bucket_num)->second;
+    if (reference_to.find(bucket_num) != reference_to.end()) {
+        bucket_num = reference_to.find(bucket_num)->second;
     }
-    auto it = bucket_refs.find(bucket_num);
+    auto it = bucket_num_to_references.find(bucket_num);
     // the bucket holding the entry_data to be evicted has at least one other bucket pointing to it
-    if (it != bucket_refs.end()) {
+    if (it != bucket_num_to_references.end()) {
         for (auto vector_it = it->second.begin(); vector_it != it->second.end(); vector_it++) {
             entries[*vector_it] = next_page_in_bucket; // could be nullptr
             // if we are emptying this bucket by deleting the last entry_data in the bucket,
             // unmark buckets pointing to this bucket as references
             if (next_page_in_bucket == nullptr) {
-                is_ref.erase(*vector_it);
+                reference_to.erase(*vector_it);
             }
         }
         // if we are deleting the last entry in this bucket, nothing will be referencing this bucket anymore
         if (next_page_in_bucket == nullptr) {
-            bucket_refs.erase(it);
+            bucket_num_to_references.erase(it);
         }
     }
 

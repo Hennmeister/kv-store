@@ -71,22 +71,22 @@ void Directory<T>::grow(int new_num_bits) {
 
         // find the bucket that this entry is pointing to along the chain
         int base_bucket;
-        if (is_ref.find(i) != is_ref.end()) {
-            base_bucket = is_ref.find(i)->second;
+        if (reference_to.find(i) != reference_to.end()) {
+            base_bucket = reference_to.find(i)->second;
         } else {
             base_bucket = i;
         }
-        is_ref.insert(pair(i + size_diff, base_bucket));
+        reference_to.insert(pair(i + size_diff, base_bucket));
 
 
 
         // update the bucket references for the old bucket
-        auto it = bucket_refs.find(base_bucket);
-        if (it != bucket_refs.end()) {
+        auto it = bucket_num_to_references.find(base_bucket);
+        if (it != bucket_num_to_references.end()) {
             it->second.push_back(i + size_diff);
         } else {
             vector<int> v{i + size_diff};
-            bucket_refs.insert(pair<int, vector<int>>(base_bucket, v));
+            bucket_num_to_references.insert(pair<int, vector<int>>(base_bucket, v));
         }
     }
     num_bits = new_num_bits;
@@ -100,15 +100,15 @@ void Directory<T>::grow(int new_num_bits) {
             // set all entries that point to this bucket to nullptr since no elements in the original bucket belongs
             // in this bucket after rehashing
             entries[i] = nullptr;
-            is_ref.erase(i);
+            reference_to.erase(i);
 
-            auto it = bucket_refs.find(i);
-            if (it != bucket_refs.end()) {
+            auto it = bucket_num_to_references.find(i);
+            if (it != bucket_num_to_references.end()) {
                 for (int reference: it->second) {
                     entries[reference] = nullptr;
-                    is_ref.erase(reference);
+                    reference_to.erase(reference);
                 }
-                bucket_refs.erase(it);
+                bucket_num_to_references.erase(it);
             }
 
             // reinsert all elements in the chain of the old bucket
@@ -134,7 +134,7 @@ void Directory<T>::shrink() {
     for (int i = entries.size() - 1; i >= pow(2, num_bits); i--) {
         curr_entry = entries.back();
         // only reinsert / rehash these entries if this is not a reference to an earlier bucket
-        if (is_ref.find(i) == is_ref.end()) {
+        if (reference_to.find(i) == reference_to.end()) {
             while (curr_entry != nullptr) {
                 next = curr_entry->next_entry;
                 curr_entry->prev_entry = curr_entry->next_entry = nullptr;
@@ -142,7 +142,7 @@ void Directory<T>::shrink() {
                 curr_entry = next;
             }
         }
-        is_ref.erase(i);
+        reference_to.erase(i);
 
         entries.pop_back();
     }
@@ -150,9 +150,9 @@ void Directory<T>::shrink() {
     // remove all the references to evicted buckets
     std::map<int, vector<int>>::iterator it;
     int cutoff = entries.size();
-    for (it = bucket_refs.begin(); it != bucket_refs.end();) {
+    for (it = bucket_num_to_references.begin(); it != bucket_num_to_references.end();) {
         if (it->first >= cutoff) {
-            it = bucket_refs.erase(it);
+            it = bucket_num_to_references.erase(it);
         } else {
             vector<int>::iterator vector_it;
             for (vector_it = it->second.begin(); vector_it !=  it->second.end(); ) {
