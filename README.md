@@ -126,7 +126,7 @@ As such, open("database name") is a valid call to create a database if the user 
     db.open("<db_path>/<db_name>", options);
 ````
 ---
-## Implementation Steps <a name="steps"></a>
+- ## Implementation Steps <a name="steps"></a>
 
 Here we outline the process of implementation the various parts of our system. For simplicity, our simple KV-Store only handles integer keys and integer values.
 
@@ -196,21 +196,79 @@ This is also the reason why puts have much higher throughput (in the order of 10
 
 On a similar note, we also see that scans are significantly slower than gets (also in the order of 100 to 1000 times as high). This is intuitive as scans require iterating over a lot more data items to retrieve all elements that fall within the desired range.
 
-### Step 2 <a name="step2"></a>
+### Step 2 <a name="step2"></a>[Directory.h](include%2FBufferPool%2FDirectory.h)
 
 - **Buffer Pool**
 
-TODO
+#### Overview
+We implemented the buffer pool using extendable hashing. The relevant header and source files can be found under `./include/BufferPool` and `./src/BufferPool` respectively. There is a general `BufferPool` interface, as well as an abstract class `Directory`. Directory contains the logic related to extendable hashing. It holds a vector of pointers to BufferPoolEntries, which hold data and relevant metadata such as the next and previous entry that are hashed to this bucket.  It also tracks the length of the bit suffix that is used to match hashes to buckets/entries, where 2^(bit_suffix) is the number of buckets. The entries can hold variable size data, to allow for dynamically-sized bloom filter data to be stored in them. 
+The buffer pool uses murmurhash to hash the entry name, which is a combination of the file and page number in that file, and then mods it by the bit suffix the find the bucket of the entry given the current buffer size. When the buffer pool reaches a certain percentage of the maximum buffer pool size (both values specified by the user), we grow the directory by doubling the number of buckets (pointers in the entries vector). The new buckets / pointers initially point to the bucket that has the same bit suffix as it, except for the most significant bit. Note that if a bucket points to a bucket that is still a reference itself, we point it the base bucket (where the original bucket is pointing to) to avoid chains. Since we need to know which buckets are references in order to 'unreference' or unlink these buckets when we rehash the base bucket being pointed to, we use two maps, `bucket_to_references` and `reference_to`, to track all the references to a bucket and which bucket a bucket is pointing to respectively.
+These references are updated on evictions, shrinking, and inserts. After doubling the directory size, every bucket is evaluated and if more than entry is in a bucket, we rehash every entry in that bucket using the new bit suffix and update bucket references accordingly.
+If the user sets a new max size that is smaller than the current max size, entries are continually evicted according to the eviction policy until the amount of data in the buffer pool is not larger than the max size. Then, the directory itself (number of entries and the bit suffix) is shrunk until at least a minimum percentage (set by user) of entries are being used. 
+Entries are only placed in the buffer pool on gets. If a get to the buffer pool fails, the page is retrieved from disk and then put into the buffer pool.
 
 - **Eviction Policies**
 
-TODO
+Two eviction policies are implemented, `ClockBuffer` and `LRUBuffer` (can be found under `./include/BufferPool` and `./src/BufferPool`). These policies are implemented as derived classes of `Directory` to use the shared func
+
+It is sensible that, as the data size increases, so does the time to return from a query (throughput decreases) as there is more data to look through to find the key. As such, we see this pattern happening precisely in both gets and scans. This is not seen as much in puts, however, because inserts are first bufferd into the memtable and only written out to disk after the memtable is full.
+
+This is also the reason why puts have much higher throughput (in the order of 100 to 1000 times as high) compared to gets. It is also interesting to see that there are frequent drops in throughput at somewhat regular intervals of time. This should be precisely when the database is dumping the memtable into an SST, which takes signigicantly longer than the other operations.
+
+On a similar note, we also see that scans are significantly slower than gets (also in the order of 100 to 1000 times as high). This is intuitive as scans require iterating over a lot more data items to retrieve all elements that fall within the desired range.
+
+### Step 2 <a name="step2"></a>[Directory.h](include%2FBufferPool%2FDirectory.h)
+
+- **Buffer Pool**
+
+The buffer pool is implemented using extendable hashing and is located in the `./include/BufferPool` and `./src/BufferPool` directories. The implementation includes a `BufferPool` interface and an abstract class `Directory`, which is responsible for the logic related to extendable hashing. Directory holds a vector of pointers to `BufferPoolEntry` objects, which store data and relevant metadata such as the next and previous entry that are hashed to the same bucket. The entries can hold variable-sized data to accommodate dynamically sized bloom filter data.
+
+To hash the entry name, which is a combination of the file and page number in that file, the buffer pool uses MurmurHash and mods the result by the bit suffix to find the bucket of the entry given the current buffer size. The buffer pool grows the directory by doubling the number of buckets when the buffer pool reaches a certain percentage of the maximum buffer pool size, both values specified by the user. The new buckets initially point to the bucket that has the same bit suffix, except for the most significant bit. If a bucket points to a bucket that is still a reference itself, the buffer pool points it to the base bucket to avoid chains. To track all references to a bucket and which bucket a bucket is pointing to, the buffer pool uses two maps, `bucket_num_to_references` and `reference_to`. These references are updated on evictions, shrinking, and inserts.
+
+After doubling the directory size, every bucket is evaluated, and if more than one entry is in a bucket, the buffer pool rehashes every entry in that bucket using the new bit suffix and updates bucket references accordingly. If the user sets a new maximum size smaller than the current maximum size, entries are continually evicted according to the eviction policy until the amount of data in the buffer pool is not larger than the maximum size. Then, the directory itself (number of entries and the bit suffix) is shrunk until at least a minimum percentage (set by the user) of entries are being used.
+
+Entries are only placed in the buffer pool on gets. If a get to the buffer pool fails, the page is retrieved from disk and then placed into the buffer pool.
+
+- **Eviction Policies**
+
+Two eviction policies, `ClockBuffer` and `LRUBuffer`, are implemented as derived classes of `Directory` and located in the `./include/BufferPool` and `./src/BufferPool` directories. The use of inheritance instead of something like a strategy pattern makes the use of eviction-policy-specific metadata easier to handle.
+
+`ClockBuffer` keeps a byte that tracks whether an entry has been used or not since it has been last seen. Every eviction, it searches through all entries (skipping buckets that are references) and decrements the byte if it is one or stops and evicts the page if it is already 0.
+
+`LRUBuffer` uses a corresponding node for each entry. These nodes are kept in a doubly linked list that tracks usage recency. On references to an entry, its corresponding node is moved to the head of the list. On eviction, the node at the tail of the list and its corresponding entry are evicted.
+
+- **B-Tree for SST**
+
+In order to execute a BTree correctly, we increased the complexity of our program by now introducing the SSTFileManager class that adds a layer of abstraction and allows the BufferPool to not have to interface directly with any SSTManager. The BTree SST was implemented in stages, the first of which being the exact same as the Append Only SST. In this stage, the data on disk was the exact same but every time an SST was loaded/created, an in-memory BTree was built, allowing Get/Scan calls to query the in memory structure before needing to access disk.
+
+This in-memory structure was simply a vector of ints. Where each level of the BTree is represented by a vector of ints. Through some simple maths and the knowledge of the fannout (which was stored in the metadata page of each SST), the in-memory structure could be easily used to find the position or lower bound of an element for get or scan calls.
+
+Slowly, we transitioned to having these in memory structures being written out as "internal node pages" where this data could be parsed from. The data written to disk was exactly the vector of ints, where each vector's end was delimited by an `INT_MAX - 1`. Now, the BTree was only constructed on first creation of the SST (i.e. from memtable to SST dump) and everytime the database was opened thereafter, the BTree was loaded from disk.
+
+By padding our internal node pages with blank data, we were able to ensure that the start of the leaves was always the start of a new page, this is important for the binary search as it ensures that no complicated processing has to be done to differentiate between internal node data and leaf data which would have different structures.
+
+After fully implementing the BTree with scans and gets, we then revisited the binary search function and upgraded our old append only file implementation of binary search to now work without needing to load the entire SST into memory.
+
+At this point, our BTree could function as both a large Append Only File or a BTree through the use of the `useBinary` option.
+
+_Note: The internal nodes are only read from once, on SST load. While we understand that these nodes should be handled as regular pages and read from disk each time, with sufficiently large fanouts, the number of integers in all internal nodes scales very very very well (log base fannout). This allows us to keep all internal ndoes in memory at all times._
+
+#### Step 2 Experiment 1
+
+In this experiment we aim at comparing the throughput performance of the Clock vs. LRU buffer pools.
+
+We perform two sub-experiments to display the performance difference in different load scenarios. For both experiments, we make sure that the keys we are inserting and querying are consistent on both databases so that the experiment is a valid comparison. In other words, we insert the same keys and also query consistent keys in the same order so that the databases are beind compared under exactly the same load.
+
+1. **Clock performing better than LRU**
+
+   Since Clock provides a smaller CPU overhead, trivially a workload that fits entirely in memory would likely perform better with Clock rather than LRU. However, thinking about a more "realistically" workload that uses the entirety of the database' s storing power, randomly loading and accessing keys in the database should display this difference. The extra overhead associated with LRU should be enough to yield worst performance as this overhead is not useful given that keys are sampled randomly across the database.
+   tinoality. and `ClockBufferEntry` and `LRUBufferEntry` entry types, w
 
 - **B-Tree for SST**
 
 In order to execute a BTree correctly, we increased the complexity of our program by now introducing the SSTFileManager class that adds a layer of abstraction and allows the BufferPool to not have to interface directly with any SSTManager. The BTree SST was implemented in stages, the first of which being the exact same as the Append Only SST. In this stage, the data on disk was the exact same but every time an SST was loaded/created, an in-memory BTree was built, allowing Get/Scan calls to query the in memory structure before needing to access disk. 
 
-This in-memory structure was simply a vector of vector of ints. Where each level of the BTree is represented by a vector of ints. Through some simple maths and the knowledge of the fannout (which was stored in the metadata page of each SST), the in-memory structure could be easily used to find the position or lower bound of an element for get or scan calls. 
+This in-memory structure was simply a vector of ints. Where each level of the BTree is represented by a vector of ints. Through some simple maths and the knowledge of the fannout (which was stored in the metadata page of each SST), the in-memory structure could be easily used to find the position or lower bound of an element for get or scan calls. 
 
 Slowly, we transitioned to having these in memory structures being written out as "internal node pages" where this data could be parsed from. The data written to disk was exactly the vector of vector of ints, where each vector's end was delimited by an `INT_MAX - 1`. Now, the BTree was only constructed on first creation of the SST (i.e. from memtable to SST dump) and everytime the database was opened thereafter, the BTree was loaded from disk. 
 
@@ -291,8 +349,13 @@ TODO
 
 - **Bloom Filter**
 
-Bloom filter file names are bloom_filter_{level}, where level is the level of the LSM tree for which this bloom filter tracks set membership.
-TODO
+The implementation of bloom filters can be found in src/BloomFilter. Each bloom filter is associated with a specific SST. When an SST is created, its corresponding bloom filter is created from the keys and written to disk.
+
+A bloom filter is composed of a set of seeds that are randomly chosen during its creation, and a bitmap. The seeds are used to pass into murmurhash, which is then used to hash entries for insert and set membership queries.
+
+Serialization and deserialization of bloom filters are supported. To serialize a bloom filter, the number of seeds, each seed, the number of bytes for the bitmap, and each byte of the bitmap are written into a buffer in order. This sequence is then written to disk or to the buffer pool, and can be read in to recreate the same bloom filter when the corresponding SST wants to make a membership query. On disk, the serialized bloom filter is written to the end of its corresponding SST, with metadata stored at the beginning of the SST.
+
+To retrieve these filters, a scan call is made for the pages holding the bloom filter information. Our scan call is handled by a file manager abstraction, and the scan optionally takes in a to_cache parameter (false by default). For bloom filter retrievals, this option is set to true. The result of this query is cached in the buffer pool as a variable size entry. This decision enables the buffer pool to stay agnostic of the type of data it is storing, and it simply holds pages.
 
 #### Step 3 Experiment 1
 
@@ -324,7 +387,7 @@ We plot the throughput graph below:
 In our efforts to assure the quality of our code, we relied on unit tests to check individual isolated components, integrated tests to verify that all our components are correctly combined in the flow of the application, as well as a lot of manual testing on playground and on the larger experiments. Some of the unit/integration tests are included in the `src/kv-store-test.cpp` file and we include them here for reference:
 
 - **simple_test:** a basic interaction with a database of putting, getting and updating a few values 
-- **hash_test:** a simple test that a the hashing function used is consistent with the same value
+- **hash_test:** a simple test that checks if the hashing function used is consistent with the same value
 - **memtable_puts_and_gets:** checks that memtables correctly stores and retrieves key-value pairs
 - **sequential_puts_and_gets:** checks that the db correctly stores sequential keys and retrieves them on get calls
 - **sequential_puts_and_scans:** checks that the db correctly stores sequential keys and retrieves them on scan calls
