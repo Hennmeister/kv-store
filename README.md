@@ -169,9 +169,17 @@ TODO: image
 
 ### **KV-store get API**
 
+When we perform a get call, we first check the memtable for the presence of the key to see if it was one of the most recently added keys that are stored in memory. If this call fails (not found), we resort to searching through the SSTs to find the key on disk. We implement various ways that this SST search could be done, from plain Binary Search from the newest to oldest SST, to more complicated methods such as with LSM Trees and B-tree searches outlined below.
+
 ### **KV-Store put API**
 
+To perform a put operation, the database buffers all keys in the memtable until it reaches capaicty. Once that is done, we dump the components to their respective SSTs based on whatever SSTManager is chosen (BTreeSSTManager or LSMTreeSSTManager), see below for more details on those.
+
 ### **KV-store scan API**
+
+Scan calls are similar in concept to get calls. They check the memtable and are then handed off to the SSTManagers. They often use the spatial locality to the sorted keys in the SST to reduce the number of operations needed to get an entire chunk of relevant data. We explain in more detail below how exactly these scans are performed.
+
+Scans, by default, do not integrate with the buffer pool. There is an option to do so on the file manager's scan function, which allows inserting and getting a range of pages into the buffer pool with a entry name of the filename appended by the page range. This option is also used to store bloom filter entries in the buffer.
 
 ### **Memtable**
 
@@ -191,7 +199,7 @@ To open a new database with default parameters, we call db.open("<db_path>/<db_n
 
 At the end of your session, you shoud db.close() the database. This call does some book keeping work to ensure the memory contents of the database (i.e. the memtbale) is correctly dumped in a way that the db can be reloaded to its normal state. It also frees the memory we allocated during runtime. 
 
-Both of these functions are located in `SimpleKVStore.cpp`
+Both of these functions are located in `SimpleKVStore.cpp`.
 
 ### **Extendible Hash Buffer Pool**
 
