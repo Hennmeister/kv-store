@@ -2,7 +2,7 @@
 
   
 echo "=== Experiment 1 (running) ==="
-./build/kv-store-performance-test -e 1 -d 256 -s 8 >> ./experiments/data/exp1.out
+./build/kv-store-performance-test -e 1 -d 256 -s 8 > ./experiments/data/exp1.out
 echo "Output saved to files ./experiments/data/ as exp1.out and exp1_data.csv"
 
 echo "=== Experiment 2.1 (running) ==="
@@ -18,7 +18,7 @@ echo "=== Experiment 3.1 (running) ==="
 echo "Output saved to files ./experiments/data/ as exp3p1.out and exp3p1_data.csv"
 
 echo "=== Experiment 3.2 (running) ==="
-./build/kv-store-performance-test -e 32 -d 20 -s 1 > ./experiments/data/exp3p2.out
+./build/kv-store-performance-test -e 32 -d 30 -s 1 > ./experiments/data/exp3p2.out
 echo "Output saved to files ./experiments/data/ as exp3p2.out and exp3p2_data.csv"
 
 
