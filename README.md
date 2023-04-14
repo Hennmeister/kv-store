@@ -187,6 +187,12 @@ In order to ensure efficiency, we use the `O_DIRECT` flag when opening a file an
 
 ### **Database Open and Close API**
 
+To open a new database with default parameters, we call db.open("<db_path>/<db_name>") and this will create a new database at `<db_path>/<db_name>` with the default parameters outlined [here](#init_param). We can additinionally create a `DbOptions` object and also include that in as a second parameter db.open("<db_path>/<db_name>", options) to create a kv-store with any specific options. Also refer to [this section](#init_param) on how that is done. We can also reopen an existing database by passing in the path to where such db was stored.
+
+At the end of your session, you shoud db.close() the database. This call does some book keeping work to ensure the memory contents of the database (i.e. the memtbale) is correctly dumped in a way that the db can be reloaded to its normal state. It also frees the memory we allocated during runtime. 
+
+Both of these functions are located in `SimpleKVStore.cpp`
+
 ### **Extendible Hash Buffer Pool**
 
 The buffer pool is implemented using extendable hashing and is located in the `./include/BufferPool` and `./src/BufferPool` directories. The implementation includes a `BufferPool` interface and an abstract class `Directory`, which is responsible for the logic related to extendable hashing. Directory holds a vector of pointers to `BufferPoolEntry` objects, which store data and relevant metadata such as the next and previous entry that are hashed to the same bucket. The entries can hold variable-sized data to accommodate dynamically sized bloom filter data.
