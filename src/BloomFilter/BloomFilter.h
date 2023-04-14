@@ -14,7 +14,8 @@ public:
     // Used to create a new bloom filter
     BloomFilter(int num_entries, int bits_per_entry);
     // Used to recreate a previously existing filter when reading in data from storage
-    BloomFilter(int *buffer_data);
+    explicit BloomFilter(int *buffer_data);
+    ~BloomFilter();
     // serialize this filter into buffer data that can be read to initialize an identical bloom filter using the above constructor
     // Note: you must free the returned buffer, and the size does not include padded data
     std::pair<int *, int> serialize();
@@ -22,8 +23,9 @@ public:
     bool testMembership(int key);
 
 private:
-    // note that we use int for ease of serialization
-    std::vector<int> bits; // TODO: look into using boost::dynamic_bitset
+    int *bits;
+    int *data_buf;
+    int bitmap_size;
     std::set<int> seeds;
 };
 

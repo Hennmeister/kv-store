@@ -319,7 +319,7 @@ BTreeSST::BTreeSST(SSTFileManager *fileManager, int ind, int fanout, vector<pair
     delete[] write_buf;
     delete[] meta;
     delete[] serialized_filter;
-//    delete filter;
+    delete filter;
 }
 
 
@@ -381,12 +381,13 @@ bool BTreeSST::get(const int &key, int &value) {
     if(size == 0){
         return false;
     }
-    BloomFilter filter = get_bloom_filter();
+    BloomFilter *filter = get_bloom_filter();
     total++;
-    if (!filter.testMembership(key)) {
+    if (!filter->testMembership(key)) {
         negatives++;
         return false;
     }
+    delete filter;
 
     if(useBinary){
         int cur = this->binary_scan(key);
@@ -483,11 +484,10 @@ std::vector<std::pair<int, int>> BTreeSST::scan(const int &key1, const int &key2
     return res;
 }
 
-BloomFilter BTreeSST::get_bloom_filter() {
+BloomFilter *BTreeSST::get_bloom_filter() {
     int *data_buf = new int[num_filter_pages * PAGE_SIZE];
     fileManager->scan(filter_start_page, (filter_start_page + num_filter_pages) - 1,
                       filename, data_buf, true);
-    BloomFilter fltr = BloomFilter(data_buf);
-    delete[] data_buf;
+    BloomFilter *fltr = new BloomFilter(data_buf);
     return fltr;
 }

@@ -15,27 +15,28 @@ BloomFilter::BloomFilter(int num_entries, int bits_per_entry) {
     while (seeds.size() != num_hash_functions) {
         seeds.insert(dis(gen));
     }
-    bits = std::vector<int>(ceil((double) num_entries * bits_per_entry / (sizeof(int) * 8)), 0);
+    bitmap_size = ceil((double) num_entries * bits_per_entry / (sizeof(int) * 8));
+    bits = new int[bitmap_size]{0};
+    data_buf = nullptr;
 }
 
 BloomFilter::BloomFilter(int *buffer_data) {
+    this->data_buf = buffer_data;
     int num_seeds = buffer_data[0];
     buffer_data = buffer_data + 1; // skip 4 bytes
     for (int i = 0; i < num_seeds; i++) {
         this->seeds.insert(buffer_data[i]);
     }
     buffer_data += num_seeds;
-    int bitmap_size = buffer_data[0];
+    bitmap_size = buffer_data[0];
     buffer_data = buffer_data + 1; // skip 1
-    for (int i = 0; i < bitmap_size; i++) {
-        this->bits.push_back(buffer_data[i]);
-    }
+    this->bits = buffer_data;
 }
 
 
 std::pair<int *, int> BloomFilter::serialize() {
     // num_seeds + data_size + seeds + bitmap
-    int size = ceil(double ((2 + seeds.size() + bits.size()) *  sizeof(int))/ (double) PAGE_SIZE) * (PAGE_SIZE/sizeof(int));
+    int size = ceil(double ((2 + seeds.size() + bitmap_size) *  sizeof(int))/ (double) PAGE_SIZE) * (PAGE_SIZE/sizeof(int));
     int *buf = new int[size];
 
     int index = 0;
@@ -50,14 +51,11 @@ std::pair<int *, int> BloomFilter::serialize() {
     }
 
     // write out bitmap
-    auto bits_it = bits.begin();
-    buf[index] = (int) bits.size();
+    buf[index] = bitmap_size;
     index++;
-    begin = index;
-    for (; index < begin + bits.size(); index++) {
-        buf[index] = *bits_it;
-        bits_it++;
-    }
+
+    std::memcpy(&buf[index], bits, bitmap_size);
+    index += bitmap_size;
 
     int end = index + PAGE_SIZE - (index % PAGE_SIZE);
     for (; index < end && index < size; index++) {
@@ -72,7 +70,7 @@ void BloomFilter::insert(int key) {
     for (auto seed : seeds) {
         int hash;
         MurmurHash3_x86_32((void *) &key, sizeof(int), seed, (void *) &hash);
-        hash = hash % (bits.size() * sizeof(int) * 8);
+        hash = hash % (bitmap_size * sizeof(int) * 8);
         bits[hash / (sizeof(int) * 8)] |= 1 << (hash % (sizeof(int) * 8));
     }
 }
@@ -83,10 +81,15 @@ bool BloomFilter::testMembership(int key) {
     for (auto seed : seeds) {
         int hash;
         MurmurHash3_x86_32((void *) &key, sizeof(int), seed, (void *) &hash);
-        hash = hash % (bits.size() * sizeof(int) * 8);
+        hash = hash % (bitmap_size * sizeof(int) * 8);
         if ((bits[hash / (sizeof(int) * 8)] & (1 << (hash % (sizeof(int) * 8)))) == 0) {
             return false;
         }
     }
     return true;
+}
+
+BloomFilter::~BloomFilter() {
+    if (data_buf != nullptr)
+        delete[] data_buf;
 }

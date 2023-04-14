@@ -18,7 +18,7 @@ private:
     void constructBtree(const vector<pair<int, int>>& data);
     int binary_scan(int key);
     int binary_lower_bound(int key);
-    BloomFilter get_bloom_filter();
+    BloomFilter * get_bloom_filter();
 public:
     vector<vector<int>> internal_btree;
     ~BTreeSST();
