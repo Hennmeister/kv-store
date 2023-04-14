@@ -260,9 +260,22 @@ _Note: When scanning across pages, we do not store data in the buffer pool - thi
 
 ### **Updates**
 
+Updates can be called by simply calling a `put` with an existing key. No special processing is required. 
+
+Updates are not in-place in order to ensure performance as discussed in lectures. When issuing an update, if an entry is already present in the memtable, the redblacktree will simply update the value associated with the given key. 
+
+When issuing a get call, we know that data is accessed in order of time, i.e. most recent entries are accessed first. As a result, the most recent value associated with a key will always be returned. This applies to SSTs as we scan SSTs from latest to oldest. 
+
+When issuing a scan call, we rely on the aforementioned `priority_merge` function to ensure that if there is a key conflict, only the latest version of the key is persisted. 
+
+
 ### **Deletes**
 
-TODO
+Deletes can be called using `delete_key` which returns false if the key is not already present in the database. If the key is present in the database, a tombstone is added with the key being the key to be deleted and the value being `INT_MIN`. 
+
+When we now issue a `get`, if the value at the end of the get call is `INT_MIN` the function now returns false. And similarly to updates, due to how we access data temporally, we can ensure that if the most recent update to a key is a delete, the get call will return false. 
+
+For scans, `priority_merge` has a speical situation which ensures that if 2 keys are equal in the master and older data, neither key is persisted in the resulting data. Since we always know that the key has to be present in the data before issuing a delete, at some point, the older data (with the old value of the key) will get priority merged with the new tombstone. LSMTree compaction also performs a similar operation, eventually removing the tombstone and freeing space. 
 
 ## Experiments
 
