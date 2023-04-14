@@ -60,7 +60,7 @@ bool SimpleKVStore::put(const int &key, const int &value)
 
 bool SimpleKVStore::get(const int &key, int &value)
 {
-    bool res;
+    bool res = true;
     if (!this->memtable->get(key, value)) {
         res = this->sstManager->get(key, value);
     }

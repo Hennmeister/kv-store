@@ -355,9 +355,9 @@ void delete_keys(SimpleKVStore db)
     {
         int status = db.get(i, val);
         if (i % 2 == 0)
-            assert_val_equals(status, false, "delete_keys");
+            assert_val_equals(status, false, "delete_keys_false");
         else
-            assert_val_equals(status, true, "delete_keys");
+            assert_val_equals(status, true, "delete_keys_true");
     }
 }
 
