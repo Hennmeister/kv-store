@@ -315,7 +315,7 @@ Both experiments are plotted below:
    <img src="assets/experiment2p1.png"  width=50% height=50%>
 </p>
   
-As expected, Clock slightly outperfermos LRU in most iterations of the first graph and LRU slightly outperforms Clock in most iterations in the second graph.
+As expected, Clock slightly outperfermos LRU in most iterations of the first graph and LRU slightly outperforms Clock in most iterations in the second graph. It is also interesting to note, that as the buffer size increases, we do not see a signifcant increase in throughput. This is likely because our buffer pool is large enough to begin (at least 1 MB) to fit most of our queries in. To see this increase more explicitly, we might need to perform a much bigger volume of queries or significantly reduce the size magnitude of the buffer pool. 
 
 
 #### Step 2 Experiment 2
@@ -365,7 +365,8 @@ In our efforts to assure the quality of our code, we relied on unit tests to che
 - **sequential_puts_and_gets:** checks that the db correctly stores sequential keys and retrieves them on get calls
 - **sequential_puts_and_scans:** checks that the db correctly stores sequential keys and retrieves them on scan calls
 - **random_puts_and_gets:** checks that the db correctly stores random keys and retrieves them on get calls
-- **update_keys:** checks that the db correctly updates keys corretly
+- **update_keys:** checks that the db correctly updates keys correctly
+- **delete_keys:** checks that the db correctly delete keys correctly while maintaining undeleted keys intact.
 - **edge_case_values:** checks for edge cases
 - **multiple_dbs:** manages multiple dbs opened at once and ensure they are each correctly managed
 - **simple_LRU_buffer:**
