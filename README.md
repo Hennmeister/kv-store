@@ -24,6 +24,7 @@ In this project, we build a key-value store from scratch. A key-value store (KV-
 
 - `Open(“database name”)` opens your database and prepares it to run
 - `Put(key, value)` stores a key associated with a value
+- `Delete(key)` deletes a key
 - `Value = Get(key)` retrieves a value associated with a given key
 - `KV-pairs = Scan(Key1, Key2)` retrieves all KV-pairs in a key range in key order (key1 < key2)
 - `Close()` closes your database
@@ -128,7 +129,7 @@ As such, open("database name") is a valid call to create a database if the user 
 
 ---
 
-- ## Implementation Steps <a name="steps"></a>
+## Implementation Steps <a name="steps"></a>
 
 Here we outline the process of implementation the various parts of our system. For simplicity, our simple KV-Store only handles integer keys and integer values.
 
@@ -180,7 +181,7 @@ To hash the entry name, which is a combination of the file and page number in th
 
 After doubling the directory size, every bucket is evaluated, and if more than one entry is in a bucket, the buffer pool rehashes every entry in that bucket using the new bit suffix and updates bucket references accordingly. If the user sets a new maximum size smaller than the current maximum size, entries are continually evicted according to the eviction policy until the amount of data in the buffer pool is not larger than the maximum size. Then, the directory itself (number of entries and the bit suffix) is shrunk until at least a minimum percentage (set by the user) of entries are being used.
 
-### **Intregration of Buffer with get**
+### **Integration of Buffer with get**
 
 Entries are only placed in the buffer pool on gets. If a get to the buffer pool fails, the page is retrieved from disk and then placed into the buffer pool.
 
@@ -198,7 +199,7 @@ Two eviction policies, `ClockBuffer` and `LRUBuffer`, are implemented as derived
 
 In order to execute a BTree correctly, we increased the complexity of our program by now introducing the SSTFileManager class that adds a layer of abstraction and allows the BufferPool to not have to interface directly with any SSTManager. The BTree SST was implemented in stages, the first of which being the exact same as the Append Only SST. In this stage, the data on disk was the exact same but every time an SST was loaded/created, an in-memory BTree was built, allowing Get/Scan calls to query the in memory structure before needing to access disk.
 
-This in-memory structure was simply a vector of ints. Where each level of the BTree is represented by a vector of ints. Through some simple maths and the knowledge of the fannout (which was stored in the metadata page of each SST), the in-memory structure could be easily used to find the position or lower bound of an element for get or scan calls.
+This in-memory structure was simply a vector of vector of ints. Where each level of the BTree is represented by a vector of ints. Through some simple maths and the knowledge of the fannout (which was stored in the metadata page of each SST), the in-memory structure could be easily used to find the position or lower bound of an element for get or scan calls.
 
 Slowly, we transitioned to having these in memory structures being written out as "internal node pages" where this data could be parsed from. The data written to disk was exactly the vector of ints, where each vector's end was delimited by an `INT_MAX - 1`. Now, the BTree was only constructed on first creation of the SST (i.e. from memtable to SST dump) and everytime the database was opened thereafter, the BTree was loaded from disk.
 
@@ -322,7 +323,7 @@ We see that B-tree outperforms
 
 #### Step 3 Experiment 1
 
-This experiment aims at providing an updated measure of throughput for put, get, and scan operations. More precisely, the database now stores the SSTs in a Log-structured merge-tree (LSM Tree) with a Bloom filter to check for key presence in every level as well a buffer pool to cache hot pages. It then follows precisely the same methodology as [Step 1 Experiment](#Step-1-Experiment), except that it additionally fixes the buffer pool size to 10 MB, the Bloom filters to use 5 bits per entry, and the memtable to 1 MB. The throughput is plotted as below:
+This experiment aims at providing an updated measure of throughput for put, get, and scan operations. More precisely, the database now stores the SSTs in a Log-structured merge-tree (LSM Tree) with a Bloom filter to check for key presence in every level as well a buffer pool to cache hot pages. It then follows precisely the same methodology as [Step 1 Experiment](#Step-1-Experiment), except that it additionally fixes the buffer pool to type Clock and size of 10 MB, the Bloom filters to use 5 bits per entry, and the memtable to 1 MB. The throughput is plotted as below:
 
 <p align="center">
   <img src="assets/experiment3p1-all.png"  width=50% height=50%>
@@ -366,4 +367,4 @@ In our efforts to assure the quality of our code, we relied on unit tests to che
 - **clock_simple_evict:**
 - **bloom_filter_simple:**
 
-We also run the same tests with multiple database configurations (different search techniques, different buffer options, different sizes of various components) to ensure that the options behave consistenly across the board.
+We also run the same tests with multiple database configurations (different search techniques, different buffer options, different sizes of various components) to ensure that the options behave consistenly across the board. We also run various sizes of the experiments as stress/load tests of our databases.

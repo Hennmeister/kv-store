@@ -28,6 +28,9 @@ public:
     // Closes the database
     void close() override;
 
+    // Delete a key from the db
+    bool delete_key(const int& key);
+
     void set_buffer_pool_max_size(const int &new_max) override;
 };
 #endif //KV_STORE_SIMPLEKVSTORE_H

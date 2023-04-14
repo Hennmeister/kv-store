@@ -37,6 +37,15 @@ void SimpleKVStore::open(std::string db_path, DbOptions *options)
 
 }
 
+bool SimpleKVStore::delete_key(const int &key) {
+    int discard;
+    if(this->get(key, discard)){
+        this->put(key, INT_MIN);
+        return true;
+    }
+    return false;
+}
+
 bool SimpleKVStore::put(const int &key, const int &value)
 {
     int discard;
@@ -51,8 +60,12 @@ bool SimpleKVStore::put(const int &key, const int &value)
 
 bool SimpleKVStore::get(const int &key, int &value)
 {
-    if (!this->memtable->get(key, value))
-        return this->sstManager->get(key, value);
+    if (!this->memtable->get(key, value)) {
+        this->sstManager->get(key, value);
+    }
+    if(value == INT_MIN){
+        return false;
+    }
     return true;
 }
 
@@ -60,14 +73,6 @@ std::vector<std::pair<int, int>> SimpleKVStore::scan(const int &key1, const int 
 {
     if (key1 > key2)
         return std::vector<std::pair<int, int>>{};
-
-    // TODO: change this to be handled in the algorithm
-    if (key1 == key2)
-    {
-        int val;
-        get(key1, val);
-        return {(std::pair<int, int>{key1, val})};
-    }
 
     return priority_merge(this->memtable->scan(key1, key2), this->sstManager->scan(key1, key2));
 }
