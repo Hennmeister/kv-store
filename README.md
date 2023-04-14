@@ -36,12 +36,12 @@ Refer to [this page](https://docs.google.com/document/d/1dsIuIzXiIBbiZcNYi1cC62P
 
 In this project, we build a key-value store from scratch. A key-value store (KV-store) is a kind of database system that stores key-value pairs and allows retrieval of a value based on its key. KV-stores exhibit the following simple API:
 
-- `Open(“database name”)` opens your database and prepares it to run
-- `Put(key, value)` stores a key associated with a value
-- `Delete(key)` deletes a key
-- `Value = Get(key)` retrieves a value associated with a given key
-- `KV-pairs = Scan(Key1, Key2)` retrieves all KV-pairs in a key range in key order (key1 < key2)
-- `Close()` closes your database
+- `open(“database name”)` opens your database and prepares it to run
+- `put(key, value)` stores a key associated with a value
+- `delete_key(key)` deletes a key
+- `Value = get(key)` retrieves a value associated with a given key
+- `KV-pairs = scan(Key1, Key2)` retrieves all KV-pairs in a key range in key order (key1 < key2)
+- `close()` closes your database
 
 This API also reflects common data structures (e.g., binary trees). Unlike simple binary trees, however, a KV-store must be able to store data greater than the amount of memory your system has available. In other words, it has to spill data to storage (disk or SSD) as the size of the data grows.
 
@@ -268,29 +268,32 @@ For each iteration, we:
 
 1. Randomly sample STEP_SIZE keys and `put` those keys in the db. Time and average throughput for that iteration.
 2. Randomly sample NUM_QUERIES keys and `get` those keys from the db. Time and average throughput for that iteration.
-3. Randomly sample NUM_QUERIES keys and `get` those keys from the db. Time and average throughput for that iteration.
+3. Randomly sample NUM_QUERIES keys and `scans` those keys from the db. Time and average throughput for that iteration.
 
 Note that "randomly" in this case is not uniform. Instead our sample has an intentional skew towards lower valued keys to more closely simulate a real database workload. For each iteration, we sample a key from a value that ranges from 0 to the number of keys inserted up to that point so that the likelihood of querying a key value that is indeed loaded in the database (and not a miss) remains consistent throughout each iteration. Since querying a key not in the database is the most expensive query (as we have to traverse all SSTs), this is an important consideration to make in order to compare the throughput at different sizes.
 
 At each iteration, since we increase the total database size at every step, NUM_QUERIES is calculated from a percentage of all the keys inserted into the database at that point.
-
+ 
 The graphs are shown below:
 
 <p align="center">
   <img src="assets/experiment1-all.png"  width=50% height=50%>
 </p>
 
-We first notice a huge drop in throughput of gets ans scans after 10MB. This is expected as 10MB is the default size of the memtable and this further displays the strong difference between IO operations and CPU operations as discussed in class. For a better visualization of the trend in different SST insertions as data increases, we plot another version of the graph excluding this initial 10MB drop:
+We first notice a huge drop in throughput of gets ans scans after 10MB. This is expected as 10MB is the default size of the memtable and this further displays the strong difference between IO operations and CPU operations as discussed in class. For a better visualization of the trend with regards to SST operations as data increases, we plot another version of the graph excluding this initial 10MB drop:
 
 <p align="center">
     <img src="assets/experiment1-sst.png"  width=50% height=50%>
 </p>
 
-It is sensible that, as the data size increases, so does the time to return from a query (throughput decreases) as there is more data to look through to find the key. As such, we see this pattern happening precisely in both gets and scans. This is not seen as much in puts, however, because inserts are first bufferd into the memtable and only written out to disk after the memtable is full.
+It is sensible that, as the data size increases, so does the time to finish a query operation (causing throughput to decrease) as there is likely more data to look through to find the key. As such, we see this pattern happening precisely in both gets and scans. Query throghput is, however, dependent on how likley it is that we find this data in a a recently dumped SST. Thus we expect to see a general downwards trend in throughput, yet it also expected to vary when the keys are "easier" to find. This is observed in the graph by a few spikes in both the get and scan plots. 
 
-This is also the reason why puts have much higher throughput (in the order of 100 to 1000 times as high) compared to gets. It is also interesting to see that there are frequent drops in throughput at somewhat regular intervals of time. This should be precisely when the database is dumping the memtable into an SST, which takes signigicantly longer than the other operations.
+This general downwards pattern is not seen as much in puts, however, because inserts are first bufferd into the memtable and only written out to disk after the memtable is full. In addition, the memtable dump does not depends on the nuber of items inserted in the database since we write SSTs in order of recency to files on disk.
 
-On a similar note, we also see that scans are significantly slower than gets (also in the order of 100 to 1000 times as high). This is intuitive as scans require iterating over a lot more data items to retrieve all elements that fall within the desired range.
+This is also the reason why puts have much higher throughput (in the order of 10 to 100 times as high) compared to gets. It is also interesting to see that there are frequent drops in throughput at regular intervals of time. This should be precisely when the database is dumping the memtable into an SST, which takes significantly longer than the other operations due to IO overheads.
+
+On a similar note, we also see that scans are significantly slower than gets (in the order of 100 to 1000 times as high). This is intuitive as scans retrieve more data and require iterating over a lot more data items to retrieve all elements that fall within the desired range.
+
 
 #### Step 2 Experiment 1
 
@@ -300,40 +303,33 @@ We perform two sub-experiments to display the performance difference in differen
 
 1. **Clock performing better than LRU**
 
-   Since Clock provides a smaller CPU overhead, trivially a workload that fits entirely in memory would likely perform better with Clock rather than LRU. However, thinking about a more "realistically" workload that uses the entirety of the database' s storing power, randomly loading and accessing keys in the database should display this difference. The extra overhead associated with LRU should be enough to yield worst performance as this overhead is not useful given that keys are sampled randomly across the database.
-   <p align="center">
-     <img src="assets/experiment2p1-clock.png"  width=50% height=50%>
-   </p>
-
-   Indeed, Clock performs better at pretty much every buffer
+    Since Clock provides a smaller CPU overhead, trivially a workload that fits entirely in memory would likely perform better with Clock rather than LRU. However, thinking about a more "realistically" workload that uses the entirety of the database's storing power, uniformly and randomly loading as well as uniformly and randomly accessing keys in the database should display this difference. The extra overhead associated with LRU should be enough to yield worst performance as this overhead is not useful given that keys are sampled randomly across the database.
 
 2. **LRU better than Clock**
 
-   LRU provides a more accurate representation of the recency of a page at a higher CPU cost. This would then be useful and pay off when the data accesses are skewed and we indeed access a page more often more recently. We try to set up an experiment to exploit a workload that enhances the clock innacuracies. We access keys in a way that we benefit from the overhead of LRU putting the page to the front while Clock could evict that page earlier on. This is because we try to reaccess the same pages fast enough so that the clock handle does not get a change to reach that page (and the clock does not recognizes the new access by setting a bit that was already 1 to 1 again). We also try to access it far enough so that this delay is enough to cause the clock page to be evicted while the LRU maintains it in buffer (since it brought the page to the front on that reaccess).
-   <p align="center">
-     <img src="assets/experiment2p1-lruf.png"  width=50% height=50%>
-   </p>
+    LRU provides a more accurate representation of the recency of a page at a higher CPU cost. This would then be useful and pay off when the data accesses are skewed and we indeed access a page that was recently used more often. Therefore, we perform the same experiment as before, except we sample the keys from a skewed distribution that favours lower valued keys.
+    
+Both experiments are plotted below:
+    
+<p align="center">
+   <img src="assets/experiment2p1.png"  width=50% height=50%>
+</p>
+  
+As expected, Clock slightly outperfermos LRU in most iterations of the first graph and LRU slightly outperforms Clock in most iterations in the second graph.
+
 
 #### Step 2 Experiment 2
 
 This experiment aims at comparing our initial binary search to B-tree search. As such, we load the same randomly sampled keys with a skew like in [Step 1 Experiment](#step-1-experiment) to both databases of comparison. We then time and randomly query about 0.001% of the keys inserted. For both experiments, we make sure that the keys we are inserting and querying are consistent on both databases so that the experiment is a valid comparison. In other words, we insert the same keys and also query consistent keys in the same order so that the databases are beind compared under exactly the same load.
 
-We plot the graph below:
+
+We plot the graph below excluding the initial throughput drop seen in [Step 1 Experiment](#step-1-experiment) due to the memtable IO vs. CPU difference:
 
 <p align="center">
-  <img src="assets/experiment2p2-all.png"  width=50% height=50%>
+  <img src="assets/experiment2p2.png"  width=50% height=50%>
 </p>
 
-We also notice here a the same throughput after 10MB as seen in [Step 1 Experiment](#step-1-experiment) for the same IO vs. CPU reasons as before.
-Additionally, it is interesting to note that for the first few iterations where most operations happen in memory, binary search actually outperforms b-tree search. This is likely because the data is
-
-For a better visualization of the trend in different SST insertions as data increases, we plot another version of the graph excluding this initial 10MB drop:
-
-<p align="center">
-    <img src="assets/experiment2p2-sst.png"  width=50% height=50%>
-</p>
-
-We see that B-tree outperforms
+We see that the B-tree mostly outperforms 
 
 #### Step 3 Experiment 1
 
