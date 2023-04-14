@@ -335,7 +335,11 @@ We plot the graph below excluding the initial throughput drop seen in [Step 1 Ex
   <img src="assets/experiment2p2.png"  width=50% height=50%>
 </p>
 
-We see that the B-tree mostly outperforms 
+We see that BTree outperforms the binary search as expected. This is as discussed in class, as the size grows, the amount of data increases and `log_f(N) << log_2(N)` where `f = 100`. Additionally, our BTree internal nodes are always in memory, so it makes sense that much less I/O is performed per get query. 
+
+Finally, we notice some spikes in the data, this is because we generate a new set of queries (the same set is used for both BTree and Binary Search) for each data point. This means that some datapoints may get queries which have more data in the memtable. Nonetheless, the spikes are consistent across both the BTree and Binary Search, implying a systematic error. 
+
+
 
 #### Step 3 Experiment 1
 
@@ -360,6 +364,14 @@ We plot the throughput graph below:
 <p align="center">
   <img src="assets/experiment3p2.png"  width=50% height=50%>
 </p>
+
+## Profiling
+### Improving Get Calls
+#### Raw Data vs Vectors
+When initially running the experiments for step 2 and 3, we used the CLion's profiler to get a call graph and visualize what was contributing to our runtimes. Originally, our get calls relied on a function `get_page` which can be seen in the BTreeSST. This function converts raw data read from disk into a vector so that operations performed could be much more simple and readable. The profiler made it clear that vector operations were a significant contribution as even if we were examining one or 2 values in the page, we would have had to iterate over the entire page. As a result, we created a `get_page_raw` function which simply returns an array of ints directly read from disk. This **significantly** improved runtime and we had to modify some functions to now operate on raw data instead of vectors. 
+
+#### The case of the ampersand
+After making the optimization noted above, we noticed that our BTree search was much slower than the binary search. Once again, the profiler came to the rescue. It was notable that most of the runtime of the `btree_find` function, a function that takes in a BTree and returns the leaf starting position, was coming from `~vector`, the vector destructor. Now, a simple inspection of the `btree_find` function can show that no vectors are being constructed nor destructed, implying that this is something unexpected in the call graph. As hinted to by the title, it was because we were passing in the BTree into the `btree_find` function which was making a temporary copy of the entire vector, and hence, ruining performance. By changing the type of the parameter to `const &`, we made it a constant reference, increasing our performance by orders of magnitude. 
 
 ## Testing
 
