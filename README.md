@@ -117,7 +117,7 @@ As such, open("database name") is a valid call to create a database if the user 
 
     - SST
         - sstManager: "BTreeManager", "LSMTreeManager"
-        - sstSearch: "BTree", "BinarySearh"
+        - sstSearch: "BTree", "BinarySearch"
         - btreeFanout: any positive integer value (representing the fanout of the btree)
 
     - Buffer Pool
