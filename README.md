@@ -50,7 +50,7 @@ We implement this key-value store using various data structures covered in class
 
 KV-stores are widely used in industry. Note that they have a far simpler API than traditional relational database systems, which expose SQL as an API to the user. There are many applications for which a simple KV API is sufficient. Note, however, that KV-stores can also be used as the backbone for relational database management systems. For example, MyRocks by Meta is an example of a relational database utilizing as its backbone a key-value store very similar to the one we built, namely RocksDB.
 
-## "I don't care, just tell me how to run it." - Fine... <a name="compilation"></a>
+## "I don't care, just tell me how to run it." <a name="compilation"></a>
 
 Run `./make.sh` to compile all executables and run the tests in one command.
 
@@ -60,7 +60,7 @@ The test executable file will be located under `/build/kv-store-test` and this f
 
 ### Playground
 
-We provide an "empty" C++ file with a default version of our database (that you are free modify if you wish - see [Database Initialization and Parameters](#database-initialization-and-parameters)) for you to play with and write any calls to `open`, `put`, `get`, `scan`, print results and verify functionality. The aim is to provide you with an easy way to interact with our database without having to compile a new project. The executable can be found at `/build/kv-store-test` and the file can be changed at `/playground.cpp`.
+We provide an "empty" C++ file with a default version of our database (that you are free modify if you wish - see [Database Initialization and Parameters](#init_param)) for you to play with and write any calls to `open`, `put`, `get`, `scan`, print results and verify functionality. The aim is to provide you with an easy way to interact with our database without having to compile a new project. The executable can be found at `/build/kv-store-test` and the file can be changed at `/playground.cpp`.
 
 ### Experiments
 
@@ -164,11 +164,11 @@ We have a few base interfaces that can be found under the `/include/Base` direct
 
 ### **KV-store get API**
 
-When we perform a get call, we first check the memtable for the presence of the key to see if it was one of the most recently added keys that are stored in memory. If this call fails (not found), we resort to searching through the SSTs to find the key on disk. We implement various ways that this SST search could be done, from plain Binary Search from the newest to oldest SST, to more complicated methods such as with LSM Trees and B-tree searches outlined below.
+When we perform a get call, we first check the memtable for the presence of the key to see if it was one of the most recently added keys that are stored in memory. If this call fails (not found), we resort to searching through the SSTs to find the key on disk. We implement various ways that this SST search could be done, from plain doing Binary Search starting with the newest SST to oldest SST, to more complicated methods such as with LSM Trees and B-tree searches outlined below.
 
 ### **KV-Store put API**
 
-To perform a put operation, the database buffers all keys in the memtable until it reaches capaicty. Once that is done, we dump the components to their respective SSTs based on whatever SSTManager is chosen (BTreeSSTManager or LSMTreeSSTManager), see below for more details on those.
+To perform a put operation, the database buffers all keys in the memtable until it reaches capacity. Once that is done, we dump the components to their respective SSTs based on whatever SSTManager is chosen (BTreeSSTManager or LSMTreeSSTManager), see below for more details on those.
 
 ### **KV-store scan API**
 
@@ -182,7 +182,7 @@ We implement a memtable as a balanced binary search tree ([red-black tree](https
 
 ### **SSTs (Sorted String Tables)**
 
-We set a maximum capacity (e.g. a page size of 4KB) to the Memtable, at which point we dump the key-value pairs in sorted order to an SST file `x.sst`. The SSTs are thus stored in decreasing order of longevity where `1.sst` is the oldest Memtable dumped. On a get query that is not found on the current Memtable, our database traverses over the SSTs from newest to oldest to find a key. Note that we implement the SST dump so that it writes in binary to an append-only file to maximize efficiency in sequential writes.
+We set a maximum capacity (e.g. a page size of 4KB) to the Memtable, at which point, we dump the key-value pairs in sorted order to an SST file `x.sst`. The SSTs are thus stored in decreasing order of longevity where `1.sst` is the oldest SST dumped. On a get query that is not found on the current memtable, our database traverses over the SSTs from newest to oldest to find a key. Note that we implement the SST dump so that it writes in binary to an append-only file to maximize efficiency in sequential writes.
 
 Our initial implementation was quite raw and assumed that a new SST File was made every time a memtable was dumped. This implies that each operation performed on any SST loaded from disk could be performed in memory seeing as they do not grow in size. This assumption is later relaxed as we introduce more complications to our implementation.
 
@@ -190,17 +190,19 @@ In order to ensure efficiency, we use the `O_DIRECT` flag when opening a file an
 
 ### **Database Open and Close API**
 
-To open a new database with default parameters, we call db.open("<db_path>/<db_name>") and this will create a new database at `<db_path>/<db_name>` with the default parameters outlined [here](#init_param). We can additinionally create a `DbOptions` object and also include that in as a second parameter db.open("<db_path>/<db_name>", options) to create a kv-store with any specific options. Also refer to [this section](#init_param) on how that is done. We can also reopen an existing database by passing in the path to where such db was stored.
+To open a new database with default parameters, we call db.open("<db_path>/<db_name>") and this will create a new database at `<db_path>/<db_name>` with the default parameters outlined [here](#init_param). We can additionally create a `DbOptions` object and include that in as a second parameter db.open("<db_path>/<db_name>", options) to create a kv-store with any specific options. Also refer to [this section](#init_param) on how that is done. 
 
-At the end of your session, you shoud db.close() the database. This call does some book keeping work to ensure the memory contents of the database (i.e. the memtbale) is correctly dumped in a way that the db can be reloaded to its normal state. It also frees the memory we allocated during runtime. 
+We can also reopen an existing database by passing in the path to where such db was stored.
+
+At the end of your session, you shoud db.close() the database. This call does some book keeping work to ensure the memory contents of the database (i.e. the memtable) is correctly dumped in a way that the db can be reloaded to its normal state. It also frees the memory we allocated during runtime. 
 
 Both of these functions are located in `SimpleKVStore.cpp`.
 
 ### **Extendible Hash Buffer Pool**
 
-The buffer pool is implemented using extendable hashing and is located in the `./include/BufferPool` and `./src/BufferPool` directories. The implementation includes a `BufferPool` interface and an abstract class `Directory`, which is responsible for the logic related to extendable hashing. Directory holds a vector of pointers to `BufferPoolEntry` objects, which store data and relevant metadata such as the next and previous entry that are hashed to the same bucket. The entries can hold variable-sized data to accommodate dynamically sized bloom filter data.
+The buffer pool is implemented using extendable hashing and is located in the `./include/BufferPool` and `./src/BufferPool` directories. The implementation includes a `BufferPool` interface and an abstract class `Directory`, which is responsible for the logic related to extenible hashing. Directory holds a vector of pointers to `BufferPoolEntry` objects, which store data and relevant metadata such as the next and previous entry that are hashed to the same bucket. The entries can hold variable-sized data to accommodate dynamically sized bloom filter data.
 
-To hash the entry name, which is a combination of the file and page number in that file, the buffer pool uses MurmurHash and mods the result by the bit suffix to find the bucket of the entry given the current buffer size. The buffer pool grows the directory by doubling the number of buckets when the buffer pool reaches a certain percentage of the maximum buffer pool size, both values specified by the user. The new buckets initially point to the bucket that has the same bit suffix, except for the most significant bit. If a bucket points to a bucket that is still a reference itself, the buffer pool points it to the base bucket to avoid chains. To track all references to a bucket and which bucket a bucket is pointing to, the buffer pool uses two maps, `bucket_num_to_references` and `reference_to`. These references are updated on evictions, shrinking, and inserts.
+To hash the entry name, which is a combination of the file and page number in that file, the buffer pool uses MurmurHash and mods the result by the bit suffix to find the bucket of the entry given the current buffer size. The buffer pool grows the directory by doubling the number of buckets when the buffer pool reaches a certain percentage of the maximum buffer pool size, both values are specified by the user. The new buckets initially point to the bucket that has the same bit suffix, except for the most significant bit. If a bucket points to a bucket that is still a reference to itself, the buffer pool points it to the base bucket to avoid chains. To track all references to a bucket and which bucket a bucket is pointing to, the buffer pool uses two maps, `bucket_num_to_references` and `reference_to`. These references are updated on evictions, shrinking, and inserts.
 
 After doubling the directory size, every bucket is evaluated, and if more than one entry is in a bucket, the buffer pool rehashes every entry in that bucket using the new bit suffix and updates bucket references accordingly. If the user sets a new maximum size smaller than the current maximum size, entries are continually evicted according to the eviction policy until the amount of data in the buffer pool is not larger than the maximum size. Then, the directory itself (number of entries and the bit suffix) is shrunk until at least a minimum percentage (set by the user) of entries are being used.
 
@@ -269,7 +271,7 @@ _Note: When scanning across pages, we do not store data in the buffer pool - thi
 
 Updates can be called by simply calling a `put` with an existing key. No special processing is required. 
 
-Updates are not in-place in order to ensure performance as discussed in lectures. When issuing an update, if an entry is already present in the memtable, the redblacktree will simply update the value associated with the given key. 
+Updates are not in-place in order to ensure performance as discussed in lectures. When issuing an update, if an entry is already present in the memtable, the RedBlackTree will simply update the value associated with the given key. 
 
 When issuing a get call, we know that data is accessed in order of time, i.e. most recent entries are accessed first. As a result, the most recent value associated with a key will always be returned. This applies to SSTs as we scan SSTs from latest to oldest. 
 
@@ -417,13 +419,13 @@ In our efforts to assure the quality of our code, we relied on unit tests to che
 - **delete_keys:** checks that the db correctly delete keys correctly while maintaining undeleted keys intact.
 - **edge_case_values:** checks for edge cases
 - **multiple_dbs:** manages multiple dbs opened at once and ensure they are each correctly managed
-- **simple_LRU_buffer:**: verifies that the database still works as expected when integrating with LRU buffer, without evictions
-- **LRU_simple_evict:**: verifies that the first inserted value (least recent) gets evicted when no references are made
-- **LRU_ref_evict:**: verifies that referecing a value updates its recency by checking that a recently referenced value does not get evicted first
-- **buffer_grow:**: test that a buffer can grow directory size and still support puts and gets as expected
-- **buffer_shrink:**: test that a buffer can shrink directory size and still support puts and gets as expected
-- **simple_clock_buffer:**: verifies that the database still works as expected when integrating with clock buffer, without evictions
-- **clock_simple_evict:**: verifies that a inserted value gets evicted when no references are made
-- **bloom_filter_simple:**: check that querying a missing value on a new bloom filter is false, and that querying after inserting returns true
+- **simple_LRU_buffer:** verifies that the database still works as expected when integrating with LRU buffer, without evictions
+- **LRU_simple_evict:** verifies that the first inserted value (least recent) gets evicted when no references are made
+- **LRU_ref_evict:** verifies that referecing a value updates its recency by checking that a recently referenced value does not get evicted first
+- **buffer_grow:** test that a buffer can grow directory size and still support puts and gets as expected
+- **buffer_shrink:** test that a buffer can shrink directory size and still support puts and gets as expected
+- **simple_clock_buffer:** verifies that the database still works as expected when integrating with clock buffer, without evictions
+- **clock_simple_evict:** verifies that a inserted value gets evicted when no references are made
+- **bloom_filter_simple:** check that querying a missing value on a new bloom filter is false, and that querying after inserting returns true
 
 We also run the same tests with multiple database configurations (different search techniques, different buffer options, different sizes of various components) to ensure that the options behave consistenly across the board. We also run various sizes of the experiments as stress/load tests of our databases.
