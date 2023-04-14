@@ -30,7 +30,8 @@ Refer to [this page](https://docs.google.com/document/d/1dsIuIzXiIBbiZcNYi1cC62P
    - [Updates](#updates)
    - [Deletes](#deletes)
 7. [Experiments](#experiments-1)
-8. [Testing](#testing)
+8. [Profiling](#profiling)
+9. [Testing](#testing)
 
 ## Introduction
 
@@ -158,12 +159,6 @@ We have a few base interfaces that can be found under the `/include/Base` direct
 ### Utility <a name="utility"></a>
 
 - `priority_merge` - This function is a core utility function used throughout our implementation. It allows the neat compaction of various sources of data in order to produce output data which prioritizes the newest data. The function takes in 2 inputs, 1 set of newer data (key-value pairs) and one set of older data. If there is ever an entry which is present in both sources, the function will use the newer version of the key. An example of usage would be when priority merging data from the memtable with data found in SSTs.
-
-### High-Level OOP Diagram
-
-For better understanding of the codebase and our design decisions, we include here a diagram of our main classes and how they interact with each other:
-
-TODO: image
 
 ## Design Elements
 
@@ -376,6 +371,8 @@ We plot the throughput graph below:
   <img src="assets/experiment3p2.png"  width=50% height=50%>
 </p>
 
+Contrary to our initial expectations, the query throughput decreases gradually as more bits are allocated to the bloom filter. We believe that this indicates the overhead of managing a larger bitmap is worse for performance than the benefit gained from the lower false positive rate of using additional bits. Since the bitmap is often being serialized and deserialized as a bloom filter is recreated for each query, additional bits make these operations even more expensive. Meanwhile, we noticed that even with 10 bits our false positive rate was quite low, so we likely saving very few I/Os by adding more bits.
+
 ## Profiling
 
 ### Improving Get Calls
@@ -387,6 +384,15 @@ When initially running the experiments for step 2 and 3, we used the CLion's pro
 #### The case of the ampersand
 
 After making the optimization noted above, we noticed that our BTree search was much slower than the binary search. Once again, the profiler came to the rescue. It was notable that most of the runtime of the `btree_find` function, a function that takes in a BTree and returns the leaf starting position, was coming from `~vector`, the vector destructor. Now, a simple inspection of the `btree_find` function can show that no vectors are being constructed nor destructed, implying that this is something unexpected in the call graph. As hinted to by the title, it was because we were passing in the BTree into the `btree_find` function which was making a temporary copy of the entire vector, and hence, ruining performance. By changing the type of the parameter to `const &`, we made it a constant reference, increasing our performance by orders of magnitude.
+
+### Bloom Filter Performance
+
+Through profiling, we noticed that for some of our experiments, the bloom filter deserialization was taking a signficant portion of our runtime. This prompted us to switch from using a vector for the bitmap to an array, so that we can directly use the page data retrieved by the file manager. As you can see from the profile screenshots below, this decreased the performance impact of bloom filters signficantly, going from taking ~35% of our runtime to ~3.4%.
+
+<p align="center">
+  <img src="assets/bloom_filter_profile_slow.png"  width=49% height=50%>
+  <img src="assets/bloom_filter_profile_fast.png"  width=49% height=50%>
+</p>
 
 ## Testing
 
