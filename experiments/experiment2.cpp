@@ -211,11 +211,13 @@ void experiment2p2(int num_MB, int step_size_MB) {
     DbOptions *btree_options = new DbOptions();
     btree_options->setSSTSearch("BTree");
     btree_options->setSSTManager("LSMTreeManager");
+    btree_options->setBufferPoolType("None");
     btree_options->setFilterBitsPerEntry(0);
 
     DbOptions *bs_options = new DbOptions();
     bs_options->setSSTSearch("BinarySearch");
     bs_options->setSSTManager("LSMTreeManager");
+    bs_options->setBufferPoolType("None");
     bs_options->setFilterBitsPerEntry(0);
 
     SimpleKVStore btree_db;

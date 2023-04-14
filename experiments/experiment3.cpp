@@ -61,7 +61,7 @@ void experiment3p1(int num_MB, int step_size_MB) {
         double microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();
         puts_throughput.push_back((1000 * (double)step_size) / microsecs);
 
-        int num_queries = 0.00001 * db_num_keys; // query 0.001% of data inserted
+        int num_queries = 0.000005 * db_num_keys; // query 0.0005% of data inserted
 
         // num_queries number of random gets
         int val;
