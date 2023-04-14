@@ -297,9 +297,9 @@ We perform two sub-experiments to display the performance difference in differen
     
 Both experiments are plotted below:
     
-    <p align="center">
-      <img src="assets/experiment2p1.png"  width=50% height=50%>
-    </p>
+<p align="center">
+   <img src="assets/experiment2p1.png"  width=50% height=50%>
+</p>
   
 As expected, Clock slightly outperfermos LRU in most iterations of the first graph and LRU slightly outperforms Clock in most iterations in the second graph.
 
