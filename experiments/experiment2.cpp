@@ -5,6 +5,7 @@
 #include "../include/util.h"
 #include <algorithm>
 #include <fstream>
+#include <random>
 
 using namespace std;
 
@@ -13,21 +14,13 @@ using namespace std;
 // Try to identify one workload where LRU performs better and another workload where clock performs better.
 //
 // 1. Clock better than LRU:
-// Randomly load and access keys in the database.
+// Uniformly randomly load and access keys in the database.
 // The extra overhead associated with LRU should be enough to
 // yield worst performance and this overhead is not payed off
 // as keys are sampled uniformly random across entire DB
 //
 // 2. LRU better than Clock:
-// Load keys in order so we can have a sense of spacial locality.
-// Access keys in a way that we benefit from the overhead of LRU
-// putting the page to the front while clock evicts page earlier
-// since it just sets a bit that is already 1 to 1 again (effectively doing nothing).
-// For that, we have to access a page once to put it in cache,
-// and then access it again fast enough so that the clock did
-// not reach said page and changed to 0, while still trying to
-// wait as long as possible so that LRU can still keep the page
-// while clock evicted on a third access
+// Randomly load form a skewed sample and access keys in the database.
 void experiment2p1(int num_MB, int step_size_MB) {
     cout << "Running Experiment 2.1" << endl;
 
@@ -68,15 +61,21 @@ void experiment2p1(int num_MB, int step_size_MB) {
 
     assert(step_size_MB * MEGABYTE < num_inserts);
 
-    for (int i = 0; i < num_inserts; i++) {
-        // Load db1s with randomly ordered keys
-        int key = ::rand() % num_inserts;
-        clock_db1.put(key, 0);
-        lru_db1.put(key, 0);
+    std::random_device rand_dev;
+    std::mt19937 generator(rand_dev());
+    std::uniform_int_distribution<int> unif_sample(0, num_inserts);
 
-        // Load db2s with sequential keys
-        clock_db2.put(i, 0);
-        lru_db2.put(i, 0);
+    for (int i = 0; i < num_inserts; i++) {
+
+        // Load db1s with uniformly randomly ordered keys
+        int uniform = unif_sample(generator);
+        clock_db1.put(uniform, 0);
+        lru_db1.put(uniform, 0);
+
+        int skew = ::rand() % num_inserts;
+        // Load db2s with skewed keys
+        clock_db2.put(skew, 0);
+        lru_db2.put(skew, 0);
     }
 
     std::cout << "Generating " + to_string(max_buf_size_MB / step_size_MB) + " datapoints..." << std::endl;
@@ -99,7 +98,7 @@ void experiment2p1(int num_MB, int step_size_MB) {
         // Make sure each experiment is querying consistently
         std::vector<int> queries(num_queries);
         for (int j = 0; j < num_queries; j++)
-            queries[j] = ::rand() % num_inserts; // Query randomly
+            queries[j] = unif_sample(generator); // Query uniformly randomly
 
         int val;
 
@@ -129,30 +128,9 @@ void experiment2p1(int num_MB, int step_size_MB) {
 
         // 2. === LRU BETTER ===
 
-        // Maximum num pages in buf
-        int num_pages_in_buf = buffer_size * MEGABYTE / PAGE_SIZE;
-
-        // Reaccess the same page after querying 30% of the buffer size new pages
-        // This tries to be long enough so that clock handle did not tick
-        int reaccess_after = 0.30 * num_pages_in_buf; // take the floor of 30%
-
-        // Get keys PAGE_NUM_ENTRIES apart to guarantee different entries
-        int start_key = ::rand() % (num_inserts - (reaccess_after * PAGE_NUM_ENTRIES));
-
-        std::vector<int> keys_iterated = {start_key};
-        for (int j = 0; j < reaccess_after; j++)
-            keys_iterated.push_back(start_key + j * PAGE_NUM_ENTRIES);
-
         // Make sure each experiment is querying consistently
-        for (int j = 0; j < num_queries; j++) {
-            // To avoid synchronizing with the clock handle, query from
-            // random key after 10% queries
-            if (j % (int)(0.1 * num_queries) == 0) {
-                queries[j] = ::rand() % num_inserts;
-            } else {
-                queries[j] = keys_iterated[j % (reaccess_after + 1)];
-            }
-        }
+        for (int j = 0; j < num_queries; j++)
+            queries[j] = ::rand() % num_inserts; // Query skewed randomly
 
         // Time LRU
         start = chrono::high_resolution_clock::now();
@@ -170,7 +148,6 @@ void experiment2p1(int num_MB, int step_size_MB) {
 
         for (int j = 0; j < num_queries; j++)
             clock_db2.get(queries[j], (int &) val);
-
 
         stop = chrono::high_resolution_clock::now();
         microsecs = chrono::duration_cast<chrono::microseconds>(stop-start).count();

@@ -2,20 +2,14 @@
 #define SRC_KV_STORE_KV_STORE_TEST_H
 
 #include "../include/SimpleKVStore.h"
-#include "../include/RedBlack/RedBlackMemtable.h"
-#include "../include/ArraySST/SimpleSSTManager.h"
-#include "../include/constants.h"
 #include "../include/util.h"
 #include "./test_util.h"
 #include "./tests.h"
-#include "../include/Base/BufferPool.h"
 #include <string>
 #include <vector>
 #include <filesystem>
 #include <sys/stat.h>
 #include <iostream>
-#include <random>
-#include <unordered_set>
 
 using namespace std;
 
@@ -36,6 +30,7 @@ vector<pair<void (*)(SimpleKVStore db), string>>
         F_NAME(sequential_puts_and_scans),
         F_NAME(random_puts_and_gets),
         F_NAME(update_keys),
+        F_NAME(delete_keys),
         F_NAME(edge_case_values),
         F_NAME(multiple_dbs),
         F_NAME(simple_LRU_buffer),

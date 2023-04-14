@@ -28,7 +28,6 @@ void bloom_filter_simple(SimpleKVStore db) {
     assert_val_equals(filter->testMembership(1), true, "bloom_filter_simple");
 }
 
-// TODO: test updating pages
 // ===================== LRU Pool Tests ========================= //
 void simple_LRU_buffer(SimpleKVStore db)
 {
@@ -329,6 +328,37 @@ void update_keys(SimpleKVStore db)
     vector<pair<int, int>> scan = db.scan(0, 3 * PAGE_NUM_ENTRIES + 300 - 1);
     assert_vec_equals(scan, key_vals, "update_keys");
 
+}
+
+void delete_keys(SimpleKVStore db)
+{
+    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
+    {
+        db.put(i, -i);
+    }
+
+    int val;
+    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
+    {
+        db.get(i, val);
+        assert_val_equals(val, -i, "delete_keys");
+    }
+
+    // Delete every other key
+    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i += 2)
+    {
+        db.delete_key(i);
+    }
+
+    vector<pair<int, int>> key_vals{};
+    for (int i = 0; i < 3 * PAGE_NUM_ENTRIES + 300; i++)
+    {
+        int status = db.get(i, val);
+        if (i % 2 == 0)
+            assert_val_equals(status, false, "delete_keys");
+        else
+            assert_val_equals(status, true, "delete_keys");
+    }
 }
 
 void edge_case_values(SimpleKVStore db)
