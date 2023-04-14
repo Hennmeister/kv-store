@@ -348,7 +348,7 @@ As expected, Clock slightly outperfermos LRU in most iterations of the first gra
 
 #### Step 2 Experiment 2
 
-This experiment aims at comparing our initial binary search to B-tree search. As such, we load the same randomly sampled keys with a skew like in [Step 1 Experiment](#step-1-experiment) to both databases of comparison. We then time and randomly query about 0.001% of the keys inserted. For both experiments, we make sure that the keys we are inserting and querying are consistent on both databases so that the experiment is a valid comparison. In other words, we insert the same keys and also query consistent keys in the same order so that the databases are beind compared under exactly the same load.
+This experiment aims at comparing our initial binary search to B-tree search. As such, we load the same randomly sampled keys with a skew like in [Step 1 Experiment](#step-1-experiment) to both databases of comparison. We then time and randomly query about 0.001% of the keys inserted. For both experiments, we make sure that the keys we are inserting and querying are consistent on both databases so that the experiment is a valid comparison. In other words, we insert the same keys and also query consistent keys in the same order so that the databases are beind compared under exactly the same load. Finally, we also choose not to have any buffer pools interfering with our search so as to leave all the queries going through the SSTs, and we also set SSTManager to LSMTreeManager so that SSTs are larger in size and the the discrepancy is shown more aggresively between the two methods.
 
 
 We plot the graph below excluding the initial throughput drop seen in [Step 1 Experiment](#step-1-experiment) due to the memtable IO vs. CPU difference:
@@ -378,7 +378,7 @@ More precisely, the Buffer Pool is adding an extra "unnecessary" check as the ra
 
 #### Step 3 Experiment 2
 
-In this experiment, we explore how get performance varies as we vary the number of bits per entry used for your Bloom filters. Then, for each value of number of bits per entry being tested, we create a database with the desired number of filter bits and 1MB of memtable, load 256 MB worth of data and time the time it takes to query from that database. For all experiments, we make sure that the keys we are inserting and querying are consistent across databases so that the experiment is a valid comparison. In other words, we insert the same keys and also query consistent keys in the same order so that the databases are beind compared under exactly the same load.
+In this experiment, we explore how get performance varies as we vary the number of bits per entry used for your Bloom filters. Then, for each value of number of bits per entry being tested, we create a database with the desired number of filter bits and 1MB of memtable, load 256 MB worth of data and time the time it takes to query from that database. For all experiments, we make sure that the keys we are inserting and querying are consistent across databases so that the experiment is a valid comparison. In other words, we insert the same keys and also query consistent keys in the same order so that the databases are beind compared under exactly the same load. In addition, we allocate a big enough buffer pool to guarantee that all our bloom filters fit in memory and do not add to I/O overheads.
 
 We plot the throughput graph below:
 
