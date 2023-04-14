@@ -16,8 +16,8 @@ BloomFilter::BloomFilter(int num_entries, int bits_per_entry) {
         seeds.insert(dis(gen));
     }
     bitmap_size = ceil((double) num_entries * bits_per_entry / (sizeof(int) * 8));
-    bits = new int[bitmap_size]{0};
-    data_buf = nullptr;
+    data_buf = new int[bitmap_size]();
+    bits = data_buf;
 }
 
 BloomFilter::BloomFilter(int *buffer_data) {
@@ -92,4 +92,5 @@ bool BloomFilter::testMembership(int key) {
 BloomFilter::~BloomFilter() {
     if (data_buf != nullptr)
         delete[] data_buf;
+
 }
