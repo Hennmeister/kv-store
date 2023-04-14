@@ -27,9 +27,9 @@ int BTreeSST::getSize() const {
 }
 
 // Find the position of an element which lower bounds the given needle in the btree
-int btree_find(vector<vector<int>> btree, int needle, int fanout){
+int btree_find(const vector<vector<int>>& btree, int needle, int fanout){
     int offset = 0;
-    for(int layer = btree.size() - 1; layer > -1; layer--){
+    for(int layer = (int) btree.size() - 1; layer > -1; layer--){
         int i;
         for(i =0; i < fanout; i ++){
             if(i + offset >= btree[layer].size()){
